@@ -1,0 +1,113 @@
+{
+    "$schema":"http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "GenerateConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "schemaFilePath": {
+                    "type": "string"
+                },
+                "match": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "type": "object" },
+                            { "type": "string" }
+                        ]
+                    }
+                },
+                "exclude": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "type": "object" },
+                            { "type": "string" }
+                        ]
+                    }
+                },
+                "scalars": {
+                    "type": "object"
+                },
+                "typeScript": {
+                    "type": "boolean"
+                },
+                "strictNullability": {
+                    "type": "boolean"
+                },
+                "regenerateCommand": {
+                    "type": "string"
+                },
+                "readOnlyArray": {
+                    "type": "boolean"
+                },
+                "splitTypes": {
+                    "type": "boolean"
+                },
+                "generatedDirectory": {
+                    "type": "string"
+                },
+                "exportAllObjectTypes": {
+                    "type": "boolean"
+                },
+                "typeFileName": {
+                    "type": "string"
+                },
+                "experimentalEnums": {
+                    "type": "boolean"
+                },
+                "omitFileExtensions": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "schemaFilePath"
+            ]
+        }
+    },
+    "properties": {
+        "crawl": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "root": {"type": "string"},
+                "pragma": {
+                    "type": "string"
+                },
+                "loosePragma": {
+                    "type": "string"
+                },
+                "ignorePragma": {
+                    "type": "string"
+                },
+                "dumpOperations": {
+                    "type": "string"
+                }
+            },
+            "required": [ "root" ]
+        },
+        "generate": {"oneOf": [
+            {"$ref": "#/definitions/GenerateConfig"},
+            {"type": "array", "items": {"$ref": "#/definitions/GenerateConfig"}}
+        ]},
+        "alias": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "find": {
+                        "type": ["string", "object"]
+                    },
+                    "replacement": {
+                        "type": "string"
+                    }
+                },
+                "required": [ "find", "replacement" ]
+            }
+        }
+    },
+    "required": [ "crawl", "generate" ]
+}

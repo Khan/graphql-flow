@@ -1,0 +1,67 @@
+name: Lint & Test
+
+on:
+  pull_request:
+    # edited is needed because that's the trigger when the base branch is
+    # changed on a PR
+    # The rest are the defaults.
+    types: [edited, opened, synchronize, reopened]
+
+jobs:
+  lint_and_test:
+    name: Lint & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [20.x]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: Khan/actions@shared-node-cache-v2
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Get All Changed Files
+      uses: Khan/actions@get-changed-files-v2
+      id: changed
+
+    - id: ts-files
+      name: Find .ts changed files
+      uses: Khan/actions@filter-files-v1
+      with:
+        changed-files: ${{ steps.changed.outputs.files }}
+        extensions: '.ts'
+
+    - name: Run TypeScript
+      if: steps.ts-files.outputs.filtered != '[]'
+      run: yarn tsc
+
+    - id: eslint-reset
+      uses: Khan/actions@filter-files-v1
+      name: Files that would trigger a full eslint run
+      with:
+        changed-files: ${{ steps.changed.outputs.files }}
+        files: '.eslintrc.js,package.json,.eslintignore'
+
+    - name: ESlint
+      uses: Khan/actions@full-or-limited-v0
+      with:
+        full-trigger: ${{ steps.eslint-reset.outputs.filtered }}
+        full: yarn eslint src/**/*.ts
+        limited-trigger: ${{ steps.ts-files.outputs.filtered }}
+        limited: yarn eslint {}
+
+    - id: jest-reset
+      uses: Khan/actions@filter-files-v1
+      name: Files that would trigger a full jest run
+      with:
+        changed-files: ${{ steps.changed.outputs.files }}
+        files: 'package.json,package-lock.json'
+
+    - name: Jest
+      uses: Khan/actions@full-or-limited-v0
+      with:
+        full-trigger: ${{ steps.jest-reset.outputs.filtered }}
+        full: yarn jest
+        limited-trigger: ${{ steps.ts-files.outputs.filtered }}
+        limited: yarn jest --findRelatedTests {}
