@@ -36,36 +36,49 @@ schema.__schema.types.forEach(t => {
         console.log('no fields', t.name);
         return;
     }
+
     t.fields.forEach(field => {
         t.fieldsByName[field.name] = field;
     });
 });
 
-const objectPropertiesToFlow = (type, selections) => {
-    return selections
-        .map(selection => {
-            if (selection.kind !== 'Field') {
-                console.log('not field selection', selection);
-                return null;
-            }
+const objectPropertiesToFlow = (fragments, type, selections) => {
+    return [].concat(
+        ...selections.map(selection => {
             const name = selection.name.value;
-            if (!type.fieldsByName[name]) {
-                console.warn('Unknown field: ' + name);
-                return t.objectTypeProperty(
-                    t.identifier(name),
-                    t.anyTypeAnnotation(),
-                );
+            switch (selection.kind) {
+                case 'FragmentSpread':
+                    return objectPropertiesToFlow(
+                        fragments,
+                        type,
+                        fragments[selection.name.value].selectionSet.selections,
+                    );
+
+                case 'Field':
+                    if (!type.fieldsByName[name]) {
+                        console.warn('Unknown field: ' + name);
+                        return t.objectTypeProperty(
+                            t.identifier(name),
+                            t.anyTypeAnnotation(),
+                        );
+                    }
+                    const typeField = type.fieldsByName[name];
+                    return [
+                        t.objectTypeProperty(
+                            t.identifier(name),
+                            typeToFlow(fragments, typeField.type, selection),
+                        ),
+                    ];
+
+                default:
+                    console.log('unsupported selection', selection);
+                    return [];
             }
-            const typeField = type.fieldsByName[name];
-            return t.objectTypeProperty(
-                t.identifier(name),
-                typeToFlow(typeField.type, selection),
-            );
-        })
-        .filter(Boolean);
+        }),
+    );
 };
 
-const unionToFlow = (type, selections) => {
+const unionToFlow = (fragments, type, selections) => {
     return t.unionTypeAnnotation(
         type.possibleTypes.map(possible => {
             return t.objectTypeAnnotation(
@@ -100,6 +113,7 @@ const unionToFlow = (type, selections) => {
                             typeName === possible.name
                         ) {
                             return objectPropertiesToFlow(
+                                fragments,
                                 typesByName[possible.name],
                                 selection.selectionSet.selections,
                             );
@@ -112,7 +126,7 @@ const unionToFlow = (type, selections) => {
     );
 };
 
-const typeToFlow = (type, selection) => {
+const typeToFlow = (fragments, type, selection) => {
     if (type.kind === 'SCALAR') {
         switch (type.name) {
             case 'Boolean':
@@ -131,7 +145,9 @@ const typeToFlow = (type, selection) => {
         }
     }
     if (type.kind === 'LIST') {
-        return t.arrayTypeAnnotation(typeToFlow(type.ofType, selection));
+        return t.arrayTypeAnnotation(
+            typeToFlow(fragments, type.ofType, selection),
+        );
     }
     if (type.kind === 'UNION') {
         const union = unionsByName[type.name];
@@ -139,15 +155,17 @@ const typeToFlow = (type, selection) => {
             console.log('no selection set', selection);
             return t.anyTypeAnnotation();
         }
-        return unionToFlow(union, selection.selectionSet.selections);
+        return unionToFlow(fragments, union, selection.selectionSet.selections);
     }
+
     if (type.kind !== 'OBJECT') {
         console.log('not object', type);
         return t.anyTypeAnnotation();
     }
+
     const tname = type.name;
     if (!typesByName[tname]) {
-        console.log('unknowne referenced type', tname);
+        console.log('unknown referenced type', tname);
         return t.anyTypeAnnotation();
     }
     const childType = typesByName[tname];
@@ -156,6 +174,7 @@ const typeToFlow = (type, selection) => {
         return t.anyTypeAnnotation();
     }
     return querySelectionToObjectType(
+        fragments,
         selection.selectionSet.selections,
         childType,
     );
@@ -180,13 +199,22 @@ const typeToFlow = (type, selection) => {
  * };
  */
 
-const querySelectionToObjectType = (selections, type) => {
-    return t.objectTypeAnnotation(objectPropertiesToFlow(type, selections));
+const querySelectionToObjectType = (fragments, selections, type) => {
+    return t.objectTypeAnnotation(
+        objectPropertiesToFlow(fragments, type, selections),
+    );
 };
 
-module.exports = query => {
+module.exports = (query, definitions) => {
+    const fragments = {};
+    definitions.forEach(def => {
+        if (def.kind === 'FragmentDefinition') {
+            fragments[def.name.value] = def;
+        }
+    });
     return generate(
         querySelectionToObjectType(
+            fragments,
             query.selectionSet.selections,
             typesByName.Query,
         ),
