@@ -138,7 +138,7 @@ const typeToFlow = (fragments, type, selection) => {
             case 'Float':
                 return t.genericTypeAnnotation(t.identifier('number'));
             case 'JSONString':
-                return t.genericTypeAnnotation(t.identifier('Object'));
+                return t.genericTypeAnnotation(t.identifier('string'));
             default:
                 console.log('scalar', type.name);
                 return t.anyTypeAnnotation();
