@@ -140,7 +140,7 @@ const unionOrInterfaceToFlow = (fragments, type, selections) => {
             ),
         ),
     );
-    const allFields = !selections.some(selection => selection.kind !== 'Field');
+    const allFields = selections.every(selection => selection.kind === 'Field');
     if (selectedAttributes.length === 1 || allFields) {
         return t.objectTypeAnnotation(selectedAttributes[0]);
     }
