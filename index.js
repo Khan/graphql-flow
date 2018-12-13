@@ -15,8 +15,13 @@ const generate = require('@babel/generator').default;
 const interfacesByName = {};
 const typesByName = {};
 const unionsByName = {};
+const enumsByName = {};
 
 schema.__schema.types.forEach(t => {
+    if (t.kind === 'ENUM') {
+        enumsByName[t.name] = t;
+        return;
+    }
     if (t.kind === 'UNION') {
         unionsByName[t.name] = t;
         return;
@@ -25,6 +30,10 @@ schema.__schema.types.forEach(t => {
         interfacesByName[t.name] = t;
         t.possibleTypesByName = {};
         t.possibleTypes.forEach(p => (t.possibleTypesByName[p.name] = true));
+        t.fieldsByName = {};
+        t.fields.forEach(field => {
+            t.fieldsByName[field.name] = field;
+        });
         return;
     }
     if (t.kind !== 'OBJECT') {
@@ -45,7 +54,6 @@ schema.__schema.types.forEach(t => {
 const objectPropertiesToFlow = (fragments, type, selections) => {
     return [].concat(
         ...selections.map(selection => {
-            const name = selection.name.value;
             switch (selection.kind) {
                 case 'FragmentSpread':
                     return objectPropertiesToFlow(
@@ -55,6 +63,7 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
                     );
 
                 case 'Field':
+                    const name = selection.name.value;
                     if (!type.fieldsByName[name]) {
                         console.warn('Unknown field: ' + name);
                         return t.objectTypeProperty(
@@ -78,51 +87,67 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
     );
 };
 
-const unionToFlow = (fragments, type, selections) => {
+const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
+    if (selection.kind === 'Field' && selection.name.value === '__typename') {
+        return [
+            t.objectTypeProperty(
+                t.identifier(selection.name.value),
+                t.stringLiteralTypeAnnotation(possible.name),
+            ),
+        ];
+    }
+    if (selection.kind === 'Field' && type.fields) {
+        // this is an interface
+        const name = selection.name.value;
+        if (!type.fieldsByName[name]) {
+            console.warn('Unknown field: ' + name);
+            return [
+                t.objectTypeProperty(t.identifier(name), t.anyTypeAnnotation()),
+            ];
+        }
+        const typeField = type.fieldsByName[name];
+        return [
+            t.objectTypeProperty(
+                t.identifier(name),
+                typeToFlow(fragments, typeField.type, selection),
+            ),
+        ];
+    }
+    if (selection.kind !== 'InlineFragment') {
+        console.log('union selectors must be inline fragment', selection);
+        return [];
+    }
+    const typeName = selection.typeCondition.name.value;
+    if (
+        (interfacesByName[typeName] &&
+            interfacesByName[typeName].possibleTypesByName[possible.name]) ||
+        typeName === possible.name
+    ) {
+        return objectPropertiesToFlow(
+            fragments,
+            typesByName[possible.name],
+            selection.selectionSet.selections,
+        );
+    }
+    return [];
+};
+
+const unionOrInterfaceToFlow = (fragments, type, selections) => {
+    const selectedAttributes = type.possibleTypes.map(possible =>
+        [].concat(
+            ...selections.map(selection =>
+                unionOrInterfaceSelection(fragments, type, possible, selection),
+            ),
+        ),
+    );
+    const allFields = !selections.some(selection => selection.kind !== 'Field');
+    if (selectedAttributes.length === 1 || allFields) {
+        return t.objectTypeAnnotation(selectedAttributes[0]);
+    }
     return t.unionTypeAnnotation(
-        type.possibleTypes.map(possible => {
-            return t.objectTypeAnnotation(
-                [].concat(
-                    ...selections.map(selection => {
-                        if (
-                            selection.kind === 'Field' &&
-                            selection.name.value === '__typename'
-                        ) {
-                            return [
-                                t.objectTypeProperty(
-                                    t.identifier(selection.name.value),
-                                    t.stringLiteralTypeAnnotation(
-                                        possible.name,
-                                    ),
-                                ),
-                            ];
-                        }
-                        if (selection.kind !== 'InlineFragment') {
-                            console.log(
-                                'union selectors must be inline fragment',
-                                selection,
-                            );
-                            return [];
-                        }
-                        const typeName = selection.typeCondition.name.value;
-                        if (
-                            (interfacesByName[typeName] &&
-                                interfacesByName[typeName].possibleTypesByName[
-                                    possible.name
-                                ]) ||
-                            typeName === possible.name
-                        ) {
-                            return objectPropertiesToFlow(
-                                fragments,
-                                typesByName[possible.name],
-                                selection.selectionSet.selections,
-                            );
-                        }
-                        return [];
-                    }),
-                ),
-            );
-        }),
+        selectedAttributes.map(properties =>
+            t.objectTypeAnnotation(properties),
+        ),
     );
 };
 
@@ -155,9 +180,31 @@ const typeToFlow = (fragments, type, selection) => {
             console.log('no selection set', selection);
             return t.anyTypeAnnotation();
         }
-        return unionToFlow(fragments, union, selection.selectionSet.selections);
+        return unionOrInterfaceToFlow(
+            fragments,
+            union,
+            selection.selectionSet.selections,
+        );
     }
 
+    if (type.kind === 'INTERFACE') {
+        if (!selection.selectionSet) {
+            console.log('no selection set', selection);
+            return t.anyTypeAnnotation();
+        }
+        return unionOrInterfaceToFlow(
+            fragments,
+            interfacesByName[type.name],
+            selection.selectionSet.selections,
+        );
+    }
+    if (type.kind === 'ENUM') {
+        return t.unionTypeAnnotation(
+            enumsByName[type.name].enumValues.map(n =>
+                t.stringLiteralTypeAnnotation(n.name),
+            ),
+        );
+    }
     if (type.kind !== 'OBJECT') {
         console.log('not object', type);
         return t.anyTypeAnnotation();
