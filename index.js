@@ -158,6 +158,7 @@ const typeToFlow = (fragments, type, selection) => {
                 return t.genericTypeAnnotation(t.identifier('boolean'));
             case 'ID':
             case 'String':
+            case 'DateTime': // Serialized ISO-8801 dates...
                 return t.genericTypeAnnotation(t.identifier('string'));
             case 'Int':
             case 'Float':
