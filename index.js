@@ -166,7 +166,7 @@ const typeToFlow = (fragments, type, selection) => {
             case 'JSONString':
                 return t.genericTypeAnnotation(t.identifier('string'));
             default:
-                console.log('scalar', type.name);
+                // console.log('scalar', type.name);
                 return t.anyTypeAnnotation();
         }
     }
