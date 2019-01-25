@@ -152,6 +152,13 @@ const unionOrInterfaceToFlow = (fragments, type, selections) => {
 };
 
 const typeToFlow = (fragments, type, selection) => {
+    // NOTE (jeremy): Right now almost all of our GraphQL types are nullable,
+    // but not really. When we get the types fixed up on the server we might
+    // want to mark types as truly nullable.
+    if (type.kind === 'NON_NULL') {
+        return typeToFlow(fragments, type.ofType, selection);
+    }
+
     if (type.kind === 'SCALAR') {
         switch (type.name) {
             case 'Boolean':
