@@ -100,7 +100,14 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
         // this is an interface
         const name = selection.name.value;
         if (!type.fieldsByName[name]) {
-            console.warn('Unknown field: ' + name);
+            console.warn(
+                'Unknown field: ' +
+                    name +
+                    ' on type ' +
+                    type.name +
+                    ' for possible ' +
+                    possible.name,
+            );
             return [
                 t.objectTypeProperty(t.identifier(name), t.anyTypeAnnotation()),
             ];
@@ -113,8 +120,41 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
             ),
         ];
     }
+    if (selection.kind === 'FragmentSpread') {
+        const fragment = fragments[selection.name.value];
+        const typeName = fragment.typeCondition.name.value;
+        if (
+            (interfacesByName[typeName] &&
+                interfacesByName[typeName].possibleTypesByName[
+                    possible.name
+                ]) ||
+            typeName === possible.name
+        ) {
+            return [].concat(
+                ...fragment.selectionSet.selections.map(selection =>
+                    unionOrInterfaceSelection(
+                        fragments,
+                        typesByName[possible.name],
+                        possible,
+                        selection,
+                    ),
+                ),
+            );
+        } else {
+            return [];
+        }
+    }
     if (selection.kind !== 'InlineFragment') {
-        console.log('union selectors must be inline fragment', selection);
+        console.warn('union selectors must be inline fragment', selection);
+        if (type.kind === 'UNION') {
+            console.warn(`You're trying to select a field from the union ${
+                type.name
+            },
+but the only field you're allowed to select is "__typename".
+Try using an inline fragment "... on SomeType {}".`);
+        }
+        console.warn(type);
+        console.warn(possible);
         return [];
     }
     const typeName = selection.typeCondition.name.value;
