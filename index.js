@@ -64,17 +64,20 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
 
                 case 'Field':
                     const name = selection.name.value;
+                    const alias = selection.alias
+                        ? selection.alias.value
+                        : name;
                     if (!type.fieldsByName[name]) {
                         console.warn('Unknown field: ' + name);
                         return t.objectTypeProperty(
-                            t.identifier(name),
+                            t.identifier(alias),
                             t.anyTypeAnnotation(),
                         );
                     }
                     const typeField = type.fieldsByName[name];
                     return [
                         t.objectTypeProperty(
-                            t.identifier(name),
+                            t.identifier(alias),
                             typeToFlow(fragments, typeField.type, selection),
                         ),
                     ];
@@ -89,9 +92,12 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
 
 const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
     if (selection.kind === 'Field' && selection.name.value === '__typename') {
+        const alias = selection.alias
+            ? selection.alias.value
+            : selection.name.value;
         return [
             t.objectTypeProperty(
-                t.identifier(selection.name.value),
+                t.identifier(alias),
                 t.stringLiteralTypeAnnotation(possible.name),
             ),
         ];
@@ -99,6 +105,7 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
     if (selection.kind === 'Field' && type.fields) {
         // this is an interface
         const name = selection.name.value;
+        const alias = selection.alias ? selection.alias.value : name;
         if (!type.fieldsByName[name]) {
             console.warn(
                 'Unknown field: ' +
@@ -109,13 +116,16 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
                     possible.name,
             );
             return [
-                t.objectTypeProperty(t.identifier(name), t.anyTypeAnnotation()),
+                t.objectTypeProperty(
+                    t.identifier(alias),
+                    t.anyTypeAnnotation(),
+                ),
             ];
         }
         const typeField = type.fieldsByName[name];
         return [
             t.objectTypeProperty(
-                t.identifier(name),
+                t.identifier(alias),
                 typeToFlow(fragments, typeField.type, selection),
             ),
         ];
