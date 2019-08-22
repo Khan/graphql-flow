@@ -228,8 +228,11 @@ const typeToFlow = (fragments, type, selection) => {
         }
     }
     if (type.kind === 'LIST') {
-        return t.arrayTypeAnnotation(
-            typeToFlow(fragments, type.ofType, selection),
+        return t.genericTypeAnnotation(
+            t.identifier('$ReadOnlyArray'),
+            t.typeParameterInstantiation([
+                typeToFlow(fragments, type.ofType, selection),
+            ]),
         );
     }
     if (type.kind === 'UNION') {
