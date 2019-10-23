@@ -157,9 +157,7 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
     if (selection.kind !== 'InlineFragment') {
         console.warn('union selectors must be inline fragment', selection);
         if (type.kind === 'UNION') {
-            console.warn(`You're trying to select a field from the union ${
-                type.name
-            },
+            console.warn(`You're trying to select a field from the union ${type.name},
 but the only field you're allowed to select is "__typename".
 Try using an inline fragment "... on SomeType {}".`);
         }
