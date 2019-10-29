@@ -56,6 +56,13 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
         ...selections.map(selection => {
             switch (selection.kind) {
                 case 'FragmentSpread':
+                    if (!fragments[selection.name.value]) {
+                        console.warn(
+                            'No fragment for selection named:',
+                            selection.name.value,
+                        );
+                    }
+
                     return objectPropertiesToFlow(
                         fragments,
                         type,
