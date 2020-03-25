@@ -329,7 +329,9 @@ module.exports = (query, definitions) => {
         querySelectionToObjectType(
             fragments,
             query.selectionSet.selections,
-            typesByName.Query,
+            query.operation === 'mutation'
+                ? typesByName.Mutation
+                : typesByName.Query,
         ),
     ).code;
 };
