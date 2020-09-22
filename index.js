@@ -197,11 +197,23 @@ const unionOrInterfaceToFlow = (fragments, type, selections) => {
     );
     const allFields = selections.every(selection => selection.kind === 'Field');
     if (selectedAttributes.length === 1 || allFields) {
-        return t.objectTypeAnnotation(selectedAttributes[0]);
+        return t.objectTypeAnnotation(
+            selectedAttributes[0],
+            null /* indexers */,
+            null /* callProperties */,
+            null /* internalSlots */,
+            true /* exact */,
+        );
     }
     return t.unionTypeAnnotation(
         selectedAttributes.map(properties =>
-            t.objectTypeAnnotation(properties),
+            t.objectTypeAnnotation(
+                properties,
+                null /* indexers */,
+                null /* callProperties */,
+                null /* internalSlots */,
+                true /* exact */,
+            ),
         ),
     );
 };
@@ -315,6 +327,10 @@ const typeToFlow = (fragments, type, selection) => {
 const querySelectionToObjectType = (fragments, selections, type) => {
     return t.objectTypeAnnotation(
         objectPropertiesToFlow(fragments, type, selections),
+        null /* indexers */,
+        null /* callProperties */,
+        null /* internalSlots */,
+        true /* exact */,
     );
 };
 
