@@ -1,4 +1,6 @@
 /* eslint-disable no-console */
+// @flow
+/* flow-uncovered-file */
 
 /**
  * This tool generates flowtype definitions from graphql queries.
@@ -7,56 +9,108 @@
  * which is produced by running `./tools/graphql-flow/sendIntrospection.js`.
  */
 
-const schema = require('./introspection-query.json');
+import * as babelTypes from '@babel/types';
+import {
+    type BabelNodeFlowType,
+    BabelNodeObjectTypeProperty,
+    BabelNodeObjectTypeSpreadProperty,
+} from '@babel/types';
+import generate from '@babel/generator';
+import type {
+    OperationDefinitionNode,
+    IntrospectionQuery,
+    IntrospectionInterfaceType,
+    IntrospectionObjectType,
+    IntrospectionUnionType,
+    IntrospectionEnumType,
+    FragmentDefinitionNode,
+    DefinitionNode,
+    SelectionNode,
+    IntrospectionField,
+} from 'graphql';
 
-const t = require('@babel/types');
-const generate = require('@babel/generator').default;
+// flow-next-uncovered-line
+const schema: IntrospectionQuery = require('./introspection-query.json');
 
-const interfacesByName = {};
-const typesByName = {};
-const unionsByName = {};
-const enumsByName = {};
+type Selections = $ReadOnlyArray<SelectionNode>;
 
-schema.__schema.types.forEach(t => {
-    if (t.kind === 'ENUM') {
-        enumsByName[t.name] = t;
+type Config = {
+    strictNullability: boolean,
+    fragments: {[key: string]: FragmentDefinitionNode},
+};
+
+const interfacesByName: {
+    [key: string]: IntrospectionInterfaceType & {
+        fieldsByName: {[key: string]: IntrospectionField},
+        possibleTypesByName: {[key: string]: boolean},
+    },
+} = {};
+const typesByName: {
+    [key: string]: IntrospectionObjectType & {
+        fieldsByName: {[key: string]: IntrospectionField},
+    },
+} = {};
+const unionsByName: {
+    [key: string]: IntrospectionUnionType,
+} = {};
+const enumsByName: {
+    [key: string]: IntrospectionEnumType,
+} = {};
+
+schema.__schema.types.forEach(type => {
+    if (type.kind === 'ENUM') {
+        enumsByName[type.name] = type;
         return;
     }
-    if (t.kind === 'UNION') {
-        unionsByName[t.name] = t;
+    if (type.kind === 'UNION') {
+        unionsByName[type.name] = type;
         return;
     }
-    if (t.kind === 'INTERFACE') {
-        interfacesByName[t.name] = t;
-        t.possibleTypesByName = {};
-        t.possibleTypes.forEach(p => (t.possibleTypesByName[p.name] = true));
-        t.fieldsByName = {};
-        t.fields.forEach(field => {
-            t.fieldsByName[field.name] = field;
+    if (type.kind === 'INTERFACE') {
+        interfacesByName[type.name] = {
+            ...type,
+            possibleTypesByName: {},
+            fieldsByName: {},
+        };
+        type.possibleTypes.forEach(
+            p =>
+                (interfacesByName[type.name].possibleTypesByName[
+                    p.name
+                ] = true),
+        );
+        type.fields.forEach(field => {
+            interfacesByName[type.name].fieldsByName[field.name] = field;
         });
         return;
     }
-    if (t.kind !== 'OBJECT') {
+    if (type.kind !== 'OBJECT') {
         return;
     }
-    typesByName[t.name] = t;
-    t.fieldsByName = {};
-    if (!t.fields) {
-        console.log('no fields', t.name);
+    typesByName[type.name] = {
+        ...type,
+        fieldsByName: {},
+    };
+    if (!type.fields) {
+        // flow-next-uncovered-line
+        console.log('no fields', type.name);
         return;
     }
 
-    t.fields.forEach(field => {
-        t.fieldsByName[field.name] = field;
+    type.fields.forEach(field => {
+        typesByName[type.name].fieldsByName[field.name] = field;
     });
 });
 
-const objectPropertiesToFlow = (fragments, type, selections) => {
+const objectPropertiesToFlow = (
+    config: Config,
+    type,
+    selections: Selections,
+) => {
     return [].concat(
         ...selections.map(selection => {
             switch (selection.kind) {
                 case 'FragmentSpread':
-                    if (!fragments[selection.name.value]) {
+                    if (!config.fragments[selection.name.value]) {
                         console.warn(
                             'No fragment for selection named:',
                             selection.name.value,
@@ -64,9 +118,10 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
                     }
 
                     return objectPropertiesToFlow(
-                        fragments,
+                        config,
                         type,
-                        fragments[selection.name.value].selectionSet.selections,
+                        config.fragments[selection.name.value].selectionSet
+                            .selections,
                     );
 
                 case 'Field':
@@ -76,16 +131,16 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
                         : name;
                     if (!type.fieldsByName[name]) {
                         console.warn('Unknown field: ' + name);
-                        return t.objectTypeProperty(
-                            t.identifier(alias),
-                            t.anyTypeAnnotation(),
+                        return babelTypes.objectTypeProperty(
+                            babelTypes.identifier(alias),
+                            babelTypes.anyTypeAnnotation(),
                         );
                     }
                     const typeField = type.fieldsByName[name];
                     return [
-                        t.objectTypeProperty(
-                            t.identifier(alias),
-                            typeToFlow(fragments, typeField.type, selection),
+                        babelTypes.objectTypeProperty(
+                            babelTypes.identifier(alias),
+                            typeToFlow(config, typeField.type, selection),
                         ),
                     ];
 
@@ -97,19 +152,24 @@ const objectPropertiesToFlow = (fragments, type, selections) => {
     );
 };
 
-const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
+const unionOrInterfaceSelection = (
+    config,
+    type,
+    possible,
+    selection,
+): Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty> => {
     if (selection.kind === 'Field' && selection.name.value === '__typename') {
         const alias = selection.alias
             ? selection.alias.value
             : selection.name.value;
         return [
-            t.objectTypeProperty(
-                t.identifier(alias),
-                t.stringLiteralTypeAnnotation(possible.name),
+            babelTypes.objectTypeProperty(
+                babelTypes.identifier(alias),
+                babelTypes.stringLiteralTypeAnnotation(possible.name),
             ),
         ];
     }
-    if (selection.kind === 'Field' && type.fields) {
+    if (selection.kind === 'Field' && type.kind !== 'UNION') {
         // this is an interface
         const name = selection.name.value;
         const alias = selection.alias ? selection.alias.value : name;
@@ -123,22 +183,22 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
                     possible.name,
             );
             return [
-                t.objectTypeProperty(
-                    t.identifier(alias),
-                    t.anyTypeAnnotation(),
+                babelTypes.objectTypeProperty(
+                    babelTypes.identifier(alias),
+                    babelTypes.anyTypeAnnotation(),
                 ),
             ];
         }
         const typeField = type.fieldsByName[name];
         return [
-            t.objectTypeProperty(
-                t.identifier(alias),
-                typeToFlow(fragments, typeField.type, selection),
+            babelTypes.objectTypeProperty(
+                babelTypes.identifier(alias),
+                typeToFlow(config, typeField.type, selection),
             ),
         ];
     }
     if (selection.kind === 'FragmentSpread') {
-        const fragment = fragments[selection.name.value];
+        const fragment = config.fragments[selection.name.value];
         const typeName = fragment.typeCondition.name.value;
         if (
             (interfacesByName[typeName] &&
@@ -150,7 +210,7 @@ const unionOrInterfaceSelection = (fragments, type, possible, selection) => {
             return [].concat(
                 ...fragment.selectionSet.selections.map(selection =>
                     unionOrInterfaceSelection(
-                        fragments,
+                        config,
                         typesByName[possible.name],
                         possible,
                         selection,
@@ -172,6 +232,10 @@ Try using an inline fragment "... on SomeType {}".`);
         console.warn(possible);
         return [];
     }
+    if (!selection.typeCondition) {
+        console.log(selection);
+        throw new Error('Expected selection to have a typeCondition');
+    }
     const typeName = selection.typeCondition.name.value;
     if (
         (interfacesByName[typeName] &&
@@ -179,7 +243,7 @@ Try using an inline fragment "... on SomeType {}".`);
         typeName === possible.name
     ) {
         return objectPropertiesToFlow(
-            fragments,
+            config,
             typesByName[possible.name],
             selection.selectionSet.selections,
         );
@@ -187,68 +251,85 @@ Try using an inline fragment "... on SomeType {}".`);
     return [];
 };
 
-const unionOrInterfaceToFlow = (fragments, type, selections) => {
-    const selectedAttributes = type.possibleTypes.map(possible =>
+const unionOrInterfaceToFlow = (config, type, selections: Selections) => {
+    const selectedAttributes: Array<
+        Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>,
+    > = type.possibleTypes.map(possible =>
         [].concat(
             ...selections.map(selection =>
-                unionOrInterfaceSelection(fragments, type, possible, selection),
+                unionOrInterfaceSelection(config, type, possible, selection),
             ),
         ),
     );
     const allFields = selections.every(selection => selection.kind === 'Field');
     if (selectedAttributes.length === 1 || allFields) {
-        return t.objectTypeAnnotation(
+        return babelTypes.objectTypeAnnotation(
             selectedAttributes[0],
-            null /* indexers */,
-            null /* callProperties */,
-            null /* internalSlots */,
+            undefined /* indexers */,
+            undefined /* callProperties */,
+            undefined /* internalSlots */,
             true /* exact */,
         );
     }
-    return t.unionTypeAnnotation(
+    return babelTypes.unionTypeAnnotation(
         selectedAttributes.map(properties =>
-            t.objectTypeAnnotation(
+            babelTypes.objectTypeAnnotation(
                 properties,
-                null /* indexers */,
-                null /* callProperties */,
-                null /* internalSlots */,
+                undefined /* indexers */,
+                undefined /* callProperties */,
+                undefined /* internalSlots */,
                 true /* exact */,
             ),
         ),
     );
 };
 
-const typeToFlow = (fragments, type, selection) => {
-    // NOTE (jeremy): Right now almost all of our GraphQL types are nullable,
-    // but not really. When we get the types fixed up on the server we might
-    // want to mark types as truly nullable.
+const typeToFlow = (config, type, selection) => {
+    // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
-        return typeToFlow(fragments, type.ofType, selection);
+        return _typeToFlow(config, type.ofType, selection);
     }
+    // If we don'babelTypes care about strict nullability checking, then pretend everything is non-null
+    if (!config.strictNullability) {
+        return _typeToFlow(config, type, selection);
+    }
+    return babelTypes.nullableTypeAnnotation(
+        _typeToFlow(config, type, selection),
+    );
+};
 
+const _typeToFlow = (config, type, selection) => {
     if (type.kind === 'SCALAR') {
         switch (type.name) {
             case 'Boolean':
-                return t.genericTypeAnnotation(t.identifier('boolean'));
+                return babelTypes.genericTypeAnnotation(
+                    babelTypes.identifier('boolean'),
+                );
             case 'ID':
             case 'String':
             case 'DateTime': // Serialized ISO-8801 dates...
-                return t.genericTypeAnnotation(t.identifier('string'));
+                return babelTypes.genericTypeAnnotation(
+                    babelTypes.identifier('string'),
+                );
             case 'Int':
             case 'Float':
-                return t.genericTypeAnnotation(t.identifier('number'));
+                return babelTypes.genericTypeAnnotation(
+                    babelTypes.identifier('number'),
+                );
             case 'JSONString':
-                return t.genericTypeAnnotation(t.identifier('string'));
+                return babelTypes.genericTypeAnnotation(
+                    babelTypes.identifier('string'),
+                );
             default:
                 // console.log('scalar', type.name);
-                return t.anyTypeAnnotation();
+                return babelTypes.anyTypeAnnotation();
         }
     }
     if (type.kind === 'LIST') {
-        return t.genericTypeAnnotation(
-            t.identifier('$ReadOnlyArray'),
-            t.typeParameterInstantiation([
-                typeToFlow(fragments, type.ofType, selection),
+        return babelTypes.genericTypeAnnotation(
+            babelTypes.identifier('$ReadOnlyArray'),
+            babelTypes.typeParameterInstantiation([
+                typeToFlow(config, type.ofType, selection),
             ]),
         );
     }
@@ -256,10 +337,10 @@ const typeToFlow = (fragments, type, selection) => {
         const union = unionsByName[type.name];
         if (!selection.selectionSet) {
             console.log('no selection set', selection);
-            return t.anyTypeAnnotation();
+            return babelTypes.anyTypeAnnotation();
         }
         return unionOrInterfaceToFlow(
-            fragments,
+            config,
             union,
             selection.selectionSet.selections,
         );
@@ -268,86 +349,79 @@ const typeToFlow = (fragments, type, selection) => {
     if (type.kind === 'INTERFACE') {
         if (!selection.selectionSet) {
             console.log('no selection set', selection);
-            return t.anyTypeAnnotation();
+            return babelTypes.anyTypeAnnotation();
         }
         return unionOrInterfaceToFlow(
-            fragments,
+            config,
             interfacesByName[type.name],
             selection.selectionSet.selections,
         );
     }
     if (type.kind === 'ENUM') {
-        return t.unionTypeAnnotation(
+        return babelTypes.unionTypeAnnotation(
             enumsByName[type.name].enumValues.map(n =>
-                t.stringLiteralTypeAnnotation(n.name),
+                babelTypes.stringLiteralTypeAnnotation(n.name),
             ),
         );
     }
     if (type.kind !== 'OBJECT') {
         console.log('not object', type);
-        return t.anyTypeAnnotation();
+        return babelTypes.anyTypeAnnotation();
     }
 
     const tname = type.name;
     if (!typesByName[tname]) {
         console.log('unknown referenced type', tname);
-        return t.anyTypeAnnotation();
+        return babelTypes.anyTypeAnnotation();
     }
     const childType = typesByName[tname];
     if (!selection.selectionSet) {
         console.log('no selection set', selection);
-        return t.anyTypeAnnotation();
+        return babelTypes.anyTypeAnnotation();
     }
     return querySelectionToObjectType(
-        fragments,
+        config,
         selection.selectionSet.selections,
         childType,
     );
 };
 
-/**
- * FUTURE(jared): Currently basically everything in our schema is nullable,
- * (including e.g. Topic id's and titles) - which doesn't actually make sense.
- * So for now I'm ignoring the fact that most things are nullable. This is a
- * potential source of bugs, because some things might *actually* be nullable
- * in practice, and that won't be reflected in the types.
- * Unfortunately, until our graphql schema better reflects reality, this is
- * the cleanest way to do things.
- * Once the schema is better, we can use this function to add in the
- * nullability.
- *
- * const typeToFlow = (type, selection) => {
- *     if (type.kind === 'NON_NULL') {
- *         return _typeToFlow(type.ofType, selection)
- *     }
- *     return t.nullableTypeAnnotation(_typeToFlow(type, selection))
- * };
- */
-
-const querySelectionToObjectType = (fragments, selections, type) => {
-    return t.objectTypeAnnotation(
-        objectPropertiesToFlow(fragments, type, selections),
-        null /* indexers */,
-        null /* callProperties */,
-        null /* internalSlots */,
+const querySelectionToObjectType = (
+    config,
+    selections,
+    type,
+): BabelNodeFlowType => {
+    return babelTypes.objectTypeAnnotation(
+        objectPropertiesToFlow(config, type, selections),
+        undefined /* indexers */,
+        undefined /* callProperties */,
+        undefined /* internalSlots */,
         true /* exact */,
     );
 };
 
-module.exports = (query, definitions) => {
+const generateFlowTypes = (
+    query: OperationDefinitionNode,
+    definitions: Array<DefinitionNode>,
+    strictNullability: boolean = false,
+) => {
     const fragments = {};
     definitions.forEach(def => {
         if (def.kind === 'FragmentDefinition') {
             fragments[def.name.value] = def;
         }
     });
+    /* flow-uncovered-block */
     return generate(
         querySelectionToObjectType(
-            fragments,
+            {fragments, strictNullability},
             query.selectionSet.selections,
             query.operation === 'mutation'
                 ? typesByName.Mutation
                 : typesByName.Query,
         ),
     ).code;
+    /* end flow-uncovered-block */
 };
+
+export default generateFlowTypes;
