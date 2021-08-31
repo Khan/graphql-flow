@@ -404,7 +404,7 @@ const generateFlowTypes = (
     query: OperationDefinitionNode,
     definitions: Array<DefinitionNode>,
     strictNullability: boolean = false,
-) => {
+): any => {
     const fragments = {};
     definitions.forEach(def => {
         if (def.kind === 'FragmentDefinition') {
