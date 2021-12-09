@@ -29,77 +29,90 @@ import type {
     IntrospectionField,
 } from 'graphql';
 
-// flow-next-uncovered-line
-const schema: IntrospectionQuery = require('./introspection-query.json');
-
 type Selections = $ReadOnlyArray<SelectionNode>;
 
+export type Schema = {
+    interfacesByName: {
+        [key: string]: IntrospectionInterfaceType & {
+            fieldsByName: {[key: string]: IntrospectionField},
+            possibleTypesByName: {[key: string]: boolean},
+        },
+    },
+    typesByName: {
+        [key: string]: IntrospectionObjectType & {
+            fieldsByName: {[key: string]: IntrospectionField},
+        },
+    },
+    unionsByName: {
+        [key: string]: IntrospectionUnionType,
+    },
+    enumsByName: {
+        [key: string]: IntrospectionEnumType,
+    },
+};
 type Config = {
     strictNullability: boolean,
     fragments: {[key: string]: FragmentDefinitionNode},
+
+    schema: Schema,
 };
 
-const interfacesByName: {
-    [key: string]: IntrospectionInterfaceType & {
-        fieldsByName: {[key: string]: IntrospectionField},
-        possibleTypesByName: {[key: string]: boolean},
-    },
-} = {};
-const typesByName: {
-    [key: string]: IntrospectionObjectType & {
-        fieldsByName: {[key: string]: IntrospectionField},
-    },
-} = {};
-const unionsByName: {
-    [key: string]: IntrospectionUnionType,
-} = {};
-const enumsByName: {
-    [key: string]: IntrospectionEnumType,
-} = {};
+export const schemaFromIntrospectionData = (
+    schema: IntrospectionQuery,
+): Schema => {
+    const result: Schema = {
+        interfacesByName: {},
+        typesByName: {},
+        unionsByName: {},
+        enumsByName: {},
+    };
 
-schema.__schema.types.forEach(type => {
-    if (type.kind === 'ENUM') {
-        enumsByName[type.name] = type;
-        return;
-    }
-    if (type.kind === 'UNION') {
-        unionsByName[type.name] = type;
-        return;
-    }
-    if (type.kind === 'INTERFACE') {
-        interfacesByName[type.name] = {
+    schema.__schema.types.forEach(type => {
+        if (type.kind === 'ENUM') {
+            result.enumsByName[type.name] = type;
+            return;
+        }
+        if (type.kind === 'UNION') {
+            result.unionsByName[type.name] = type;
+            return;
+        }
+        if (type.kind === 'INTERFACE') {
+            result.interfacesByName[type.name] = {
+                ...type,
+                possibleTypesByName: {},
+                fieldsByName: {},
+            };
+            type.possibleTypes.forEach(
+                p =>
+                    (result.interfacesByName[type.name].possibleTypesByName[
+                        p.name
+                    ] = true),
+            );
+            type.fields.forEach(field => {
+                result.interfacesByName[type.name].fieldsByName[
+                    field.name
+                ] = field;
+            });
+            return;
+        }
+        if (type.kind !== 'OBJECT') {
+            return;
+        }
+        result.typesByName[type.name] = {
             ...type,
-            possibleTypesByName: {},
             fieldsByName: {},
         };
-        type.possibleTypes.forEach(
-            p =>
-                (interfacesByName[type.name].possibleTypesByName[
-                    p.name
-                ] = true),
-        );
-        type.fields.forEach(field => {
-            interfacesByName[type.name].fieldsByName[field.name] = field;
-        });
-        return;
-    }
-    if (type.kind !== 'OBJECT') {
-        return;
-    }
-    typesByName[type.name] = {
-        ...type,
-        fieldsByName: {},
-    };
-    if (!type.fields) {
-        // flow-next-uncovered-line
-        console.log('no fields', type.name);
-        return;
-    }
+        if (!type.fields) {
+            return;
+        }
 
-    type.fields.forEach(field => {
-        typesByName[type.name].fieldsByName[field.name] = field;
+        type.fields.forEach(field => {
+            result.typesByName[type.name].fieldsByName[field.name] = field;
+        });
     });
-});
+
+    return result;
+};
 
 const objectPropertiesToFlow = (
     config: Config,
@@ -201,8 +214,8 @@ const unionOrInterfaceSelection = (
         const fragment = config.fragments[selection.name.value];
         const typeName = fragment.typeCondition.name.value;
         if (
-            (interfacesByName[typeName] &&
-                interfacesByName[typeName].possibleTypesByName[
+            (config.schema.interfacesByName[typeName] &&
+                config.schema.interfacesByName[typeName].possibleTypesByName[
                     possible.name
                 ]) ||
             typeName === possible.name
@@ -211,7 +224,7 @@ const unionOrInterfaceSelection = (
                 ...fragment.selectionSet.selections.map(selection =>
                     unionOrInterfaceSelection(
                         config,
-                        typesByName[possible.name],
+                        config.schema.typesByName[possible.name],
                         possible,
                         selection,
                     ),
@@ -238,13 +251,15 @@ Try using an inline fragment "... on SomeType {}".`);
     }
     const typeName = selection.typeCondition.name.value;
     if (
-        (interfacesByName[typeName] &&
-            interfacesByName[typeName].possibleTypesByName[possible.name]) ||
+        (config.schema.interfacesByName[typeName] &&
+            config.schema.interfacesByName[typeName].possibleTypesByName[
+                possible.name
+            ]) ||
         typeName === possible.name
     ) {
         return objectPropertiesToFlow(
             config,
-            typesByName[possible.name],
+            config.schema.typesByName[possible.name],
             selection.selectionSet.selections,
         );
     }
@@ -334,7 +349,7 @@ const _typeToFlow = (config, type, selection) => {
         );
     }
     if (type.kind === 'UNION') {
-        const union = unionsByName[type.name];
+        const union = config.schema.unionsByName[type.name];
         if (!selection.selectionSet) {
             console.log('no selection set', selection);
             return babelTypes.anyTypeAnnotation();
@@ -353,13 +368,13 @@ const _typeToFlow = (config, type, selection) => {
         }
         return unionOrInterfaceToFlow(
             config,
-            interfacesByName[type.name],
+            config.schema.interfacesByName[type.name],
             selection.selectionSet.selections,
         );
     }
     if (type.kind === 'ENUM') {
         return babelTypes.unionTypeAnnotation(
-            enumsByName[type.name].enumValues.map(n =>
+            config.schema.enumsByName[type.name].enumValues.map(n =>
                 babelTypes.stringLiteralTypeAnnotation(n.name),
             ),
         );
@@ -370,11 +385,11 @@ const _typeToFlow = (config, type, selection) => {
     }
 
     const tname = type.name;
-    if (!typesByName[tname]) {
+    if (!config.schema.typesByName[tname]) {
         console.log('unknown referenced type', tname);
         return babelTypes.anyTypeAnnotation();
     }
-    const childType = typesByName[tname];
+    const childType = config.schema.typesByName[tname];
     if (!selection.selectionSet) {
         console.log('no selection set', selection);
         return babelTypes.anyTypeAnnotation();
@@ -387,7 +402,7 @@ const _typeToFlow = (config, type, selection) => {
 };
 
 const querySelectionToObjectType = (
-    config,
+    config: Config,
     selections,
     type,
 ): BabelNodeFlowType => {
@@ -401,8 +416,9 @@ const querySelectionToObjectType = (
 };
 
 const generateFlowTypes = (
+    schema: Schema,
     query: OperationDefinitionNode,
-    definitions: Array<DefinitionNode>,
+    definitions: $ReadOnlyArray<DefinitionNode>,
     strictNullability: boolean = false,
 ): any => {
     const fragments = {};
@@ -414,11 +430,11 @@ const generateFlowTypes = (
     /* flow-uncovered-block */
     return generate(
         querySelectionToObjectType(
-            {fragments, strictNullability},
+            {fragments, strictNullability, schema},
             query.selectionSet.selections,
             query.operation === 'mutation'
-                ? typesByName.Mutation
-                : typesByName.Query,
+                ? schema.typesByName.Mutation
+                : schema.typesByName.Query,
         ),
     ).code;
     /* end flow-uncovered-block */
