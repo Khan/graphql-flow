@@ -1,0 +1,44 @@
+
+enum Episode { NEW_HOPE, EMPIRE, JEDI }
+
+"""
+A movie character
+"""
+interface Character {
+  id: String!
+  name: String
+  friends: [Character]
+  appearsIn: [Episode]
+}
+
+"""
+A human character
+"""
+type Human implements Character {
+  id: String!
+  """The person's name"""
+  name: String
+  friends: [Character]
+  appearsIn: [Episode]
+  homePlanet: String
+  alive: Boolean
+  hands: Int
+}
+
+"""
+A robot character
+"""
+type Droid implements Character {
+  id: String!
+  name: String
+  friends: [Character]
+  appearsIn: [Episode]
+  """The robot's primary function"""
+  primaryFunction: String
+}
+
+type Query {
+  hero(episode: Episode): Character
+  human(id: String!): Human
+  droid(id: String!): Droid
+}

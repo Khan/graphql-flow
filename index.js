@@ -27,6 +27,7 @@ import type {
     DefinitionNode,
     SelectionNode,
     IntrospectionField,
+    DocumentNode,
 } from 'graphql';
 
 type Selections = $ReadOnlyArray<SelectionNode>;
@@ -420,7 +421,7 @@ const generateFlowTypes = (
     query: OperationDefinitionNode,
     definitions: $ReadOnlyArray<DefinitionNode>,
     strictNullability: boolean = false,
-): any => {
+): string => {
     const fragments = {};
     definitions.forEach(def => {
         if (def.kind === 'FragmentDefinition') {
@@ -438,6 +439,37 @@ const generateFlowTypes = (
         ),
     ).code;
     /* end flow-uncovered-block */
+};
+
+export const documentToFlowTypes = (
+    document: DocumentNode,
+    schema: Schema,
+    strictNullability: boolean = true,
+): Array<{name: string, typeName: string, code: string}> => {
+    return document.definitions
+        .map(item => {
+            if (
+                item.kind === 'OperationDefinition' &&
+                (item.operation === 'query' || item.operation === 'mutation') &&
+                item.name
+            ) {
+                const name = item.name.value;
+                const flow = generateFlowTypes(
+                    schema,
+                    item,
+                    document.definitions,
+                    strictNullability,
+                );
+                const typeName = `${name}ResponseType`;
+
+                return {
+                    name,
+                    typeName,
+                    code: `export type ${typeName} = ${flow};`,
+                };
+            }
+        })
+        .filter(Boolean);
 };
 
 export default generateFlowTypes;
