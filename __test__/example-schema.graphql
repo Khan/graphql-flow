@@ -1,3 +1,4 @@
+scalar PositiveNumber
 
 enum Episode { NEW_HOPE, EMPIRE, JEDI }
 
@@ -22,7 +23,7 @@ type Human implements Character {
   appearsIn: [Episode]
   homePlanet: String
   alive: Boolean
-  hands: Int
+  hands: PositiveNumber
 }
 
 """

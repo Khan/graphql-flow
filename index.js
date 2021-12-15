@@ -56,7 +56,9 @@ type Config = {
     fragments: {[key: string]: FragmentDefinitionNode},
 
     schema: Schema,
+    scalars: Scalars,
 };
+export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};
 
 export const schemaFromIntrospectionData = (
     schema: IntrospectionQuery,
@@ -300,7 +302,7 @@ const unionOrInterfaceToFlow = (config, type, selections: Selections) => {
     );
 };
 
-const typeToFlow = (config, type, selection) => {
+const typeToFlow = (config: Config, type, selection) => {
     // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
         return _typeToFlow(config, type.ofType, selection);
@@ -314,7 +316,11 @@ const typeToFlow = (config, type, selection) => {
     );
 };
 
-const _typeToFlow = (config, type, selection) => {
+const _typeToFlow = (
+    config: Config,
+    type,
+    selection,
+): babelTypes.BabelNodeFlowType => {
     if (type.kind === 'SCALAR') {
         switch (type.name) {
             case 'Boolean':
@@ -332,13 +338,16 @@ const _typeToFlow = (config, type, selection) => {
                 return babelTypes.genericTypeAnnotation(
                     babelTypes.identifier('number'),
                 );
-            case 'JSONString':
-                return babelTypes.genericTypeAnnotation(
-                    babelTypes.identifier('string'),
-                );
             default:
-                // console.log('scalar', type.name);
-                return babelTypes.anyTypeAnnotation();
+                const underlyingType = config.scalars[type.name];
+                if (underlyingType != null) {
+                    return babelTypes.genericTypeAnnotation(
+                        babelTypes.identifier(underlyingType),
+                    );
+                }
+                throw new Error(
+                    `Unexpected scalar ${type.name}! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
+                );
         }
     }
     if (type.kind === 'LIST') {
@@ -420,6 +429,7 @@ const generateFlowTypes = (
     schema: Schema,
     query: OperationDefinitionNode,
     definitions: $ReadOnlyArray<DefinitionNode>,
+    scalars: Scalars = {},
     strictNullability: boolean = false,
 ): string => {
     const fragments = {};
@@ -431,7 +441,7 @@ const generateFlowTypes = (
     /* flow-uncovered-block */
     return generate(
         querySelectionToObjectType(
-            {fragments, strictNullability, schema},
+            {fragments, strictNullability, schema, scalars},
             query.selectionSet.selections,
             query.operation === 'mutation'
                 ? schema.typesByName.Mutation
@@ -444,6 +454,7 @@ const generateFlowTypes = (
 export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
+    scalars: Scalars,
     strictNullability: boolean = true,
 ): Array<{name: string, typeName: string, code: string}> => {
     return document.definitions
@@ -458,6 +469,7 @@ export const documentToFlowTypes = (
                     schema,
                     item,
                     document.definitions,
+                    scalars,
                     strictNullability,
                 );
                 const typeName = `${name}ResponseType`;

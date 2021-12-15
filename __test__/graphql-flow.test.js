@@ -5,6 +5,7 @@
  */
 
 import type {IntrospectionQuery, DocumentNode} from 'graphql';
+import type {Schema} from '..';
 import {buildSchema, getIntrospectionQuery, graphqlSync} from 'graphql';
 import fs from 'fs';
 const {documentToFlowTypes, schemaFromIntrospectionData} = require('..');
@@ -17,7 +18,7 @@ expect.addSnapshotSerializer({
 });
 /* end flow-uncovered-block */
 
-const generateTestSchema = () => {
+const generateTestSchema = (): Schema => {
     const raw = fs.readFileSync(__dirname + '/example-schema.graphql', 'utf8');
     const queryResponse = graphqlSync(
         buildSchema(raw),
@@ -36,7 +37,12 @@ const rawQueryToFlowTypes = (query: string): string => {
     // flow-next-uncovered-line
     const gql: string => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
-    return documentToFlowTypes(node, exampleSchema, true)
+    return documentToFlowTypes(
+        node,
+        exampleSchema,
+        {PositiveNumber: 'number'},
+        true,
+    )
         .map(({code}) => code)
         .join('\n\n');
 };
