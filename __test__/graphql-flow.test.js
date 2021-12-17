@@ -50,16 +50,16 @@ const rawQueryToFlowTypes = (query: string): string => {
 describe('graphql-flow generation', () => {
     it('should work with a basic query', () => {
         const result = rawQueryToFlowTypes(`
-		query SomeQuery {
-			human(id: "Han Solo") {
-				id
-				name
-				homePlanet
-				friends {
-					name
-				}
-			}
-		}
+            query SomeQuery {
+                human(id: "Han Solo") {
+                    id
+                    name
+                    homePlanet
+                    friends {
+                        name
+                    }
+                }
+            }
         `);
 
         expect(result).toMatchInlineSnapshot(`
@@ -76,30 +76,64 @@ describe('graphql-flow generation', () => {
         `);
     });
 
+    it('should work with unions', () => {
+        const result = rawQueryToFlowTypes(`
+            query SomeQuery {
+                friend(id: "Han Solo") {
+                    __typename
+                    ... on Human {
+                        id
+                        hands
+                    }
+                    ... on Droid {
+                        primaryFunction
+                    }
+                }
+            }
+        `);
+        expect(result).toMatchInlineSnapshot(`
+            export type SomeQueryResponseType = {|
+              friend: ?({|
+                __typename: "Human",
+                id: string,
+                hands: ?number,
+              |} | {|
+                __typename: "Droid",
+                primaryFunction: ?string,
+              |} | {|
+                __typename: "Animal"
+              |})
+            |};
+        `);
+    });
+
     it('should work with fragments', () => {
         const result = rawQueryToFlowTypes(`
-		query SomeQuery {
-			human(id: "Han Solo") {
-				id
-				name
-				homePlanet
-				hands
-				alive
-				friends {
-					...Profile
-				}
-			}
-		}
+            query SomeQuery {
+                human(id: "Han Solo") {
+                    id
+                    name
+                    homePlanet
+                    hands
+                    alive
+                    friends {
+                        ...Profile
+                        ... on Human {
+                            hands
+                        }
+                    }
+                }
+            }
 
-		fragment Profile on Character {
-			__typename
-			id
-			name
-			friends {
-				id
-			}
-			appearsIn
-		}
+            fragment Profile on Character {
+                __typename
+                id
+                name
+                friends {
+                    id
+                }
+                appearsIn
+            }
         `);
 
         expect(result).toMatchInlineSnapshot(`
@@ -118,6 +152,7 @@ describe('graphql-flow generation', () => {
                     id: string
                   |}>,
                   appearsIn: ?$ReadOnlyArray<?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  hands: ?number,
                 |} | {|
                   __typename: "Droid",
                   id: string,
