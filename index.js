@@ -57,6 +57,7 @@ type Config = {
 
     schema: Schema,
     scalars: Scalars,
+    errors: Array<string>,
 };
 export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};
 
@@ -120,6 +121,7 @@ export const schemaFromIntrospectionData = (
 const objectPropertiesToFlow = (
     config: Config,
     type,
+    typeName: string,
     selections: Selections,
 ) => {
     return [].concat(
@@ -127,15 +129,23 @@ const objectPropertiesToFlow = (
             switch (selection.kind) {
                 case 'FragmentSpread':
                     if (!config.fragments[selection.name.value]) {
-                        console.warn(
-                            'No fragment for selection named:',
-                            selection.name.value,
+                        config.errors.push(
+                            `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
                         );
+                        return [
+                            babelTypes.objectTypeProperty(
+                                babelTypes.identifier(selection.name.value),
+                                babelTypes.genericTypeAnnotation(
+                                    babelTypes.identifier(`UNKNOWN_FRAGMENT`),
+                                ),
+                            ),
+                        ];
                     }
 
                     return objectPropertiesToFlow(
                         config,
                         type,
+                        typeName,
                         config.fragments[selection.name.value].selectionSet
                             .selections,
                     );
@@ -146,10 +156,16 @@ const objectPropertiesToFlow = (
                         ? selection.alias.value
                         : name;
                     if (!type.fieldsByName[name]) {
-                        console.warn('Unknown field: ' + name);
+                        config.errors.push(
+                            `Unknown field '${name}' for type '${typeName}'`,
+                        );
                         return babelTypes.objectTypeProperty(
                             babelTypes.identifier(alias),
-                            babelTypes.anyTypeAnnotation(),
+                            babelTypes.genericTypeAnnotation(
+                                babelTypes.identifier(
+                                    `UNKNOWN_FIELD["${name}"]`,
+                                ),
+                            ),
                         );
                     }
                     const typeField = type.fieldsByName[name];
@@ -161,7 +177,9 @@ const objectPropertiesToFlow = (
                     ];
 
                 default:
-                    console.log('unsupported selection', selection);
+                    config.errors.push(
+                        `Unsupported selection kind '${selection.kind}'`,
+                    );
                     return [];
             }
         }),
@@ -190,7 +208,7 @@ const unionOrInterfaceSelection = (
         const name = selection.name.value;
         const alias = selection.alias ? selection.alias.value : name;
         if (!type.fieldsByName[name]) {
-            console.warn(
+            config.errors.push(
                 'Unknown field: ' +
                     name +
                     ' on type ' +
@@ -201,7 +219,9 @@ const unionOrInterfaceSelection = (
             return [
                 babelTypes.objectTypeProperty(
                     babelTypes.identifier(alias),
-                    babelTypes.anyTypeAnnotation(),
+                    babelTypes.genericTypeAnnotation(
+                        babelTypes.identifier(`UNKNOWN_FIELD`),
+                    ),
                 ),
             ];
         }
@@ -238,14 +258,15 @@ const unionOrInterfaceSelection = (
         }
     }
     if (selection.kind !== 'InlineFragment') {
-        console.warn('union selectors must be inline fragment', selection);
+        config.errors.push(
+            `union selectors must be inline fragment: found ${selection.kind}`,
+        );
         if (type.kind === 'UNION') {
-            console.warn(`You're trying to select a field from the union ${type.name},
+            config.errors
+                .push(`You're trying to select a field from the union ${type.name},
 but the only field you're allowed to select is "__typename".
 Try using an inline fragment "... on SomeType {}".`);
         }
-        console.warn(type);
-        console.warn(possible);
         return [];
     }
     if (!selection.typeCondition) {
@@ -263,6 +284,7 @@ Try using an inline fragment "... on SomeType {}".`);
         return objectPropertiesToFlow(
             config,
             config.schema.typesByName[possible.name],
+            possible.name,
             selection.selectionSet.selections,
         );
     }
@@ -345,8 +367,11 @@ const _typeToFlow = (
                         babelTypes.identifier(underlyingType),
                     );
                 }
-                throw new Error(
-                    `Unexpected scalar ${type.name}! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
+                config.errors.push(
+                    `Unexpected scalar '${type.name}'! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
+                );
+                return babelTypes.genericTypeAnnotation(
+                    babelTypes.identifier(`UNKNOWN_SCALAR["${type.name}"]`),
                 );
         }
     }
@@ -408,6 +433,7 @@ const _typeToFlow = (
         config,
         selection.selectionSet.selections,
         childType,
+        tname,
     );
 };
 
@@ -415,9 +441,10 @@ const querySelectionToObjectType = (
     config: Config,
     selections,
     type,
+    typeName: string,
 ): BabelNodeFlowType => {
     return babelTypes.objectTypeAnnotation(
-        objectPropertiesToFlow(config, type, selections),
+        objectPropertiesToFlow(config, type, typeName, selections),
         undefined /* indexers */,
         undefined /* callProperties */,
         undefined /* internalSlots */,
@@ -431,6 +458,7 @@ const generateFlowTypes = (
     definitions: $ReadOnlyArray<DefinitionNode>,
     scalars: Scalars = {},
     strictNullability: boolean = false,
+    errors: Array<string> = [],
 ): string => {
     const fragments = {};
     definitions.forEach(def => {
@@ -441,23 +469,33 @@ const generateFlowTypes = (
     /* flow-uncovered-block */
     return generate(
         querySelectionToObjectType(
-            {fragments, strictNullability, schema, scalars},
+            {fragments, strictNullability, schema, scalars, errors},
             query.selectionSet.selections,
             query.operation === 'mutation'
                 ? schema.typesByName.Mutation
                 : schema.typesByName.Query,
+            query.operation === 'mutation' ? 'mutation' : 'query',
         ),
     ).code;
     /* end flow-uncovered-block */
 };
+
+export class FlowGenerationError extends Error {
+    messages: Array<string>;
+    constructor(errors: Array<string>) {
+        super(`Graphql-flow type generation failed! ${errors.join('; ')}`);
+        this.messages = errors;
+    }
+}
 
 export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
     scalars: Scalars,
     strictNullability: boolean = true,
-): Array<{name: string, typeName: string, code: string}> => {
-    return document.definitions
+): $ReadOnlyArray<{name: string, typeName: string, code: string}> => {
+    const errors: Array<string> = [];
+    const result = document.definitions
         .map(item => {
             if (
                 item.kind === 'OperationDefinition' &&
@@ -471,6 +509,7 @@ export const documentToFlowTypes = (
                     document.definitions,
                     scalars,
                     strictNullability,
+                    errors,
                 );
                 const typeName = `${name}ResponseType`;
 
@@ -482,6 +521,8 @@ export const documentToFlowTypes = (
             }
         })
         .filter(Boolean);
+    if (errors.length) {
+        throw new FlowGenerationError(errors);
+    }
+    return result;
 };
-
-export default generateFlowTypes;

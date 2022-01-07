@@ -76,6 +76,24 @@ describe('graphql-flow generation', () => {
         `);
     });
 
+    it('renames', () => {
+        const result = rawQueryToFlowTypes(`
+            query SomeQuery {
+                human(id: "Han Solo") {
+                    notDead: alive
+                }
+            }
+        `);
+
+        expect(result).toMatchInlineSnapshot(`
+            export type SomeQueryResponseType = {|
+              human: ?{|
+                notDead: ?boolean
+              |}
+            |};
+        `);
+    });
+
     it('should work with unions', () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
@@ -107,7 +125,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('should work with fragments', () => {
+    it('should work with fragments on interface', () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
                 human(id: "Han Solo") {
@@ -165,5 +183,35 @@ describe('graphql-flow generation', () => {
               |}
             |};
         `);
+    });
+
+    describe('Object properties', () => {
+        it('should reject invalid field', () => {
+            expect(() =>
+                rawQueryToFlowTypes(`
+                    query SomeQuery {
+                        human(id: "Me") {
+                            invalidField
+                        }
+                    }
+                `),
+            ).toThrowErrorMatchingInlineSnapshot(
+                `Graphql-flow type generation failed! Unknown field 'invalidField' for type 'Human'`,
+            );
+        });
+
+        it('should reject an unknown fragment', () => {
+            expect(() =>
+                rawQueryToFlowTypes(`
+            query SomeQuery {
+                human(id: "Me") {
+                    ...UnknownFragment
+                }
+            }
+            `),
+            ).toThrowErrorMatchingInlineSnapshot(
+                `Graphql-flow type generation failed! No fragment named 'UnknownFragment'. Did you forget to include it in the template literal?`,
+            );
+        });
     });
 });
