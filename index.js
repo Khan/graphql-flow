@@ -155,6 +155,16 @@ const objectPropertiesToFlow = (
                     const alias = selection.alias
                         ? selection.alias.value
                         : name;
+                    if (name === '__typename') {
+                        return [
+                            babelTypes.objectTypeProperty(
+                                babelTypes.identifier(alias),
+                                babelTypes.stringLiteralTypeAnnotation(
+                                    typeName,
+                                ),
+                            ),
+                        ];
+                    }
                     if (!type.fieldsByName[name]) {
                         config.errors.push(
                             `Unknown field '${name}' for type '${typeName}'`,
@@ -491,7 +501,7 @@ export class FlowGenerationError extends Error {
 export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
-    scalars: Scalars,
+    scalars: Scalars = {},
     strictNullability: boolean = true,
 ): $ReadOnlyArray<{name: string, typeName: string, code: string}> => {
     const errors: Array<string> = [];
