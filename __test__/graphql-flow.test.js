@@ -37,12 +37,7 @@ const rawQueryToFlowTypes = (query: string): string => {
     // flow-next-uncovered-line
     const gql: string => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
-    return documentToFlowTypes(
-        node,
-        exampleSchema,
-        {PositiveNumber: 'number'},
-        true,
-    )
+    return documentToFlowTypes(node, exampleSchema, {PositiveNumber: 'number'})
         .map(({code}) => code)
         .join('\n\n');
 };

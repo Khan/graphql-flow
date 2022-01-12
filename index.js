@@ -51,8 +51,10 @@ export type Schema = {
         [key: string]: IntrospectionEnumType,
     },
 };
+
 type Config = {
     strictNullability: boolean,
+    readOnlyArray: boolean,
     fragments: {[key: string]: FragmentDefinitionNode},
 
     schema: Schema,
@@ -467,7 +469,7 @@ const generateFlowTypes = (
     query: OperationDefinitionNode,
     definitions: $ReadOnlyArray<DefinitionNode>,
     scalars: Scalars = {},
-    strictNullability: boolean = false,
+    options?: Options,
     errors: Array<string> = [],
 ): string => {
     const fragments = {};
@@ -479,7 +481,14 @@ const generateFlowTypes = (
     /* flow-uncovered-block */
     return generate(
         querySelectionToObjectType(
-            {fragments, strictNullability, schema, scalars, errors},
+            {
+                fragments,
+                strictNullability: options?.strictNullability ?? true,
+                readOnlyArray: options?.readOnlyArray ?? true,
+                schema,
+                scalars,
+                errors,
+            },
             query.selectionSet.selections,
             query.operation === 'mutation'
                 ? schema.typesByName.Mutation
@@ -498,11 +507,18 @@ export class FlowGenerationError extends Error {
     }
 }
 
+export type Options = {|
+    // default true
+    strictNullability?: boolean,
+    // default true
+    readOnlyArray?: boolean,
+|};
+
 export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
     scalars: Scalars = {},
-    strictNullability: boolean = true,
+    options?: Options,
 ): $ReadOnlyArray<{name: string, typeName: string, code: string}> => {
     const errors: Array<string> = [];
     const result = document.definitions
@@ -518,7 +534,7 @@ export const documentToFlowTypes = (
                     item,
                     document.definitions,
                     scalars,
-                    strictNullability,
+                    options,
                     errors,
                 );
                 const typeName = `${name}ResponseType`;
