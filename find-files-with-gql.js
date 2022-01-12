@@ -1,51 +1,40 @@
 // @flow
 const path = require('path');
-const fs = require('fs');
+const {execSync} = require('child_process');
 
-// TODO(jared): Switch to using `git grep`!
-
-const crawl = (root: string, fn: (name: string, full: string) => void) => {
-    fs.readdirSync(root).forEach(name => {
-        if (name === 'node_modules' || name[0] === '.') {
-            return;
-        }
-        const full = path.join(root, name);
-        const stat = fs.statSync(full);
-        if (stat.isDirectory()) {
-            crawl(full, fn);
-        } else {
-            fn(name, full);
-        }
-    });
+export const findRepoRoot = (): string => {
+    try {
+        const res = execSync('git rev-parse --show-toplevel', {
+            encoding: 'utf8',
+        });
+        return res.trim();
+        // flow-next-uncovered-line
+    } catch (err) {
+        throw new Error(
+            // flow-next-uncovered-line
+            `Unable to use git rev-parse to find the repository root. ${err.message}`,
+        );
+    }
 };
 
-export const findFilesWithQueries = (
-    root: string,
-    ignoredFiles: Array<string | RegExp> = [],
-): Array<string> => {
-    const result = [];
-    crawl(root, (name, full) => {
-        if (
-            name.match(/\.js$/) &&
-            !name.match(/\.map\.js$/) &&
-            name !== 'jest-setup.js'
-        ) {
-            for (const test of ignoredFiles) {
-                if (typeof test === 'string') {
-                    if (name === test) {
-                        return;
-                    }
-                } else {
-                    if (test.test(name)) {
-                        return;
-                    }
-                }
-            }
-            const text = fs.readFileSync(full);
-            if (text.includes(`'graphql-tag'`)) {
-                result.push(full);
-            }
-        }
-    });
-    return result;
+export const findGraphqlTagReferences = (root: string): Array<string> => {
+    try {
+        const response = execSync(
+            "git grep -I --word-regexp --name-only --fixed-strings 'gql`' -- '*.js'",
+            {
+                encoding: 'utf8',
+                cwd: root,
+            },
+        );
+        return response
+            .trim()
+            .split('\n')
+            .map(relative => path.join(root, relative));
+        // flow-next-uncovered-line
+    } catch (err) {
+        throw new Error(
+            // flow-next-uncovered-line
+            `Unable to use git grep to find files with gql tags. ${err.message}`,
+        );
+    }
 };
