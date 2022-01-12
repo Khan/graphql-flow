@@ -54,9 +54,9 @@ const generateTypeFiles = (
         if (indexContents.indexOf(`export type {${typeName}}`) === -1) {
             fs.appendFileSync(
                 index,
-                `export type {${typeName}} from '../${path.basename(
+                `export type {${typeName}} from './${path.basename(
                     filePath,
-                )}'\n`,
+                )}';\n`,
             );
         }
     };
