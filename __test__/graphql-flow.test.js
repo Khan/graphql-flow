@@ -5,7 +5,7 @@
  */
 
 import type {IntrospectionQuery, DocumentNode} from 'graphql';
-import type {Schema} from '..';
+import type {Schema, Options} from '..';
 import {buildSchema, getIntrospectionQuery, graphqlSync} from 'graphql';
 import fs from 'fs';
 const {documentToFlowTypes, schemaFromIntrospectionData} = require('..');
@@ -32,17 +32,15 @@ const generateTestSchema = (): Schema => {
 
 const exampleSchema = generateTestSchema();
 
-const rawQueryToFlowTypes = (query: string): string => {
+const rawQueryToFlowTypes = (query: string, options?: Options): string => {
     // We need the "requireActual" because we mock graphql-tag in jest-setup.js
     // flow-next-uncovered-line
     const gql: string => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
-    return documentToFlowTypes(
-        node,
-        exampleSchema,
-        {PositiveNumber: 'number'},
-        true,
-    )
+    return documentToFlowTypes(node, exampleSchema, {
+        scalars: {PositiveNumber: 'number'},
+        ...options,
+    })
         .map(({code}) => code)
         .join('\n\n');
 };
@@ -180,6 +178,31 @@ describe('graphql-flow generation', () => {
                   |}>,
                   appearsIn: ?$ReadOnlyArray<?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
                 |})>,
+              |}
+            |};
+        `);
+    });
+
+    it('should work with a readOnlyArray turned off', () => {
+        const result = rawQueryToFlowTypes(
+            `
+            query SomeQuery {
+                human(id: "Han Solo") {
+                    friends {
+                        name
+                    }
+                }
+            }
+        `,
+            {readOnlyArray: false},
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+            export type SomeQueryResponseType = {|
+              human: ?{|
+                friends: ?Array<?{|
+                  name: ?string
+                |}>
               |}
             |};
         `);

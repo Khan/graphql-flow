@@ -1,27 +1,13 @@
 // @flow
 // Import this in your jest setup, to mock out graphql-tag!
 import type {DocumentNode} from 'graphql';
-import type {Schema} from './';
+import type {Schema, Options, Scalars} from './';
 import type {IntrospectionQuery} from 'graphql';
 
-// This needs to have the "mock" prefix, so that jest will allow us to
-// reference it from within a jest.mock function.
-// It's not actually a mock. This is the function that produces the type
-// definitions for all of the graphql queries that are used in the app.
-// It's here in jest-setup because we're piggy-backing off of all of the
-// work that jest does to get our react-native javascript to run in a
-// nodejs environment (including all of the mocking, etc.). This means
-// that, to "regenerate the types for queries", we run `yarn jest`,
-// or more specifically `yarn jest queries`, which picks up the file
-// 'react-native/snapshots/queries.test.js`, which makes sure to `require`
-// all of the files that contain `gql` tags, and then creates a JSON file
-// of all of our queries, which is used for safelisting them in webapp.
-// And our mocked version of `gql` generates type files for each query
-// as it's processed.
 const generateTypeFiles = (
     schema: Schema,
     document: DocumentNode,
-    strictNullability: boolean,
+    options: Options,
 ) => {
     const {documentToFlowTypes} = require('./');
     const path = require('path');
@@ -68,12 +54,8 @@ const generateTypeFiles = (
         .slice(-1)[0]
         .split(':')[0];
 
-    documentToFlowTypes(
-        document,
-        schema,
-        {JSONString: 'string'},
-        strictNullability,
-    ).forEach(({name, typeName, code}) => {
+    const generated = documentToFlowTypes(document, schema, options);
+    generated.forEach(({name, typeName, code}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
         const targetFileName = `${typeName}.js`;
@@ -106,14 +88,24 @@ const generateTypeFiles = (
 
 type GraphqlTagFn = (raw: string, ...args: Array<any>) => DocumentNode;
 
+type SpyOptions = {
+    pragma?: string,
+    loosePragma?: string,
+    scalars?: Scalars,
+    strictNullability?: boolean,
+    readOnlyArray?: boolean,
+};
+
 // This function is expected to be called like so:
 //
 // jest.mock('graphql-tag', () => {
 //     const introspectionData = jest.requireActual(
 //         './our-introspection-query.json',
 //     );
+//     const {spyOnGraphqlTagToCollectQueries} = jest.requireActual(
+//         'graphql-flow/jest-mock-graphql-tag.js');
 //
-//     return jest.requireActual('graphql-flow/jest-mock-graphql-tag.js')(
+//     return spyOnGraphqlTagToCollectQueries(
 //         introspectionData,
 //     );
 // });
@@ -121,9 +113,9 @@ type GraphqlTagFn = (raw: string, ...args: Array<any>) => DocumentNode;
 // If both pragma and loosePragma are empty, then all graphql
 // documents will be processed. Otherwise, only documents
 // with one of the pragmas will be processed.
-module.exports = (
+const spyOnGraphqlTagToCollectQueries = (
     introspectionData: IntrospectionQuery,
-    options: {pragma?: string, loosePragma?: string} = {},
+    options: SpyOptions = {},
 ): GraphqlTagFn => {
     const collection = [];
     /* flow-uncovered-block */
@@ -151,24 +143,44 @@ module.exports = (
             collection.push(print(withTypeNames));
 
             const rawSource: string = arguments[0].raw[0]; // flow-uncovered-line
-
-            const autogen = options.loosePragma
-                ? rawSource.includes(options.loosePragma)
-                : false;
-            const autogenStrict = options.pragma
-                ? rawSource.includes(options.pragma)
-                : false;
-            if (
-                autogen ||
-                autogenStrict ||
-                (!options.loosePragma && !options.pragma)
-            ) {
+            const processedOptions = processPragmas(options, rawSource);
+            if (processedOptions) {
                 // TODO(jared): Use withTypeNames here instead of document.
-                generateTypeFiles(schema, document, autogenStrict);
+                generateTypeFiles(schema, document, processedOptions);
             }
         }
         return document;
     };
     wrapper.collectedQueries = collection;
     return wrapper;
+};
+
+const processPragmas = (
+    options: SpyOptions,
+    rawSource: string,
+): null | Options => {
+    const autogen = options.loosePragma
+        ? rawSource.includes(options.loosePragma)
+        : false;
+    const autogenStrict = options.pragma
+        ? rawSource.includes(options.pragma)
+        : false;
+    const noPragmas = !options.loosePragma && !options.pragma;
+
+    if (autogen || autogenStrict || noPragmas) {
+        return {
+            strictNullability: noPragmas
+                ? options.strictNullability
+                : autogenStrict || !autogen,
+            readOnlyArray: options.readOnlyArray,
+            scalars: options.scalars,
+        };
+    } else {
+        return null;
+    }
+};
+
+module.exports = {
+    processPragmas,
+    spyOnGraphqlTagToCollectQueries,
 };

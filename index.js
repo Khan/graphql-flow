@@ -51,8 +51,10 @@ export type Schema = {
         [key: string]: IntrospectionEnumType,
     },
 };
+
 type Config = {
     strictNullability: boolean,
+    readOnlyArray: boolean,
     fragments: {[key: string]: FragmentDefinitionNode},
 
     schema: Schema,
@@ -387,7 +389,9 @@ const _typeToFlow = (
     }
     if (type.kind === 'LIST') {
         return babelTypes.genericTypeAnnotation(
-            babelTypes.identifier('$ReadOnlyArray'),
+            config.readOnlyArray
+                ? babelTypes.identifier('$ReadOnlyArray')
+                : babelTypes.identifier('Array'),
             babelTypes.typeParameterInstantiation([
                 typeToFlow(config, type.ofType, selection),
             ]),
@@ -466,28 +470,36 @@ const generateFlowTypes = (
     schema: Schema,
     query: OperationDefinitionNode,
     definitions: $ReadOnlyArray<DefinitionNode>,
-    scalars: Scalars = {},
-    strictNullability: boolean = false,
+    options?: Options,
     errors: Array<string> = [],
 ): string => {
+    const internalOptions = {
+        strictNullability: options?.strictNullability ?? true,
+        readOnlyArray: options?.readOnlyArray ?? true,
+        scalars: options?.scalars ?? {},
+    };
     const fragments = {};
     definitions.forEach(def => {
         if (def.kind === 'FragmentDefinition') {
             fragments[def.name.value] = def;
         }
     });
-    /* flow-uncovered-block */
-    return generate(
-        querySelectionToObjectType(
-            {fragments, strictNullability, schema, scalars, errors},
-            query.selectionSet.selections,
-            query.operation === 'mutation'
-                ? schema.typesByName.Mutation
-                : schema.typesByName.Query,
-            query.operation === 'mutation' ? 'mutation' : 'query',
-        ),
-    ).code;
-    /* end flow-uncovered-block */
+    const config = {
+        fragments,
+        schema,
+        errors,
+        ...internalOptions,
+    };
+    const ast = querySelectionToObjectType(
+        config,
+        query.selectionSet.selections,
+        query.operation === 'mutation'
+            ? schema.typesByName.Mutation
+            : schema.typesByName.Query,
+        query.operation === 'mutation' ? 'mutation' : 'query',
+    );
+    // flow-next-uncovered-line
+    return generate(ast).code;
 };
 
 export class FlowGenerationError extends Error {
@@ -498,11 +510,16 @@ export class FlowGenerationError extends Error {
     }
 }
 
+export type Options = {|
+    strictNullability?: boolean, // default true
+    readOnlyArray?: boolean, // default true
+    scalars?: Scalars,
+|};
+
 export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
-    scalars: Scalars = {},
-    strictNullability: boolean = true,
+    options?: Options,
 ): $ReadOnlyArray<{name: string, typeName: string, code: string}> => {
     const errors: Array<string> = [];
     const result = document.definitions
@@ -517,8 +534,7 @@ export const documentToFlowTypes = (
                     schema,
                     item,
                     document.definitions,
-                    scalars,
-                    strictNullability,
+                    options,
                     errors,
                 );
                 const typeName = `${name}ResponseType`;

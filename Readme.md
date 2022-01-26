@@ -45,6 +45,20 @@ If you already have a setup whereby you collect all of your graphql literals, th
 
 Otherwise, we provide a way to hook into jest to automatically collect your queries and generate the types.
 
+## Options for `documentToFlowTypes`
+
+```js
+{
+    // Use nullable types where the graphql type is nullable. Included for legacy compatability,
+    // will probably remove once the mobile repo no longer needs it.
+    strictNullability: boolean = true,
+    // Output `$ReadOnlyArray<>` instead of `Array<>`, for stricter flow typing. On by default.
+    readOnlyArray: boolean = true,
+    // A mapping of custom scalar names to the underlying json representation.
+    scalars: {[key: string]: 'string' | 'boolean' | 'number'}
+}
+```
+
 ## Using jest to do the heavy lifting:
 
 ### jest-setup.js
@@ -110,6 +124,28 @@ You can add a script to package.json, like so:
 And then `yarn generate-types` or `npm run generate-types` gets your types generated!
 
 🚀
+
+### Options for the `jest-mock-graphql-tag.js` helper:
+
+```js
+{
+    // These are from the `documentToFlowTypes` options object above
+    strictNullability: boolean = true,
+    readOnlyArray: boolean = true,
+    scalars: {[key: string]: 'string' | 'boolean' | 'number'}
+
+    // Specify an opt-in pragma that must be present in a graphql string source
+    // in order for it to be picked up and processed
+    // e.g. set this to `"# @autogen\n"` to only generate types for queries that
+    // have the comment `# @autogen` in them.
+    pragma?: string,
+    // Specify a pragma that will turn off `strictNullability` for that
+    // source file. e.g. `"# @autogen-loose\n"`.
+    loosePragma?: string,
+    // If neither pragma nor loosePragma are specified, all graphql documents
+    // that contain a query or mutation will be processed.
+}
+```
 
 ## Introspecting your backend's graphql schema
 Here's how to get your backend's schema in the way that this tool expects, using the builtin 'graphql introspection query':
