@@ -125,7 +125,7 @@ const objectPropertiesToFlow = (
     type,
     typeName: string,
     selections: Selections,
-) => {
+): Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty> => {
     return [].concat(
         ...selections.map(selection => {
             switch (selection.kind) {
@@ -306,13 +306,29 @@ Try using an inline fragment "... on SomeType {}".`);
 const unionOrInterfaceToFlow = (config, type, selections: Selections) => {
     const selectedAttributes: Array<
         Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>,
-    > = type.possibleTypes.map(possible =>
-        [].concat(
-            ...selections.map(selection =>
+    > = type.possibleTypes.map(possible => {
+        let seenTypeName = false;
+        return selections
+            .map(selection =>
                 unionOrInterfaceSelection(config, type, possible, selection),
-            ),
-        ),
-    );
+            )
+            .flat()
+            .filter(type => {
+                // The apollo-utilities "addTypeName" utility will add it
+                // even if it's already specified :( so we have to filter out
+                // the extra one here.
+                if (
+                    type.type === 'ObjectTypeProperty' &&
+                    type.key.name === '__typename'
+                ) {
+                    if (seenTypeName) {
+                        return false;
+                    }
+                    seenTypeName = true;
+                }
+                return true;
+            });
+    });
     const allFields = selections.every(selection => selection.kind === 'Field');
     if (selectedAttributes.length === 1 || allFields) {
         return babelTypes.objectTypeAnnotation(
@@ -457,8 +473,25 @@ const querySelectionToObjectType = (
     type,
     typeName: string,
 ): BabelNodeFlowType => {
+    let seenTypeName = false;
     return babelTypes.objectTypeAnnotation(
-        objectPropertiesToFlow(config, type, typeName, selections),
+        objectPropertiesToFlow(config, type, typeName, selections).filter(
+            type => {
+                // The apollo-utilities "addTypeName" utility will add it
+                // even if it's already specified :( so we have to filter out
+                // the extra one here.
+                if (
+                    type.type === 'ObjectTypeProperty' &&
+                    type.key.name === '__typename'
+                ) {
+                    if (seenTypeName) {
+                        return false;
+                    }
+                    seenTypeName = true;
+                }
+                return true;
+            },
+        ),
         undefined /* indexers */,
         undefined /* callProperties */,
         undefined /* internalSlots */,

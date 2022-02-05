@@ -145,8 +145,7 @@ const spyOnGraphqlTagToCollectQueries = (
             const rawSource: string = arguments[0].raw[0]; // flow-uncovered-line
             const processedOptions = processPragmas(options, rawSource);
             if (processedOptions) {
-                // TODO(jared): Use withTypeNames here instead of document.
-                generateTypeFiles(schema, document, processedOptions);
+                generateTypeFiles(schema, withTypeNames, processedOptions);
             }
         }
         return document;
