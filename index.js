@@ -154,7 +154,7 @@ const objectPropertiesToFlow = (
 
                 case 'Field':
                     const name = selection.name.value;
-                    const alias = selection.alias
+                    const alias: string = selection.alias
                         ? selection.alias.value
                         : name;
                     if (name === '__typename') {
@@ -181,12 +181,14 @@ const objectPropertiesToFlow = (
                         );
                     }
                     const typeField = type.fieldsByName[name];
-                    return [
-                        babelTypes.objectTypeProperty(
-                            babelTypes.identifier(alias),
-                            typeToFlow(config, typeField.type, selection),
-                        ),
-                    ];
+                    const res = babelTypes.objectTypeProperty(
+                        babelTypes.identifier(alias),
+                        typeToFlow(config, typeField.type, selection),
+                    );
+                    if (typeField.description) {
+                        addCommentAsLineComments(typeField.description, res);
+                    }
+                    return [res];
 
                 default:
                     config.errors.push(
@@ -459,12 +461,16 @@ const _typeToFlow = (
         console.log('no selection set', selection);
         return babelTypes.anyTypeAnnotation();
     }
-    return querySelectionToObjectType(
+    const result = querySelectionToObjectType(
         config,
         selection.selectionSet.selections,
         childType,
         tname,
     );
+    if (childType.description) {
+        addCommentAsLineComments(childType.description, result);
+    }
+    return result;
 };
 
 const querySelectionToObjectType = (
@@ -585,3 +591,20 @@ export const documentToFlowTypes = (
     }
     return result;
 };
+
+function addCommentAsLineComments(
+    description: string,
+    res: babelTypes.BabelNode,
+) {
+    description
+        .split('\n')
+        .reverse()
+        .forEach(line => {
+            babelTypes.addComment(
+                res,
+                'leading',
+                ' ' + line,
+                true, // this specifies that it's a line comment, not a block comment
+            );
+        });
+}

@@ -62,8 +62,10 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             export type SomeQueryResponseType = {|
-              human: ?{|
+              human: ? // A human character
+              {|
                 id: string,
+                // The person's name
                 name: ?string,
                 homePlanet: ?string,
                 friends: ?$ReadOnlyArray<?{|
@@ -85,7 +87,8 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             export type SomeQueryResponseType = {|
-              human: ?{|
+              human: ? // A human character
+              {|
                 notDead: ?boolean
               |}
             |};
@@ -115,6 +118,7 @@ describe('graphql-flow generation', () => {
                 hands: ?number,
               |} | {|
                 __typename: "Droid",
+                // The robot's primary function
                 primaryFunction: ?string,
               |} | {|
                 __typename: "Animal"
@@ -154,8 +158,10 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             export type SomeQueryResponseType = {|
-              human: ?{|
+              human: ? // A human character
+              {|
                 id: string,
+                // The person's name
                 name: ?string,
                 homePlanet: ?string,
                 hands: ?number,
@@ -199,7 +205,8 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             export type SomeQueryResponseType = {|
-              human: ?{|
+              human: ? // A human character
+              {|
                 friends: ?Array<?{|
                   name: ?string
                 |}>
