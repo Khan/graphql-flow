@@ -401,13 +401,27 @@ const _inputRefToFlow = (
     }
     if (inputRef.kind === 'LIST') {
         return babelTypes.genericTypeAnnotation(
-            babelTypes.identifier('Array'),
+            babelTypes.identifier('$ReadOnlyArray'),
             babelTypes.typeParameterInstantiation([
                 inputRefToFlow(config, inputRef.ofType),
             ]),
         );
     }
     return babelTypes.stringLiteralTypeAnnotation(JSON.stringify(inputRef));
+};
+
+const maybeOptionalObjectTypeProperty = (
+    name: string,
+    type: babelTypes.BabelNodeFlowType,
+) => {
+    const prop = babelTypes.objectTypeProperty(
+        babelTypes.identifier(name),
+        type,
+    );
+    if (type.type === 'NullableTypeAnnotation') {
+        prop.optional = true;
+    }
+    return prop;
 };
 
 const inputObjectToFlow = (config: Config, name: string) => {
@@ -425,12 +439,16 @@ const inputObjectToFlow = (config: Config, name: string) => {
             inputObject.inputFields.map(vbl =>
                 maybeAddDescriptionComment(
                     vbl.description,
-                    babelTypes.objectTypeProperty(
-                        babelTypes.identifier(vbl.name),
+                    maybeOptionalObjectTypeProperty(
+                        vbl.name,
                         inputRefToFlow(config, vbl.type),
                     ),
                 ),
             ),
+            undefined /* indexers */,
+            undefined /* callProperties */,
+            undefined /* internalSlots */,
+            true /* exact */,
         ),
     );
 };
@@ -458,7 +476,7 @@ const _variableToFlow = (config: Config, type: TypeNode) => {
     }
     if (type.kind === 'ListType') {
         return babelTypes.genericTypeAnnotation(
-            babelTypes.identifier('Array'),
+            babelTypes.identifier('$ReadOnlyArray'),
             babelTypes.typeParameterInstantiation([
                 variableToFlow(config, type.type),
             ]),
@@ -662,7 +680,27 @@ const optionsToConfig = (
     return config;
 };
 
-const generateFlowTypes = (
+const generateVariablesType = (
+    schema: Schema,
+    item: OperationDefinitionNode,
+    config: Config,
+): string => {
+    const variableObject = babelTypes.objectTypeAnnotation(
+        (item.variableDefinitions || []).map(vbl => {
+            return babelTypes.objectTypeProperty(
+                babelTypes.identifier(vbl.variable.name.value),
+                variableToFlow(config, vbl.type),
+            );
+        }),
+        undefined /* indexers */,
+        undefined /* callProperties */,
+        undefined /* internalSlots */,
+        true /* exact */,
+    );
+    return generate(variableObject).code;
+};
+
+const generateResponseType = (
     schema: Schema,
     query: OperationDefinitionNode,
     config: Config,
@@ -700,7 +738,6 @@ export const documentToFlowTypes = (
 ): $ReadOnlyArray<{
     name: string,
     typeName: string,
-    variableTypeName: ?string,
     code: string,
 }> => {
     const errors: Array<string> = [];
@@ -718,31 +755,15 @@ export const documentToFlowTypes = (
                 item.name
             ) {
                 const name = item.name.value;
-                const flow = generateFlowTypes(schema, item, config);
-                const typeName = `${name}ResponseType`;
-                let code = `export type ${typeName} = ${flow};`;
-                let variableTypeName = null;
-                if (item.variableDefinitions?.length) {
-                    variableTypeName = `${name}Variables`;
-                    const variableObject = babelTypes.objectTypeAnnotation(
-                        item.variableDefinitions.map(vbl => {
-                            return babelTypes.objectTypeProperty(
-                                babelTypes.identifier(vbl.variable.name.value),
-                                variableToFlow(config, vbl.type),
-                            );
-                        }),
-                    );
-                    code += `\nexport type ${variableTypeName} = ${
-                        generate(variableObject).code
-                    };`;
-                }
+                const response = generateResponseType(schema, item, config);
+                const variables = generateVariablesType(schema, item, config);
 
-                return {
-                    name,
-                    typeName,
-                    variableTypeName,
-                    code,
-                };
+                const typeName = `${name}Type`;
+                // TODO(jared): Maybe make this template configurable?
+                // We'll see what's required to get webapp on board.
+                const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
+
+                return {name, typeName, code};
             }
         })
         .filter(Boolean);

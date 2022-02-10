@@ -66,7 +66,9 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
-            export type SomeQueryResponseType = {|
+            export type SomeQueryType = {|
+                variables: {||},
+                response: {|
               human: ? // A human character
               {|
                 id: string,
@@ -77,6 +79,7 @@ describe('graphql-flow generation', () => {
                   name: ?string
                 |}>,
               |}
+            |}
             |};
         `);
     });
@@ -91,11 +94,14 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
-            export type SomeQueryResponseType = {|
+            export type SomeQueryType = {|
+                variables: {||},
+                response: {|
               human: ? // A human character
               {|
                 notDead: ?boolean
               |}
+            |}
             |};
         `);
     });
@@ -116,7 +122,9 @@ describe('graphql-flow generation', () => {
             }
         `);
         expect(result).toMatchInlineSnapshot(`
-            export type SomeQueryResponseType = {|
+            export type SomeQueryType = {|
+                variables: {||},
+                response: {|
               friend: ?({|
                 __typename: "Human",
                 id: string,
@@ -128,6 +136,7 @@ describe('graphql-flow generation', () => {
               |} | {|
                 __typename: "Animal"
               |})
+            |}
             |};
         `);
     });
@@ -162,7 +171,9 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
-            export type SomeQueryResponseType = {|
+            export type SomeQueryType = {|
+                variables: {||},
+                response: {|
               human: ? // A human character
               {|
                 id: string,
@@ -190,6 +201,7 @@ describe('graphql-flow generation', () => {
                   appearsIn: ?$ReadOnlyArray<?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
                 |})>,
               |}
+            |}
             |};
         `);
     });
@@ -209,13 +221,16 @@ describe('graphql-flow generation', () => {
         );
 
         expect(result).toMatchInlineSnapshot(`
-            export type SomeQueryResponseType = {|
+            export type SomeQueryType = {|
+                variables: {||},
+                response: {|
               human: ? // A human character
               {|
                 friends: ?Array<?{|
                   name: ?string
                 |}>
               |}
+            |}
             |};
         `);
     });
@@ -267,7 +282,12 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
-                export type SomeQueryResponseType = {|
+                export type SomeQueryType = {|
+                    variables: {|
+                  id: string,
+                  episode: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
+                |},
+                    response: {|
                   human: ? // A human character
                   {|
                     friends: ?Array<?{|
@@ -277,11 +297,8 @@ describe('graphql-flow generation', () => {
                   hero: ?{|
                     name: ?string
                   |},
+                |}
                 |};
-                export type SomeQueryVariables = {
-                  id: string,
-                  episode: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
-                };
             `);
         });
 
@@ -296,21 +313,23 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
-                export type addCharacterResponseType = {|
-                  addCharacter: ?{|
-                    id: string
-                  |}
-                |};
-                export type addCharacterVariables = {
+                export type addCharacterType = {|
+                    variables: {|
                   character: // A character to add
-                  {
+                  {|
                     // The new character's name
                     name: string,
                     // The character's friends
-                    friends: ?Array<string>,
-                    appearsIn: ?Array<"NEW_HOPE" | "EMPIRE" | "JEDI">,
-                  }
-                };
+                    friends?: ?$ReadOnlyArray<string>,
+                    appearsIn?: ?$ReadOnlyArray<"NEW_HOPE" | "EMPIRE" | "JEDI">,
+                  |}
+                |},
+                    response: {|
+                  addCharacter: ?{|
+                    id: string
+                  |}
+                |}
+                |};
             `);
         });
     });
