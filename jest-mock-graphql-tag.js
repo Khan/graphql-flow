@@ -34,16 +34,23 @@ const generateTypeFiles = (
     };
 
     /// Write export for __generated__/index.js if it doesn't exist
-    const writeToIndex = (filePath, typeName) => {
+    const writeToIndex = (filePath, typeName, variableTypeName) => {
         const index = indexFile(path.dirname(filePath));
-        const indexContents = fs.readFileSync(index);
-        if (indexContents.indexOf(`export type {${typeName}}`) === -1) {
-            fs.appendFileSync(
-                index,
-                `export type {${typeName}} from './${path.basename(
-                    filePath,
-                )}';\n`,
-            );
+        const indexContents = fs.readFileSync(index, 'utf8');
+        const newLine = `export type {${typeName +
+            (variableTypeName
+                ? `, ` + variableTypeName
+                : '')}} from './${path.basename(filePath)}';`;
+        if (indexContents.indexOf(path.basename(filePath)) === -1) {
+            fs.appendFileSync(index, newLine + '\n');
+        } else {
+            const lines = indexContents.split('\n').map(line => {
+                if (line.includes(path.basename(filePath))) {
+                    return newLine;
+                }
+                return line;
+            });
+            fs.writeFileSync(index, lines.join('\n'));
         }
     };
 
@@ -55,7 +62,7 @@ const generateTypeFiles = (
         .split(':')[0];
 
     const generated = documentToFlowTypes(document, schema, options);
-    generated.forEach(({name, typeName, code}) => {
+    generated.forEach(({name, typeName, variableTypeName, code}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
         const targetFileName = `${typeName}.js`;
@@ -82,7 +89,7 @@ const generateTypeFiles = (
         });
         fs.writeFileSync(targetPath, fileContents);
 
-        writeToIndex(targetPath, typeName);
+        writeToIndex(targetPath, typeName, variableTypeName);
     });
 };
 

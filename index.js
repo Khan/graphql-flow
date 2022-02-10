@@ -23,11 +23,16 @@ import type {
     IntrospectionObjectType,
     IntrospectionUnionType,
     IntrospectionEnumType,
+    IntrospectionInputTypeRef,
+    IntrospectionInputObjectType,
     FragmentDefinitionNode,
     DefinitionNode,
     SelectionNode,
+    IntrospectionOutputTypeRef,
+    FieldNode,
     IntrospectionField,
     DocumentNode,
+    TypeNode,
 } from 'graphql';
 
 type Selections = $ReadOnlyArray<SelectionNode>;
@@ -38,6 +43,9 @@ export type Schema = {
             fieldsByName: {[key: string]: IntrospectionField},
             possibleTypesByName: {[key: string]: boolean},
         },
+    },
+    inputObjectsByName: {
+        [key: string]: IntrospectionInputObjectType,
     },
     typesByName: {
         [key: string]: IntrospectionObjectType & {
@@ -69,6 +77,7 @@ export const schemaFromIntrospectionData = (
     const result: Schema = {
         interfacesByName: {},
         typesByName: {},
+        inputObjectsByName: {},
         unionsByName: {},
         enumsByName: {},
     };
@@ -101,7 +110,11 @@ export const schemaFromIntrospectionData = (
             });
             return;
         }
-        if (type.kind !== 'OBJECT') {
+        if (type.kind === 'INPUT_OBJECT') {
+            result.inputObjectsByName[type.name] = type;
+            return;
+        }
+        if (type.kind === 'SCALAR') {
             return;
         }
         result.typesByName[type.name] = {
@@ -181,14 +194,16 @@ const objectPropertiesToFlow = (
                         );
                     }
                     const typeField = type.fieldsByName[name];
-                    const res = babelTypes.objectTypeProperty(
-                        babelTypes.identifier(alias),
-                        typeToFlow(config, typeField.type, selection),
-                    );
-                    if (typeField.description) {
-                        addCommentAsLineComments(typeField.description, res);
-                    }
-                    return [res];
+
+                    return [
+                        maybeAddDescriptionComment(
+                            typeField.description,
+                            babelTypes.objectTypeProperty(
+                                babelTypes.identifier(alias),
+                                typeToFlow(config, typeField.type, selection),
+                            ),
+                        ),
+                    ];
 
                 default:
                     config.errors.push(
@@ -354,7 +369,126 @@ const unionOrInterfaceToFlow = (config, type, selections: Selections) => {
     );
 };
 
-const typeToFlow = (config: Config, type, selection) => {
+const variableToFlow = (config: Config, type: TypeNode) => {
+    if (type.kind === 'NonNullType') {
+        return _variableToFlow(config, type.type);
+    }
+    return babelTypes.nullableTypeAnnotation(_variableToFlow(config, type));
+};
+
+const inputRefToFlow = (
+    config: Config,
+    inputRef: IntrospectionInputTypeRef,
+) => {
+    if (inputRef.kind === 'NON_NULL') {
+        return _inputRefToFlow(config, inputRef.ofType);
+    }
+    return babelTypes.nullableTypeAnnotation(_inputRefToFlow(config, inputRef));
+};
+
+const _inputRefToFlow = (
+    config: Config,
+    inputRef: IntrospectionInputTypeRef,
+) => {
+    if (inputRef.kind === 'SCALAR') {
+        return scalarTypeToFlow(config, inputRef.name);
+    }
+    if (inputRef.kind === 'ENUM') {
+        return enumTypeToFlow(config, inputRef.name);
+    }
+    if (inputRef.kind === 'INPUT_OBJECT') {
+        return inputObjectToFlow(config, inputRef.name);
+    }
+    if (inputRef.kind === 'LIST') {
+        return babelTypes.genericTypeAnnotation(
+            babelTypes.identifier('Array'),
+            babelTypes.typeParameterInstantiation([
+                inputRefToFlow(config, inputRef.ofType),
+            ]),
+        );
+    }
+    return babelTypes.stringLiteralTypeAnnotation(JSON.stringify(inputRef));
+};
+
+const inputObjectToFlow = (config: Config, name: string) => {
+    const inputObject = config.schema.inputObjectsByName[name];
+    if (!inputObject) {
+        config.errors.push(`Unknown input object ${name}`);
+        return babelTypes.stringLiteralTypeAnnotation(
+            `Unknown input object ${name}`,
+        );
+    }
+
+    return maybeAddDescriptionComment(
+        inputObject.description,
+        babelTypes.objectTypeAnnotation(
+            inputObject.inputFields.map(vbl =>
+                maybeAddDescriptionComment(
+                    vbl.description,
+                    babelTypes.objectTypeProperty(
+                        babelTypes.identifier(vbl.name),
+                        inputRefToFlow(config, vbl.type),
+                    ),
+                ),
+            ),
+        ),
+    );
+};
+
+const maybeAddDescriptionComment = <T: babelTypes.BabelNode>(
+    description: ?string,
+    node: T,
+    after = false,
+): T => {
+    if (description) {
+        addCommentAsLineComments(description, node, after);
+    }
+    return node;
+};
+
+const _variableToFlow = (config: Config, type: TypeNode) => {
+    if (type.kind === 'NamedType') {
+        if (builtinScalars[type.name.value]) {
+            return scalarTypeToFlow(config, type.name.value);
+        }
+        if (config.schema.enumsByName[type.name.value]) {
+            return enumTypeToFlow(config, type.name.value);
+        }
+        return inputObjectToFlow(config, type.name.value);
+    }
+    if (type.kind === 'ListType') {
+        return babelTypes.genericTypeAnnotation(
+            babelTypes.identifier('Array'),
+            babelTypes.typeParameterInstantiation([
+                variableToFlow(config, type.type),
+            ]),
+        );
+    }
+    return babelTypes.stringLiteralTypeAnnotation(
+        'UNKNOWN' + JSON.stringify(type),
+    );
+};
+
+const enumTypeToFlow = (config: Config, name: string) => {
+    return maybeAddDescriptionComment(
+        config.schema.enumsByName[name].description,
+        babelTypes.unionTypeAnnotation(
+            config.schema.enumsByName[name].enumValues.map(n =>
+                maybeAddDescriptionComment(
+                    n.description,
+                    babelTypes.stringLiteralTypeAnnotation(n.name),
+                    true, // make the comment trailing, if possible
+                ),
+            ),
+        ),
+    );
+};
+
+const typeToFlow = (
+    config: Config,
+    type: IntrospectionOutputTypeRef,
+    selection: FieldNode,
+) => {
     // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
         return _typeToFlow(config, type.ofType, selection);
@@ -368,42 +502,43 @@ const typeToFlow = (config: Config, type, selection) => {
     );
 };
 
+const builtinScalars = {
+    Boolean: 'boolean',
+    String: 'string',
+    DateTime: 'string', // Serialized ISO-8801 dates
+    Date: 'string',
+    ID: 'string',
+    Int: 'number',
+    Float: 'number',
+};
+
+const scalarTypeToFlow = (config: Config, name: string) => {
+    if (builtinScalars[name]) {
+        return babelTypes.genericTypeAnnotation(
+            babelTypes.identifier(builtinScalars[name]),
+        );
+    }
+    const underlyingType = config.scalars[name];
+    if (underlyingType != null) {
+        return babelTypes.genericTypeAnnotation(
+            babelTypes.identifier(underlyingType),
+        );
+    }
+    config.errors.push(
+        `Unexpected scalar '${name}'! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
+    );
+    return babelTypes.genericTypeAnnotation(
+        babelTypes.identifier(`UNKNOWN_SCALAR["${name}"]`),
+    );
+};
+
 const _typeToFlow = (
     config: Config,
     type,
     selection,
 ): babelTypes.BabelNodeFlowType => {
     if (type.kind === 'SCALAR') {
-        switch (type.name) {
-            case 'Boolean':
-                return babelTypes.genericTypeAnnotation(
-                    babelTypes.identifier('boolean'),
-                );
-            case 'ID':
-            case 'String':
-            case 'DateTime': // Serialized ISO-8801 dates...
-                return babelTypes.genericTypeAnnotation(
-                    babelTypes.identifier('string'),
-                );
-            case 'Int':
-            case 'Float':
-                return babelTypes.genericTypeAnnotation(
-                    babelTypes.identifier('number'),
-                );
-            default:
-                const underlyingType = config.scalars[type.name];
-                if (underlyingType != null) {
-                    return babelTypes.genericTypeAnnotation(
-                        babelTypes.identifier(underlyingType),
-                    );
-                }
-                config.errors.push(
-                    `Unexpected scalar '${type.name}'! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
-                );
-                return babelTypes.genericTypeAnnotation(
-                    babelTypes.identifier(`UNKNOWN_SCALAR["${type.name}"]`),
-                );
-        }
+        return scalarTypeToFlow(config, type.name);
     }
     if (type.kind === 'LIST') {
         return babelTypes.genericTypeAnnotation(
@@ -440,11 +575,7 @@ const _typeToFlow = (
         );
     }
     if (type.kind === 'ENUM') {
-        return babelTypes.unionTypeAnnotation(
-            config.schema.enumsByName[type.name].enumValues.map(n =>
-                babelTypes.stringLiteralTypeAnnotation(n.name),
-            ),
-        );
+        return enumTypeToFlow(config, type.name);
     }
     if (type.kind !== 'OBJECT') {
         console.log('not object', type);
@@ -461,16 +592,15 @@ const _typeToFlow = (
         console.log('no selection set', selection);
         return babelTypes.anyTypeAnnotation();
     }
-    const result = querySelectionToObjectType(
-        config,
-        selection.selectionSet.selections,
-        childType,
-        tname,
+    return maybeAddDescriptionComment(
+        childType.description,
+        querySelectionToObjectType(
+            config,
+            selection.selectionSet.selections,
+            childType,
+            tname,
+        ),
     );
-    if (childType.description) {
-        addCommentAsLineComments(childType.description, result);
-    }
-    return result;
 };
 
 const querySelectionToObjectType = (
@@ -505,13 +635,12 @@ const querySelectionToObjectType = (
     );
 };
 
-const generateFlowTypes = (
+const optionsToConfig = (
     schema: Schema,
-    query: OperationDefinitionNode,
     definitions: $ReadOnlyArray<DefinitionNode>,
     options?: Options,
     errors: Array<string> = [],
-): string => {
+): Config => {
     const internalOptions = {
         strictNullability: options?.strictNullability ?? true,
         readOnlyArray: options?.readOnlyArray ?? true,
@@ -529,6 +658,15 @@ const generateFlowTypes = (
         errors,
         ...internalOptions,
     };
+
+    return config;
+};
+
+const generateFlowTypes = (
+    schema: Schema,
+    query: OperationDefinitionNode,
+    config: Config,
+): string => {
     const ast = querySelectionToObjectType(
         config,
         query.selectionSet.selections,
@@ -559,8 +697,19 @@ export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
     options?: Options,
-): $ReadOnlyArray<{name: string, typeName: string, code: string}> => {
+): $ReadOnlyArray<{
+    name: string,
+    typeName: string,
+    variableTypeName: ?string,
+    code: string,
+}> => {
     const errors: Array<string> = [];
+    const config = optionsToConfig(
+        schema,
+        document.definitions,
+        options,
+        errors,
+    );
     const result = document.definitions
         .map(item => {
             if (
@@ -569,19 +718,30 @@ export const documentToFlowTypes = (
                 item.name
             ) {
                 const name = item.name.value;
-                const flow = generateFlowTypes(
-                    schema,
-                    item,
-                    document.definitions,
-                    options,
-                    errors,
-                );
+                const flow = generateFlowTypes(schema, item, config);
                 const typeName = `${name}ResponseType`;
+                let code = `export type ${typeName} = ${flow};`;
+                let variableTypeName = null;
+                if (item.variableDefinitions?.length) {
+                    variableTypeName = `${name}Variables`;
+                    const variableObject = babelTypes.objectTypeAnnotation(
+                        item.variableDefinitions.map(vbl => {
+                            return babelTypes.objectTypeProperty(
+                                babelTypes.identifier(vbl.variable.name.value),
+                                variableToFlow(config, vbl.type),
+                            );
+                        }),
+                    );
+                    code += `\nexport type ${variableTypeName} = ${
+                        generate(variableObject).code
+                    };`;
+                }
 
                 return {
                     name,
                     typeName,
-                    code: `export type ${typeName} = ${flow};`,
+                    variableTypeName,
+                    code,
                 };
             }
         })
@@ -595,7 +755,19 @@ export const documentToFlowTypes = (
 function addCommentAsLineComments(
     description: string,
     res: babelTypes.BabelNode,
+    after = false,
 ) {
+    // If it's single-line, put as a trailing comment
+    if (after && !description.includes('\n')) {
+        babelTypes.addComment(
+            res,
+            'trailing',
+            ' ' + description,
+            true, // this specifies that it's a line comment, not a block comment
+        );
+        return;
+    }
+
     description
         .split('\n')
         .reverse()

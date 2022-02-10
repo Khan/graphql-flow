@@ -50,3 +50,16 @@ type Query {
   droid(id: String!): Droid
   friend(id: String!): Friendable
 }
+
+"""A character to add"""
+input CharacterInput {
+  """The new character's name"""
+  name: String!
+  """The character's friends"""
+  friends: [ID!]
+  appearsIn: [Episode!]
+}
+
+type Mutation {
+  addCharacter(character: CharacterInput!): Character
+}

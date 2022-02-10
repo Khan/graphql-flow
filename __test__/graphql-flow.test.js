@@ -24,6 +24,11 @@ const generateTestSchema = (): Schema => {
         buildSchema(raw),
         getIntrospectionQuery({descriptions: true}),
     );
+    if (!queryResponse.data) {
+        throw new Error(
+            'Failed to parse example schema: ' + JSON.stringify(queryResponse),
+        );
+    }
     return schemaFromIntrospectionData(
         // flow-next-uncovered-line
         ((queryResponse.data: any): IntrospectionQuery),
@@ -242,6 +247,71 @@ describe('graphql-flow generation', () => {
             ).toThrowErrorMatchingInlineSnapshot(
                 `Graphql-flow type generation failed! No fragment named 'UnknownFragment'. Did you forget to include it in the template literal?`,
             );
+        });
+    });
+
+    describe('Input variables', () => {
+        it('should generate a variables type', () => {
+            const result = rawQueryToFlowTypes(
+                `query SomeQuery($id: String!, $episode: Episode) {
+                    human(id: $id) {
+                        friends {
+                            name
+                        }
+                    }
+                    hero(episode: $episode) {
+                        name
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+
+            expect(result).toMatchInlineSnapshot(`
+                export type SomeQueryResponseType = {|
+                  human: ? // A human character
+                  {|
+                    friends: ?Array<?{|
+                      name: ?string
+                    |}>
+                  |},
+                  hero: ?{|
+                    name: ?string
+                  |},
+                |};
+                export type SomeQueryVariables = {
+                  id: string,
+                  episode: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
+                };
+            `);
+        });
+
+        it('should handle a complex input variable', () => {
+            const result = rawQueryToFlowTypes(
+                `mutation addCharacter($character: CharacterInput!) {
+                    addCharacter(character: $character) {
+                        id
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+
+            expect(result).toMatchInlineSnapshot(`
+                export type addCharacterResponseType = {|
+                  addCharacter: ?{|
+                    id: string
+                  |}
+                |};
+                export type addCharacterVariables = {
+                  character: // A character to add
+                  {
+                    // The new character's name
+                    name: string,
+                    // The character's friends
+                    friends: ?Array<string>,
+                    appearsIn: ?Array<"NEW_HOPE" | "EMPIRE" | "JEDI">,
+                  }
+                };
+            `);
         });
     });
 });
