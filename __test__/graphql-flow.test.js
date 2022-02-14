@@ -69,10 +69,12 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              // A human character
+
+              /** A human character*/
               human: ?{|
                 id: string,
-                // The person's name
+
+                /** The person's name*/
                 name: ?string,
                 homePlanet: ?string,
                 friends: ?$ReadOnlyArray<?{|
@@ -97,7 +99,8 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              // A human character
+
+              /** A human character*/
               human: ?{|
                 notDead: ?boolean
               |}
@@ -131,7 +134,8 @@ describe('graphql-flow generation', () => {
                 hands: ?number,
               |} | {|
                 __typename: "Droid",
-                // The robot's primary function
+
+                /** The robot's primary function*/
                 primaryFunction: ?string,
               |} | {|
                 __typename: "Animal"
@@ -174,10 +178,12 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              // A human character
+
+              /** A human character*/
               human: ?{|
                 id: string,
-                // The person's name
+
+                /** The person's name*/
                 name: ?string,
                 homePlanet: ?string,
                 hands: ?number,
@@ -189,7 +195,11 @@ describe('graphql-flow generation', () => {
                   friends: ?$ReadOnlyArray<?{|
                     id: string
                   |}>,
-                  appearsIn: ?$ReadOnlyArray<?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  appearsIn: ?$ReadOnlyArray<
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
+                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
                   hands: ?number,
                 |} | {|
                   __typename: "Droid",
@@ -198,7 +208,11 @@ describe('graphql-flow generation', () => {
                   friends: ?$ReadOnlyArray<?{|
                     id: string
                   |}>,
-                  appearsIn: ?$ReadOnlyArray<?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  appearsIn: ?$ReadOnlyArray<
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
+                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
                 |})>,
               |}
             |}
@@ -224,7 +238,8 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              // A human character
+
+              /** A human character*/
               human: ?{|
                 friends: ?Array<?{|
                   name: ?string
@@ -285,10 +300,15 @@ describe('graphql-flow generation', () => {
                 export type SomeQueryType = {|
                     variables: {|
                   id: string,
+
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
                   episode?: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
                 |},
                     response: {|
-                  // A human character
+
+                  /** A human character*/
                   human: ?{|
                     friends: ?Array<?{|
                       name: ?string
@@ -315,13 +335,20 @@ describe('graphql-flow generation', () => {
             expect(result).toMatchInlineSnapshot(`
                 export type addCharacterType = {|
                     variables: {|
-                  // A character to add
+
+                  /** A character to add*/
                   character: {|
-                    // The new character's name
+
+                    /** The new character's name*/
                     name: string,
-                    // The character's friends
+
+                    /** The character's friends*/
                     friends?: ?$ReadOnlyArray<string>,
-                    appearsIn?: ?$ReadOnlyArray<"NEW_HOPE" | "EMPIRE" | "JEDI">,
+                    appearsIn?: ?$ReadOnlyArray<
+                    /** - NEW_HOPE
+                    - EMPIRE
+                    - JEDI*/
+                    "NEW_HOPE" | "EMPIRE" | "JEDI">,
                   |}
                 |},
                     response: {|

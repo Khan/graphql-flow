@@ -475,10 +475,9 @@ const inputObjectToFlow = (config: Config, name: string) => {
 const maybeAddDescriptionComment = <T: babelTypes.BabelNode>(
     description: ?string,
     node: T,
-    after = false,
 ): T => {
     if (description) {
-        addCommentAsLineComments(description, node, after);
+        addCommentAsLineComments(description, node);
     }
     return node;
 };
@@ -507,15 +506,25 @@ const _variableToFlow = (config: Config, type: TypeNode) => {
 };
 
 const enumTypeToFlow = (config: Config, name: string) => {
+    const enumConfig = config.schema.enumsByName[name];
+    let combinedDescription = enumConfig.enumValues
+        .map(
+            n =>
+                `- ${n.name}` +
+                (n.description
+                    ? '\n\n      ' + n.description.replace(/\n/g, '\n      ')
+                    : ''),
+        )
+        .join('\n');
+    if (enumConfig.description) {
+        combinedDescription =
+            enumConfig.description + '\n\n' + combinedDescription;
+    }
     return maybeAddDescriptionComment(
-        config.schema.enumsByName[name].description,
+        combinedDescription,
         babelTypes.unionTypeAnnotation(
-            config.schema.enumsByName[name].enumValues.map(n =>
-                maybeAddDescriptionComment(
-                    n.description,
-                    babelTypes.stringLiteralTypeAnnotation(n.name),
-                    true, // make the comment trailing, if possible
-                ),
+            enumConfig.enumValues.map(n =>
+                babelTypes.stringLiteralTypeAnnotation(n.name),
             ),
         ),
     );
@@ -809,28 +818,15 @@ export const documentToFlowTypes = (
 function addCommentAsLineComments(
     description: string,
     res: babelTypes.BabelNode,
-    after = false,
 ) {
-    // If it's single-line, put as a trailing comment
-    if (after && !description.includes('\n')) {
+    if (res.leadingComments?.length) {
+        res.leadingComments[0].value += '\n\n---\n\n' + description;
+    } else {
         babelTypes.addComment(
             res,
-            'trailing',
-            ' ' + description,
-            true, // this specifies that it's a line comment, not a block comment
+            'leading',
+            '* ' + description,
+            false, // this specifies that it's a block comment, not a line comment
         );
-        return;
     }
-
-    description
-        .split('\n')
-        .reverse()
-        .forEach(line => {
-            babelTypes.addComment(
-                res,
-                'leading',
-                ' ' + line,
-                true, // this specifies that it's a line comment, not a block comment
-            );
-        });
 }
