@@ -198,9 +198,15 @@ const objectPropertiesToFlow = (
                     return [
                         maybeAddDescriptionComment(
                             typeField.description,
-                            babelTypes.objectTypeProperty(
-                                babelTypes.identifier(alias),
-                                typeToFlow(config, typeField.type, selection),
+                            liftLeadingPropertyComments(
+                                babelTypes.objectTypeProperty(
+                                    babelTypes.identifier(alias),
+                                    typeToFlow(
+                                        config,
+                                        typeField.type,
+                                        selection,
+                                    ),
+                                ),
                             ),
                         ),
                     ];
@@ -213,6 +219,10 @@ const objectPropertiesToFlow = (
             }
         }),
     );
+};
+
+const liftLeadingPropertyComments = (property: BabelNodeObjectTypeProperty) => {
+    return transferLeadingComments(property.value, property);
 };
 
 const unionOrInterfaceSelection = (
@@ -256,9 +266,11 @@ const unionOrInterfaceSelection = (
         }
         const typeField = type.fieldsByName[name];
         return [
-            babelTypes.objectTypeProperty(
-                babelTypes.identifier(alias),
-                typeToFlow(config, typeField.type, selection),
+            liftLeadingPropertyComments(
+                babelTypes.objectTypeProperty(
+                    babelTypes.identifier(alias),
+                    typeToFlow(config, typeField.type, selection),
+                ),
             ),
         ];
     }
@@ -373,7 +385,11 @@ const variableToFlow = (config: Config, type: TypeNode) => {
     if (type.kind === 'NonNullType') {
         return _variableToFlow(config, type.type);
     }
-    return babelTypes.nullableTypeAnnotation(_variableToFlow(config, type));
+    const result = _variableToFlow(config, type);
+    return transferLeadingComments(
+        result,
+        babelTypes.nullableTypeAnnotation(result),
+    );
 };
 
 const inputRefToFlow = (
@@ -383,7 +399,11 @@ const inputRefToFlow = (
     if (inputRef.kind === 'NON_NULL') {
         return _inputRefToFlow(config, inputRef.ofType);
     }
-    return babelTypes.nullableTypeAnnotation(_inputRefToFlow(config, inputRef));
+    const result = _inputRefToFlow(config, inputRef);
+    return transferLeadingComments(
+        result,
+        babelTypes.nullableTypeAnnotation(result),
+    );
 };
 
 const _inputRefToFlow = (
@@ -414,9 +434,8 @@ const maybeOptionalObjectTypeProperty = (
     name: string,
     type: babelTypes.BabelNodeFlowType,
 ) => {
-    const prop = babelTypes.objectTypeProperty(
-        babelTypes.identifier(name),
-        type,
+    const prop = liftLeadingPropertyComments(
+        babelTypes.objectTypeProperty(babelTypes.identifier(name), type),
     );
     if (type.type === 'NullableTypeAnnotation') {
         prop.optional = true;
@@ -502,6 +521,20 @@ const enumTypeToFlow = (config: Config, name: string) => {
     );
 };
 
+const transferLeadingComments = <T: babelTypes.BabelNode>(
+    source: babelTypes.BabelNode,
+    dest: T,
+): T => {
+    if (source.leadingComments?.length) {
+        dest.leadingComments = [
+            ...(dest.leadingComments || []),
+            ...source.leadingComments,
+        ];
+        source.leadingComments = [];
+    }
+    return dest;
+};
+
 const typeToFlow = (
     config: Config,
     type: IntrospectionOutputTypeRef,
@@ -515,9 +548,9 @@ const typeToFlow = (
     if (!config.strictNullability) {
         return _typeToFlow(config, type, selection);
     }
-    return babelTypes.nullableTypeAnnotation(
-        _typeToFlow(config, type, selection),
-    );
+    const inner = _typeToFlow(config, type, selection);
+    const result = babelTypes.nullableTypeAnnotation(inner);
+    return transferLeadingComments(inner, result);
 };
 
 const builtinScalars = {
@@ -687,8 +720,8 @@ const generateVariablesType = (
 ): string => {
     const variableObject = babelTypes.objectTypeAnnotation(
         (item.variableDefinitions || []).map(vbl => {
-            return babelTypes.objectTypeProperty(
-                babelTypes.identifier(vbl.variable.name.value),
+            return maybeOptionalObjectTypeProperty(
+                vbl.variable.name.value,
                 variableToFlow(config, vbl.type),
             );
         }),

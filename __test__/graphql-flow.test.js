@@ -69,8 +69,8 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              human: ? // A human character
-              {|
+              // A human character
+              human: ?{|
                 id: string,
                 // The person's name
                 name: ?string,
@@ -97,8 +97,8 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              human: ? // A human character
-              {|
+              // A human character
+              human: ?{|
                 notDead: ?boolean
               |}
             |}
@@ -174,8 +174,8 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              human: ? // A human character
-              {|
+              // A human character
+              human: ?{|
                 id: string,
                 // The person's name
                 name: ?string,
@@ -224,8 +224,8 @@ describe('graphql-flow generation', () => {
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
-              human: ? // A human character
-              {|
+              // A human character
+              human: ?{|
                 friends: ?Array<?{|
                   name: ?string
                 |}>
@@ -285,11 +285,11 @@ describe('graphql-flow generation', () => {
                 export type SomeQueryType = {|
                     variables: {|
                   id: string,
-                  episode: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
+                  episode?: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
                 |},
                     response: {|
-                  human: ? // A human character
-                  {|
+                  // A human character
+                  human: ?{|
                     friends: ?Array<?{|
                       name: ?string
                     |}>
@@ -315,8 +315,8 @@ describe('graphql-flow generation', () => {
             expect(result).toMatchInlineSnapshot(`
                 export type addCharacterType = {|
                     variables: {|
-                  character: // A character to add
-                  {|
+                  // A character to add
+                  character: {|
                     // The new character's name
                     name: string,
                     // The character's friends
