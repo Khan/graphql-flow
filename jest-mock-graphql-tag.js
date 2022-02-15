@@ -1,8 +1,13 @@
 // @flow
 // Import this in your jest setup, to mock out graphql-tag!
-import type {DocumentNode} from 'graphql';
+import type {DocumentNode, IntrospectionQuery} from 'graphql';
 import type {Schema, Options, Scalars} from './';
-import type {IntrospectionQuery} from 'graphql';
+import type {GraphQLError} from 'graphql/error';
+import {validate} from 'graphql/validation';
+import {buildClientSchema} from 'graphql';
+import {print} from 'graphql/language/printer';
+import {addTypenameToDocument} from 'apollo-utilities'; // flow-uncovered-line
+import {schemaFromIntrospectionData} from './';
 
 const generateTypeFiles = (
     schema: Schema,
@@ -123,20 +128,14 @@ const spyOnGraphqlTagToCollectQueries = (
     introspectionData: IntrospectionQuery,
     options: SpyOptions = {},
 ): GraphqlTagFn => {
-    const collection = [];
-    /* flow-uncovered-block */
-    const print: DocumentNode => string = jest.requireActual(
-        'graphql/language/printer',
-    ).print;
-    const addTypenameToDocument: DocumentNode => DocumentNode = jest.requireActual(
-        'apollo-utilities',
-    ).addTypenameToDocument;
-    const schemaFromIntrospectionData: IntrospectionQuery => Schema = jest.requireActual(
-        './',
-    ).schemaFromIntrospectionData;
+    const collection: Array<{
+        raw: string,
+        errors: $ReadOnlyArray<GraphQLError>,
+    }> = [];
+    // flow-next-uncovered-line
     const realGraphqlTag: GraphqlTagFn = jest.requireActual('graphql-tag');
-    /* end flow-uncovered-block */
 
+    const clientSchema = buildClientSchema(introspectionData);
     const schema = schemaFromIntrospectionData(introspectionData);
 
     const wrapper = function gql() {
@@ -145,8 +144,12 @@ const spyOnGraphqlTagToCollectQueries = (
             ({kind}) => kind !== 'FragmentDefinition',
         );
         if (hasNonFragments) {
+            // flow-next-uncovered-line
             const withTypeNames: DocumentNode = addTypenameToDocument(document);
-            collection.push(print(withTypeNames));
+            collection.push({
+                raw: print(withTypeNames),
+                errors: validate(clientSchema, document),
+            });
 
             const rawSource: string = arguments[0].raw[0]; // flow-uncovered-line
             const processedOptions = processPragmas(options, rawSource);
