@@ -1,20 +1,20 @@
 // @flow
 // Import this in your jest setup, to mock out graphql-tag!
 import type {DocumentNode, IntrospectionQuery} from 'graphql';
-import type {Schema, Options, Scalars} from './src/types';
+import type {Schema, Options, Scalars} from './types';
 import type {GraphQLError} from 'graphql/error';
 import {validate} from 'graphql/validation';
 import {buildClientSchema} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {addTypenameToDocument} from 'apollo-utilities'; // flow-uncovered-line
-import {schemaFromIntrospectionData} from './src/schemaFromIntrospectionData';
+import {schemaFromIntrospectionData} from './schemaFromIntrospectionData';
 
 const generateTypeFiles = (
     schema: Schema,
     document: DocumentNode,
     options: Options,
 ) => {
-    const {documentToFlowTypes} = require('./src');
+    const {documentToFlowTypes} = require('.');
     const path = require('path');
     const fs = require('fs');
     const format: ({text: string}) => string = require('prettier-eslint'); // flow-uncovered-line

@@ -7,7 +7,7 @@ import type {
 import * as babelTypes from '@babel/types';
 import type {OperationDefinitionNode, TypeNode} from 'graphql/language/ast';
 import type {IntrospectionInputTypeRef} from 'graphql/utilities/introspectionQuery';
-import {builtinScalars, enumTypeToFlow, scalarTypeToFlow} from '.';
+import {builtinScalars, enumTypeToFlow, scalarTypeToFlow} from './enums';
 import type {Config, Schema} from './types';
 import {
     liftLeadingPropertyComments,

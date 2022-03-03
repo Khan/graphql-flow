@@ -5,13 +5,11 @@
  */
 
 import type {IntrospectionQuery, DocumentNode} from 'graphql';
-import type {Schema, Options} from '../src/types';
+import type {Schema, Options} from '../types';
 import {buildSchema, getIntrospectionQuery, graphqlSync} from 'graphql';
 import fs from 'fs';
-const {documentToFlowTypes} = require('../src');
-const {
-    schemaFromIntrospectionData,
-} = require('../src/schemaFromIntrospectionData');
+const {documentToFlowTypes} = require('..');
+const {schemaFromIntrospectionData} = require('../schemaFromIntrospectionData');
 
 // This allows us to "snapshot" a string cleanly.
 /* flow-uncovered-block */
