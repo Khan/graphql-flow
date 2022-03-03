@@ -19,9 +19,9 @@ const generateTypeFiles = (
     const fs = require('fs');
     const format: ({text: string}) => string = require('prettier-eslint'); // flow-uncovered-line
 
-    const indexFile = generatedDir => path.join(generatedDir, 'index.js');
+    const indexFile = (generatedDir) => path.join(generatedDir, 'index.js');
 
-    const maybeCreateGeneratedDir = generatedDir => {
+    const maybeCreateGeneratedDir = (generatedDir) => {
         if (!fs.existsSync(generatedDir)) {
             fs.mkdirSync(generatedDir, {recursive: true});
 
@@ -48,7 +48,7 @@ const generateTypeFiles = (
         if (indexContents.indexOf(path.basename(filePath)) === -1) {
             fs.appendFileSync(index, newLine + '\n');
         } else {
-            const lines = indexContents.split('\n').map(line => {
+            const lines = indexContents.split('\n').map((line) => {
                 if (line.includes(path.basename(filePath))) {
                     return newLine;
                 }
@@ -60,10 +60,7 @@ const generateTypeFiles = (
 
     // Get the name of the file that `gql` was called from
     const errorLines = new Error().stack.split('\n');
-    const fileName = errorLines[3]
-        .split('(')
-        .slice(-1)[0]
-        .split(':')[0];
+    const fileName = errorLines[3].split('(').slice(-1)[0].split(':')[0];
 
     const generated = documentToFlowTypes(document, schema, options);
     generated.forEach(({name, typeName, code}) => {
@@ -130,6 +127,7 @@ const spyOnGraphqlTagToCollectQueries = (
 ): GraphqlTagFn => {
     const collection: Array<{
         raw: string,
+        // $FlowIgnore
         errors: $ReadOnlyArray<GraphQLError>,
     }> = [];
     // flow-next-uncovered-line

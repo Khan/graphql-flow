@@ -1,0 +1,7 @@
+{
+    "parser": "flow",
+    "tabWidth": 4,
+    "trailingComma": "all",
+    "bracketSpacing": false,
+    "singleQuote": true
+}
