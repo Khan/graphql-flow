@@ -5,15 +5,18 @@
  */
 
 import type {IntrospectionQuery, DocumentNode} from 'graphql';
-import type {Schema, Options} from '..';
+import type {Schema, Options} from '../src/types';
 import {buildSchema, getIntrospectionQuery, graphqlSync} from 'graphql';
 import fs from 'fs';
-const {documentToFlowTypes, schemaFromIntrospectionData} = require('..');
+const {documentToFlowTypes} = require('../src');
+const {
+    schemaFromIntrospectionData,
+} = require('../src/schemaFromIntrospectionData');
 
 // This allows us to "snapshot" a string cleanly.
 /* flow-uncovered-block */
 expect.addSnapshotSerializer({
-    test: value => value && typeof value === 'string',
+    test: (value) => value && typeof value === 'string',
     print: (value, _, __) => value,
 });
 /* end flow-uncovered-block */
@@ -40,7 +43,7 @@ const exampleSchema = generateTestSchema();
 const rawQueryToFlowTypes = (query: string, options?: Options): string => {
     // We need the "requireActual" because we mock graphql-tag in jest-setup.js
     // flow-next-uncovered-line
-    const gql: string => DocumentNode = jest.requireActual('graphql-tag');
+    const gql: (string) => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
         scalars: {PositiveNumber: 'number'},

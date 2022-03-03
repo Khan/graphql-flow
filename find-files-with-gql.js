@@ -29,7 +29,7 @@ export const findGraphqlTagReferences = (root: string): Array<string> => {
         return response
             .trim()
             .split('\n')
-            .map(relative => path.join(root, relative));
+            .map((relative) => path.join(root, relative));
         // flow-next-uncovered-line
     } catch (err) {
         throw new Error(
