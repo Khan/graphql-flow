@@ -9,7 +9,7 @@ on:
 
 jobs:
   lint_and_test:
-    name: Lint and Test
+    name: Lint & Test
     env:
       CI: true
     runs-on: ${{ matrix.os }}
