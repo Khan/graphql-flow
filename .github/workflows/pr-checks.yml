@@ -1,0 +1,45 @@
+name: PR Checks
+
+on:
+  pull_request:
+    # edited is needed because that's the trigger when the base branch is
+    # changed on a PR
+    # The rest are the defaults.
+    types: [edited, opened, synchronize, reopened]
+
+jobs:
+  run_checks:
+    name: Run Checks
+    env:
+      CI: true
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [16.x]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: .github/actions/setup
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Run Flow
+      uses: Khan/flow-action@v1.1.3
+      with:
+        flow-bin: ./node_modules/.bin/flow
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run ESLint
+      uses: Khan/eslint-action@v2.0.0
+      with:
+        eslint-lib: ./node_modules/eslint
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run Jest
+      uses: Khan/jest-action@v1.2.0
+      with:
+        jest-bin: ./node_modules/.bin/jest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
