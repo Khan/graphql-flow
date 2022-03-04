@@ -20,6 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ./.github/actions/setup
+      id: setup
       with:
         node-version: ${{ matrix.node-version }}
 
@@ -28,6 +29,7 @@ jobs:
       with:
         flow-bin: ./node_modules/.bin/flow
       env:
+        ALL_CHANGED_FILES: '${{ steps.setup.outputs.added_modified }}'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run ESLint
@@ -35,6 +37,7 @@ jobs:
       with:
         eslint-lib: ./node_modules/eslint
       env:
+        ALL_CHANGED_FILES: '${{ steps.setup.outputs.added_modified }}'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run Jest
@@ -42,4 +45,5 @@ jobs:
       with:
         jest-bin: ./node_modules/.bin/jest
       env:
+        ALL_CHANGED_FILES: '${{ steps.setup.outputs.added_modified }}'
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
