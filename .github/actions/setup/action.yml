@@ -3,10 +3,10 @@ description: 'Perform various shared setup tasks'
 inputs:
   node-version:
     description: 'Node version to use'
-    required: true
+    required: false
     default: '16.x'
 outputs:
-  changed-files:
+  changed_files:
     description: "List of files changed in this PR, in JSON format"
     value: ${{ steps.changed.outputs.added_modified }}
 runs:
@@ -27,14 +27,8 @@ runs:
       if: steps.node-modules-cache.outputs.cache-hit != 'true'
       run: yarn install --frozen-lockfile
       shell: bash
-    - name: Fetch the base ref
-      shell: bash
-      run: |
-        # Make sure we also fetch the base ref so that ESLint, Flow, and Jest
-        # have a ref to compare against.
-        git fetch --depth 1 origin ${GITHUB_BASE_REF}
     - name: Get All Changed Files
       uses: jaredly/get-changed-files@absolute
       id: changed
       with:
-        format: 'json'
+        format: space-delimited

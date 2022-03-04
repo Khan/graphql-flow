@@ -25,25 +25,10 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Run Flow
-      uses: Khan/flow-action@v1.1.3
-      with:
-        flow-bin: ./node_modules/.bin/flow
-      env:
-        ALL_CHANGED_FILES: '${{ steps.setup.outputs.added_modified }}'
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: yarn flow
 
     - name: Run ESLint
-      uses: Khan/eslint-action@v2.0.0
-      with:
-        eslint-lib: ./node_modules/eslint
-      env:
-        ALL_CHANGED_FILES: '${{ steps.setup.outputs.added_modified }}'
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: yarn eslint .
 
     - name: Run Jest
-      uses: Khan/jest-action@v1.2.0
-      with:
-        jest-bin: ./node_modules/.bin/jest
-      env:
-        ALL_CHANGED_FILES: '${{ steps.setup.outputs.added_modified }}'
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: yarn jest --findRelatedTests ${{ steps.setup.outputs.changed_files }}
