@@ -27,8 +27,15 @@ jobs:
     - name: Run Flow
       run: yarn flow
 
+    - id: js-files
+      uses: ./.github/actions/filter-files
+      with:
+        changed-files: ${{ steps.setup.outputs.changed_files }}
+        extensions: '.js'
+
     - name: Run ESLint
-      run: yarn eslint .
+      if: steps.js-files.outputs.filtered != ''
+      run: yarn eslint ${{ steps.js-files.outputs.filtered }}
 
     - name: Run Jest
       run: yarn jest --findRelatedTests ${{ steps.setup.outputs.changed_files }}
