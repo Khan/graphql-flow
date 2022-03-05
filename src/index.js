@@ -12,7 +12,7 @@ import {generateResponseType} from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
 import type {Config, Options, Schema} from './types';
 
-let x = 10;
+// Ok change
 
 const optionsToConfig = (
     schema: Schema,
