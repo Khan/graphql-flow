@@ -44,8 +44,10 @@ jobs:
       run: |
         if [ "${{ steps.eslint-reset.outputs.filtered }}" != "" ]; then
           yarn eslint .
-        else if [ "${{ steps.js-files.outputs.filtered }}" != "" ]; then
-          yarn eslint ${{ steps.js-files.outputs.filtered }}
+        else
+          if [ "${{ steps.js-files.outputs.filtered }}" != "" ]; then
+            yarn eslint ${{ steps.js-files.outputs.filtered }}
+          fi
         fi
 
     - id: jest-reset
@@ -58,6 +60,8 @@ jobs:
       run: |
         if [ "${{ steps.jest-reset.outputs.filtered }}" != "" ]; then
           yarn jest
-        else if [ "${{ steps.setup.outputs.changed_files }}" != "" ]; then
-          yarn jest --findRelatedTests ${{ steps.setup.outputs.changed_files }}
+        else
+          if [ "${{ steps.setup.outputs.changed_files }}" != "" ]; then
+            yarn jest --findRelatedTests ${{ steps.setup.outputs.changed_files }}
+          fi
         fi
