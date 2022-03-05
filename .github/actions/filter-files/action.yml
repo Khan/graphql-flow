@@ -21,14 +21,14 @@ runs:
       id: result
       with:
         script: |
-          // const extensionsRaw = "${{ inputs.extensions }}";
-          // const exactFilesRaw = "${{ inputs.files }}";
-          // const inputFiles = "${{ inputs.changed-files }}".split(' ').filter(Boolean);
-          const extensionsRaw = context.inputs.extensions;
+          const extensionsRaw = "${{ inputs.extensions }}";
+          const exactFilesRaw = "${{ inputs.files }}";
+          const inputFiles = "${{ inputs.changed-files }}".split(' ').filter(Boolean);
+          // const extensionsRaw = context.inputs.extensions;
           const extensions = extensionsRaw.trim() ? extensionsRaw.split(',') : [];
-          const exactFilesRaw = context.inputs.files;
+          // const exactFilesRaw = context.inputs.files;
           const exactFiles = exactFilesRaw.trim() ? exactFilesRaw.split(',') : [];
-          const inputFiles = context.inputs['changed-files'].split(' ').filter(Boolean);
+          // const inputFiles = context.inputs['changed-files'].split(' ').filter(Boolean);
           
           return inputFiles.filter(name => {
             return extensions.some(ext => name.endsWith(ext)) || (

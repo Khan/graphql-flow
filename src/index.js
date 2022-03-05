@@ -12,6 +12,8 @@ import {generateResponseType} from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
 import type {Config, Options, Schema} from './types';
 
+let x = 10;
+
 const optionsToConfig = (
     schema: Schema,
     definitions: $ReadOnlyArray<DefinitionNode>,
