@@ -25,6 +25,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - id: js-files
+      name: Find .js changed files
       uses: ./.github/actions/filter-files
       with:
         changed-files: ${{ steps.setup.outputs.changed_files }}
@@ -36,6 +37,7 @@ jobs:
 
     - id: eslint-reset
       uses: ./.github/actions/filter-files
+      name: Files that would trigger a full eslint run
       with:
         changed-files: ${{ steps.setup.outputs.changed_files }}
         files: '.eslintrc.js,package.json'
@@ -52,6 +54,7 @@ jobs:
 
     - id: jest-reset
       uses: ./.github/actions/filter-files
+      name: Files that would trigger a full jest run
       with:
         changed-files: ${{ steps.setup.outputs.changed_files }}
         files: 'package.json'
