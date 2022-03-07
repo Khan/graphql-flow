@@ -31,7 +31,9 @@ jobs:
 
     - name: Run Flow
       if: steps.js-files.outputs.filtered != '[]'
-      run: yarn flow
+      run: |
+        ls node_modules/.bin
+        yarn flow
 
     - id: eslint-reset
       uses: ./.github/actions/filter-files
