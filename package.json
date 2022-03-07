@@ -1,9 +1,14 @@
 {
     "name": "@khanacademy/graphql-flow",
     "scripts": {
-        "test": "jest"
+        "test": "jest",
+        "publish:ci": "yarn run build && yarn run copy-flow && changeset publish",
+        "build": "babel src --out-dir dist --ignore 'src/**/*.spec.js','src/**/*.test.js'",
+        "copy-flow": "node ./build-copy-source.js"
     },
+    "main": "dist/index.js",
     "devDependencies": {
+        "@babel/cli": "^7.17.6",
         "@babel/eslint-parser": "^7.17.0",
         "@khanacademy/eslint-config": "^0.1.0",
         "eslint": "8.7.0",
