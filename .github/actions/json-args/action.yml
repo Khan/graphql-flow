@@ -3,7 +3,10 @@ description: 'Because file names with spaces are the worst'
 inputs:
   list:
     description: A jsonified Array of string file names
-  run: "a command to run, where the literal '{}' will be replaced with the files as individual arguments. If no '{}' is provided, the files will be appended."
+    required: true
+  run:
+    description: "a command to run, where the literal '{}' will be replaced with the files as individual arguments. If no '{}' is provided, the files will be appended."
+    required: true
 runs:
   using: "composite"
   steps:

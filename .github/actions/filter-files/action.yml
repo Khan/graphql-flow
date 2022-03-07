@@ -31,7 +31,7 @@ runs:
             return extensions.some(ext => name.endsWith(ext)) || (
               exactFiles.includes(name)
             )
-          }).join(' ');
+          })
           console.log(`Filtered Files: ${JSON.stringify(result)}`)
           return result;
         result-encoding: json
