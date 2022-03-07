@@ -26,4 +26,4 @@ runs:
       uses: jaredly/get-changed-files@absolute
       id: changed
       with:
-        format: space-delimited
+        format: json
