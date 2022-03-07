@@ -40,16 +40,13 @@ jobs:
         changed-files: ${{ steps.setup.outputs.changed_files }}
         files: '.eslintrc.js,package.json,.eslintignore'
 
-    - name: Full ESLint
-      if: steps.eslint-reset.outputs.filtered != '[]'
-      run: yarn eslint .
-
-    - name: Limited ESLint
-      if: steps.eslint-reset.outputs.filtered == '[]' && steps.js-files.outputs.filtered != '[]'
-      uses: ./.github/actions/json-args
+    - name: Eslint
+      using: ./.github/actions/full-or-limited
       with:
-        list: ${{ steps.js-files.outputs.filtered }}
-        run: yarn eslint {}
+        full-trigger: ${{ steps.jest-reset.outputs.filtered }}
+        full: yarn eslint
+        limited-trigger: ${{ steps.js-files.outputs.filtered }}
+        limited: yarn eslint {}
 
     - id: jest-reset
       uses: ./.github/actions/filter-files
@@ -58,13 +55,10 @@ jobs:
         changed-files: ${{ steps.setup.outputs.changed_files }}
         files: 'package.json,package-lock.json'
 
-    - name: Full Jest
-      if: steps.jest-reset.outputs.filtered != '[]'
-      run: yarn jest
-
-    - name: Limited Jest
-      if: steps.jest-reset.outputs.filtered == '[]' && steps.js-files.outputs.filtered != '[]'
-      uses: ./.github/actions/json-args
+    - name: Jest
+      using: ./.github/actions/full-or-limited
       with:
-        list: ${{ steps.js-files.outputs.filtered }}
-        run: yarn jest --findRelatedTests {}
+        full-trigger: ${{ steps.jest-reset.outputs.filtered }}
+        full: yarn jest
+        limited-trigger: ${{ steps.js-files.outputs.filtered }}
+        limited: yarn jest --findRelatedTests {}
