@@ -56,7 +56,7 @@ jobs:
       uses: ./.github/actions/filter-files
       name: Files that would trigger a full jest run
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.js-files.outputs.changed_files }}
         files: 'package.json'
 
     - name: Run Jest
@@ -64,7 +64,7 @@ jobs:
         if [ "${{ steps.jest-reset.outputs.filtered }}" != "" ]; then
           yarn jest
         else
-          if [ "${{ steps.setup.outputs.changed_files }}" != "" ]; then
-            yarn jest --findRelatedTests ${{ steps.setup.outputs.changed_files }}
+          if [ "${{ steps.js-files.outputs.filtered }}" != "" ]; then
+            yarn jest --findRelatedTests ${{ steps.js-files.outputs.filtered }}
           fi
         fi
