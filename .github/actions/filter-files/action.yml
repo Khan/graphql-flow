@@ -27,9 +27,11 @@ runs:
           const extensions = extensionsRaw.trim() ? extensionsRaw.split(',') : [];
           const exactFiles = exactFilesRaw.trim() ? exactFilesRaw.split(',') : [];
 
-          return inputFiles.filter(name => {
+          const result = inputFiles.filter(name => {
             return extensions.some(ext => name.endsWith(ext)) || (
               exactFiles.includes(name)
             )
           }).join(' ');
+          console.log(`Filtered Files: ${result}`)
+          return result;
         result-encoding: string
