@@ -1,4 +1,5 @@
 // @flow
+/* eslint-disable no-console */
 import generate from '@babel/generator';
 import * as babelTypes from '@babel/types';
 import {type BabelNodeFlowType} from '@babel/types';
@@ -7,9 +8,7 @@ import type {
     IntrospectionOutputTypeRef,
     OperationDefinitionNode,
 } from 'graphql';
-// import {objectPropertiesToFlow} from './objectPropertiesToFlow';
 import type {Config, Schema, Selections} from './types';
-// import {unionOrInterfaceToFlow} from './unionOrInterfaceToFlow';
 import {
     liftLeadingPropertyComments,
     maybeAddDescriptionComment,

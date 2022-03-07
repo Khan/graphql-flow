@@ -1,0 +1,34 @@
+name: 'Setup'
+description: 'Perform various shared setup tasks'
+inputs:
+  node-version:
+    description: 'Node version to use'
+    required: false
+    default: '16.x'
+outputs:
+  changed_files:
+    description: "List of files changed in this PR, in JSON format"
+    value: ${{ steps.changed.outputs.added_modified }}
+runs:
+  using: "composite"
+  steps:
+    - name: Use Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ inputs.node-version }}
+    - uses: actions/cache@v2
+      id: node-modules-cache
+      with:
+        path: node_modules
+        key: ${{ runner.os }}${{ inputs.node-version }}-node-modules-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}${{ inputs.node-version }}-node-modules-
+    - name: Install dependencies
+      if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      run: yarn install --frozen-lockfile
+      shell: bash
+    - name: Get All Changed Files
+      uses: jaredly/get-changed-files@absolute
+      id: changed
+      with:
+        format: space-delimited

@@ -1,0 +1,32 @@
+name: Lint & Test
+
+on:
+  pull_request:
+    # edited is needed because that's the trigger when the base branch is
+    # changed on a PR
+    # The rest are the defaults.
+    types: [edited, opened, synchronize, reopened]
+
+jobs:
+  lint_and_test:
+    name: Lint & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [16.x]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./.github/actions/setup
+      id: setup
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Run Flow
+      run: yarn flow
+
+    - name: Run ESLint
+      run: yarn eslint .
+
+    - name: Run Jest
+      run: yarn jest --findRelatedTests ${{ steps.setup.outputs.changed_files }}
