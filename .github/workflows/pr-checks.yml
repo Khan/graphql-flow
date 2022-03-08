@@ -10,8 +10,6 @@ on:
 jobs:
   lint_and_test:
     name: Lint & Test
-    env:
-      CI: true
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
