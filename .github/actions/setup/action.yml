@@ -19,11 +19,10 @@ runs:
         node-version: ${{ inputs.node-version }}
         cache: yarn
     - name: Install dependencies
-      if: steps.node.outputs.cache-hit != 'true'
       run: yarn install --frozen-lockfile
       shell: bash
     - name: Get All Changed Files
       uses: jaredly/get-changed-files@absolute
       id: changed
       with:
-        format: space-delimited
+        format: json

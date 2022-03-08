@@ -30,7 +30,7 @@ jobs:
         extensions: '.js'
 
     - name: Run Flow
-      if: steps.js-files.outputs.filtered != ''
+      if: steps.js-files.outputs.filtered != '[]'
       run: yarn flow
 
     - id: eslint-reset
@@ -40,15 +40,16 @@ jobs:
         changed-files: ${{ steps.setup.outputs.changed_files }}
         files: '.eslintrc.js,package.json,.eslintignore'
 
-    - name: Run ESLint
-      run: |
-        if [ "${{ steps.eslint-reset.outputs.filtered }}" != "" ]; then
-          yarn eslint .
-        else
-          if [ "${{ steps.js-files.outputs.filtered }}" != "" ]; then
-            yarn eslint ${{ steps.js-files.outputs.filtered }}
-          fi
-        fi
+    - name: Full ESLint
+      if: steps.eslint-reset.outputs.filtered != '[]'
+      run: yarn eslint .
+
+    - name: Limited ESLint
+      if: steps.eslint-reset.outputs.filtered == '[]' && steps.js-files.outputs.filtered != '[]'
+      uses: ./.github/actions/json-args
+      with:
+        list: ${{ steps.js-files.outputs.filtered }}
+        run: yarn eslint {}
 
     - id: jest-reset
       uses: ./.github/actions/filter-files
@@ -57,12 +58,13 @@ jobs:
         changed-files: ${{ steps.setup.outputs.changed_files }}
         files: 'package.json,package-lock.json'
 
-    - name: Run Jest
-      run: |
-        if [ "${{ steps.jest-reset.outputs.filtered }}" != "" ]; then
-          yarn jest
-        else
-          if [ "${{ steps.js-files.outputs.filtered }}" != "" ]; then
-            yarn jest --findRelatedTests ${{ steps.js-files.outputs.filtered }}
-          fi
-        fi
+    - name: Full Jest
+      if: steps.jest-reset.outputs.filtered != '[]'
+      run: yarn jest
+
+    - name: Limited Jest
+      if: steps.jest-reset.outputs.filtered == '[]' && steps.js-files.outputs.filtered != '[]'
+      uses: ./.github/actions/json-args
+      with:
+        list: ${{ steps.js-files.outputs.filtered }}
+        run: yarn jest --findRelatedTests {}

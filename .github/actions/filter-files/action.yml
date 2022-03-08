@@ -2,7 +2,7 @@ name: 'Filter files'
 description: 'Filter the list of changed files'
 inputs:
   changed-files:
-    description: 'Space-separated list of changed files from setup'
+    description: 'jsonified list of changed files from setup'
     required: true
   files:
     description: 'comma-separated list of files to check for'
@@ -12,7 +12,7 @@ inputs:
     required: false
 outputs:
   filtered:
-    description: 'The list of files that match'
+    description: 'The jsonified list of files that match'
     value: ${{ steps.result.outputs.result }}
 runs:
   using: "composite"
@@ -23,7 +23,7 @@ runs:
         script: |
           const extensionsRaw = "${{ inputs.extensions }}";
           const exactFilesRaw = "${{ inputs.files }}";
-          const inputFiles = "${{ inputs.changed-files }}".split(' ').filter(Boolean);
+          const inputFiles = JSON.parse(`${{ inputs.changed-files }}`);
           const extensions = extensionsRaw.trim() ? extensionsRaw.split(',') : [];
           const exactFiles = exactFilesRaw.trim() ? exactFilesRaw.split(',') : [];
 
@@ -31,7 +31,7 @@ runs:
             return extensions.some(ext => name.endsWith(ext)) || (
               exactFiles.includes(name)
             )
-          }).join(' ');
-          console.log(`Filtered Files: ${result}`)
+          })
+          console.log(`Filtered Files: ${JSON.stringify(result)}`)
           return result;
-        result-encoding: string
+        result-encoding: json
