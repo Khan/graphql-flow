@@ -17,6 +17,7 @@ runs:
     - name: Full run
       if: inputs.full-trigger != '[]'
       run: ${{ inputs.full }}
+      shell: bash
 
     - name: Limited run
       if: inputs.full-trigger == '[]' && inputs.limited-trigger != '[]'

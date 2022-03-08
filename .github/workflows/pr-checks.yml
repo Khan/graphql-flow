@@ -41,7 +41,7 @@ jobs:
         files: '.eslintrc.js,package.json,.eslintignore'
 
     - name: Eslint
-      using: ./.github/actions/full-or-limited
+      uses: ./.github/actions/full-or-limited
       with:
         full-trigger: ${{ steps.jest-reset.outputs.filtered }}
         full: yarn eslint
@@ -56,7 +56,7 @@ jobs:
         files: 'package.json,package-lock.json'
 
     - name: Jest
-      using: ./.github/actions/full-or-limited
+      uses: ./.github/actions/full-or-limited
       with:
         full-trigger: ${{ steps.jest-reset.outputs.filtered }}
         full: yarn jest
