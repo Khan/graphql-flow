@@ -38,7 +38,7 @@ jobs:
       name: Files that would trigger a full eslint run
       with:
         changed-files: ${{ steps.setup.outputs.changed_files }}
-        files: '.eslintrc.js,package.json'
+        files: '.eslintrc.js,package.json,.eslintignore'
 
     - name: Run ESLint
       run: |
