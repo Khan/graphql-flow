@@ -1,6 +1,6 @@
 // @flow
 /* eslint-disable no-console */
-import generate from '@babel/generator';
+import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import * as babelTypes from '@babel/types';
 import {type BabelNodeFlowType} from '@babel/types';
 import type {
@@ -39,7 +39,7 @@ export const generateResponseType = (
             : schema.typesByName.Query,
         query.operation === 'mutation' ? 'mutation' : 'query',
     );
-    // flow-next-uncovered-line
+    // eslint-disable-next-line flowtype-errors/uncovered
     return generate(ast).code;
 };
 

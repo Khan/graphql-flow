@@ -12,12 +12,12 @@ const {documentToFlowTypes} = require('..');
 const {schemaFromIntrospectionData} = require('../schemaFromIntrospectionData');
 
 // This allows us to "snapshot" a string cleanly.
-/* flow-uncovered-block */
+/* eslint-disable flowtype-errors/uncovered */
 expect.addSnapshotSerializer({
     test: (value) => value && typeof value === 'string',
     print: (value, _, __) => value,
 });
-/* end flow-uncovered-block */
+/* eslint-enable flowtype-errors/uncovered */
 
 const generateTestSchema = (): Schema => {
     const raw = fs.readFileSync(__dirname + '/example-schema.graphql', 'utf8');
@@ -31,7 +31,7 @@ const generateTestSchema = (): Schema => {
         );
     }
     return schemaFromIntrospectionData(
-        // flow-next-uncovered-line
+        // eslint-disable-next-line flowtype-errors/uncovered
         ((queryResponse.data: any): IntrospectionQuery),
     );
 };
@@ -40,7 +40,7 @@ const exampleSchema = generateTestSchema();
 
 const rawQueryToFlowTypes = (query: string, options?: Options): string => {
     // We need the "requireActual" because we mock graphql-tag in jest-setup.js
-    // flow-next-uncovered-line
+    // eslint-disable-next-line flowtype-errors/uncovered
     const gql: (string) => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {

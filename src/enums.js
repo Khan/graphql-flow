@@ -35,7 +35,7 @@ export const enumTypeToFlow = (
     );
 };
 
-export const builtinScalars = {
+export const builtinScalars: {[key: string]: string} = {
     Boolean: 'boolean',
     String: 'string',
     DateTime: 'string',
