@@ -2,11 +2,10 @@
 // Import this in your jest setup, to mock out graphql-tag!
 import type {DocumentNode, IntrospectionQuery} from 'graphql';
 import type {Schema, Options, Scalars} from './types';
-import type {GraphQLError} from 'graphql/error';
 import {validate} from 'graphql/validation';
 import {buildClientSchema} from 'graphql';
 import {print} from 'graphql/language/printer';
-import {addTypenameToDocument} from 'apollo-utilities'; // flow-uncovered-line
+import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 import {schemaFromIntrospectionData} from './schemaFromIntrospectionData';
 
 const generateTypeFiles = (
@@ -17,7 +16,7 @@ const generateTypeFiles = (
     const {documentToFlowTypes} = require('.');
     const path = require('path');
     const fs = require('fs');
-    const format: ({text: string}) => string = require('prettier-eslint'); // flow-uncovered-line
+    const format: ({text: string}) => string = require('prettier-eslint'); // eslint-disable-line flowtype-errors/uncovered
 
     const indexFile = (generatedDir) => path.join(generatedDir, 'index.js');
 
@@ -127,29 +126,28 @@ const spyOnGraphqlTagToCollectQueries = (
 ): GraphqlTagFn => {
     const collection: Array<{
         raw: string,
-        // $FlowIgnore
-        errors: $ReadOnlyArray<GraphQLError>,
+        errors: $ReadOnlyArray<Error>,
     }> = [];
-    // flow-next-uncovered-line
+    // eslint-disable-next-line flowtype-errors/uncovered
     const realGraphqlTag: GraphqlTagFn = jest.requireActual('graphql-tag');
 
     const clientSchema = buildClientSchema(introspectionData);
     const schema = schemaFromIntrospectionData(introspectionData);
 
     const wrapper = function gql() {
-        const document: DocumentNode = realGraphqlTag.apply(this, arguments); // flow-uncovered-line
+        const document: DocumentNode = realGraphqlTag.apply(this, arguments); // eslint-disable-line flowtype-errors/uncovered
         const hasNonFragments = document.definitions.some(
             ({kind}) => kind !== 'FragmentDefinition',
         );
         if (hasNonFragments) {
-            // flow-next-uncovered-line
+            // eslint-disable-next-line flowtype-errors/uncovered
             const withTypeNames: DocumentNode = addTypenameToDocument(document);
             collection.push({
                 raw: print(withTypeNames),
                 errors: validate(clientSchema, document),
             });
 
-            const rawSource: string = arguments[0].raw[0]; // flow-uncovered-line
+            const rawSource: string = arguments[0].raw[0]; // eslint-disable-line flowtype-errors/uncovered
             const processedOptions = processPragmas(options, rawSource);
             if (processedOptions) {
                 generateTypeFiles(schema, withTypeNames, processedOptions);

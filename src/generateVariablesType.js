@@ -1,5 +1,5 @@
 // @flow
-import generate from '@babel/generator';
+import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import type {
     BabelNodeFlowType,
     BabelNodeObjectTypeProperty,
@@ -149,5 +149,5 @@ export const generateVariablesType = (
         undefined /* internalSlots */,
         true /* exact */,
     );
-    return generate(variableObject).code;
+    return generate(variableObject).code; // eslint-disable-line flowtype-errors/uncovered
 };

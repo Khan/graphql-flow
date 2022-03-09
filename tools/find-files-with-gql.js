@@ -8,10 +8,10 @@ export const findRepoRoot = (): string => {
             encoding: 'utf8',
         });
         return res.trim();
-        // flow-next-uncovered-line
+        // eslint-disable-next-line flowtype-errors/uncovered
     } catch (err) {
         throw new Error(
-            // flow-next-uncovered-line
+            // eslint-disable-next-line flowtype-errors/uncovered
             `Unable to use git rev-parse to find the repository root. ${err.message}`,
         );
     }
@@ -30,10 +30,10 @@ export const findGraphqlTagReferences = (root: string): Array<string> => {
             .trim()
             .split('\n')
             .map((relative) => path.join(root, relative));
-        // flow-next-uncovered-line
+        // eslint-disable-next-line flowtype-errors/uncovered
     } catch (err) {
         throw new Error(
-            // flow-next-uncovered-line
+            // eslint-disable-next-line flowtype-errors/uncovered
             `Unable to use git grep to find files with gql tags. ${err.message}`,
         );
     }
