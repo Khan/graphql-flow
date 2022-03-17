@@ -43,7 +43,7 @@ jobs:
     - name: Eslint
       uses: ./.github/actions/full-or-limited
       with:
-        full-trigger: ${{ steps.jest-reset.outputs.filtered }}
+        full-trigger: ${{ steps.eslint-reset.outputs.filtered }}
         full: yarn eslint
         limited-trigger: ${{ steps.js-files.outputs.filtered }}
         limited: yarn eslint {}
