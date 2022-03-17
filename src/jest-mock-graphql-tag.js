@@ -113,6 +113,7 @@ type SpyOptions = {
 //         'graphql-flow/jest-mock-graphql-tag.js');
 //
 //     return spyOnGraphqlTagToCollectQueries(
+//         jest.requireActual('graphql-tag'),
 //         introspectionData,
 //     );
 // });
@@ -121,6 +122,7 @@ type SpyOptions = {
 // documents will be processed. Otherwise, only documents
 // with one of the pragmas will be processed.
 const spyOnGraphqlTagToCollectQueries = (
+    realGraphqlTag: GraphqlTagFn,
     introspectionData: IntrospectionQuery,
     options: SpyOptions = {},
 ): GraphqlTagFn => {
@@ -128,8 +130,6 @@ const spyOnGraphqlTagToCollectQueries = (
         raw: string,
         errors: $ReadOnlyArray<Error>,
     }> = [];
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const realGraphqlTag: GraphqlTagFn = jest.requireActual('graphql-tag');
 
     const clientSchema = buildClientSchema(introspectionData);
     const schema = schemaFromIntrospectionData(introspectionData);
