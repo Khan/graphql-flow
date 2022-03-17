@@ -1,5 +1,6 @@
 {
     "name": "@khanacademy/graphql-flow",
+    "version": "0.0.0",
     "scripts": {
         "test": "jest",
         "publish:ci": "yarn run build && yarn run copy-flow && changeset publish",
