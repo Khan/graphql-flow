@@ -16,8 +16,8 @@ const walk = (dir, fn) => {
     });
 };
 
-const src = __dirname + '/src';
-const dist = __dirname + '/dist';
+const src = path.join(__dirname, 'src');
+const dist = path.join(__dirname, 'dist');
 
 walk(src, (name) => {
     if (!name.endsWith('.js') || name.includes('__test__')) {
