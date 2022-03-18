@@ -8,8 +8,11 @@
  * which is produced by running `./tools/graphql-flow/sendIntrospection.js`.
  */
 import type {DefinitionNode, DocumentNode} from 'graphql';
+
 import {generateResponseType} from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
+export {spyOnGraphqlTagToCollectQueries} from './jest-mock-graphql-tag';
+
 import type {Config, Options, Schema} from './types';
 
 const optionsToConfig = (
