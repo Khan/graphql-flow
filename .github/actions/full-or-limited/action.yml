@@ -23,5 +23,5 @@ runs:
       if: inputs.full-trigger == '[]' && inputs.limited-trigger != '[]'
       uses: ./.github/actions/json-args
       with:
-        list: ${{ inputs.full-trigger }}
+        list: ${{ inputs.limited-trigger }}
         run: ${{ inputs.limited }}
