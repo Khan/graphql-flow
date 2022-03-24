@@ -11,8 +11,6 @@ import fs from 'fs';
 const {documentToFlowTypes} = require('..');
 const {schemaFromIntrospectionData} = require('../schemaFromIntrospectionData');
 
-// What
-
 // This allows us to "snapshot" a string cleanly.
 /* eslint-disable flowtype-errors/uncovered */
 expect.addSnapshotSerializer({
