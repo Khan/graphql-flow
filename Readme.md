@@ -94,10 +94,11 @@ Then you'll want to make a pseudo-'test' that makes sure to 'require' all of the
 jest will process them and our mock will see them. 
 ```js
 // generate-types.test.js
-import {findFilesWithQueries} from '../tools/graphql-flow/find-files-with-gql';
+import {findGraphqlTagReferences} from '../tools/graphql-flow/find-files-with-gql';
+import path from 'path';
 
 if (process.env.GRAPHQL_FLOW) {
-    findFilesWithQueries(path.join(__dirname, '..')).forEach(name => {
+    findGraphqlTagReferences(path.join(__dirname, '..')).forEach(name => {
         require(name);
     });
 

@@ -117,6 +117,12 @@ const _variableToFlow = (config: Config, type: TypeNode) => {
         if (config.schema.enumsByName[type.name.value]) {
             return enumTypeToFlow(config, type.name.value);
         }
+        const customScalarType = config.scalars[type.name.value];
+        if (customScalarType) {
+            return babelTypes.genericTypeAnnotation(
+                babelTypes.identifier(customScalarType),
+            );
+        }
         return inputObjectToFlow(config, type.name.value);
     }
     if (type.kind === 'ListType') {

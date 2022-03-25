@@ -49,6 +49,7 @@ type Query {
   human(id: String!): Human
   droid(id: String!): Droid
   friend(id: String!): Friendable
+  candies(number: PositiveNumber!): String
 }
 
 """A character to add"""
@@ -58,6 +59,7 @@ input CharacterInput {
   """The character's friends"""
   friends: [ID!]
   appearsIn: [Episode!]
+  candies: PositiveNumber!
 }
 
 type Mutation {

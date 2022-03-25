@@ -52,6 +52,25 @@ const rawQueryToFlowTypes = (query: string, options?: Options): string => {
 };
 
 describe('graphql-flow generation', () => {
+    it('should allow custom scalars as input', () => {
+        const result = rawQueryToFlowTypes(`
+            query SomeQuery($candies: PositiveNumber!) {
+                candies(number: $candies)
+            }
+        `);
+
+        expect(result).toMatchInlineSnapshot(`
+            export type SomeQueryType = {|
+                variables: {|
+              candies: number
+            |},
+                response: {|
+              candies: ?string
+            |}
+            |};
+        `);
+    });
+
     it('should work with a basic query', () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
@@ -350,6 +369,7 @@ describe('graphql-flow generation', () => {
                     - EMPIRE
                     - JEDI*/
                     "NEW_HOPE" | "EMPIRE" | "JEDI">,
+                    candies: number,
                   |}
                 |},
                     response: {|
