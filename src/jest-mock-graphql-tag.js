@@ -104,24 +104,26 @@ type SpyOptions = {
     readOnlyArray?: boolean,
 };
 
-// This function is expected to be called like so:
-//
-// jest.mock('graphql-tag', () => {
-//     const introspectionData = jest.requireActual(
-//         './our-introspection-query.json',
-//     );
-//     const {spyOnGraphqlTagToCollectQueries} = jest.requireActual(
-//         'graphql-flow/jest-mock-graphql-tag.js');
-//
-//     return spyOnGraphqlTagToCollectQueries(
-//         jest.requireActual('graphql-tag'),
-//         introspectionData,
-//     );
-// });
-//
-// If both pragma and loosePragma are empty, then all graphql
-// documents will be processed. Otherwise, only documents
-// with one of the pragmas will be processed.
+/**
+ * This function is expected to be called like so:
+ *
+ * jest.mock('graphql-tag', () => {
+ *     const introspectionData = jest.requireActual(
+ *         './server-introspection-response.json',
+ *     );
+ *     const {spyOnGraphqlTagToCollectQueries} = jest.requireActual(
+ *         'graphql-flow/jest-mock-graphql-tag.js');
+ *
+ *     return spyOnGraphqlTagToCollectQueries(
+ *         jest.requireActual('graphql-tag'),
+ *         introspectionData,
+ *     );
+ * });
+ *
+ * If both pragma and loosePragma are empty, then all graphql
+ * documents will be processed. Otherwise, only documents
+ * with one of the pragmas will be processed.
+ */
 const spyOnGraphqlTagToCollectQueries = (
     realGraphqlTag: GraphqlTagFn,
     introspectionData: IntrospectionQuery,
