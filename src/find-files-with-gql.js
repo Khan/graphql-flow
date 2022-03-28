@@ -17,10 +17,13 @@ export const findRepoRoot = (): string => {
     }
 };
 
-export const findGraphqlTagReferences = (root: string): Array<string> => {
+export const findGraphqlTagReferences = (
+    root: string,
+    needle: string = 'gql`',
+): Array<string> => {
     try {
         const response = execSync(
-            "git grep -I --word-regexp --name-only --fixed-strings 'gql`' -- '*.js'",
+            `git grep -I --word-regexp --name-only --fixed-strings '${needle}' -- '*.js'`,
             {
                 encoding: 'utf8',
                 cwd: root,
