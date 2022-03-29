@@ -342,6 +342,67 @@ describe('graphql-flow generation', () => {
             `);
         });
 
+        it('should handle an inline fragment on an interface without a typeCondition', () => {
+            const result = rawQueryToFlowTypes(
+                `
+                query SomeQuery {
+                    hero(episode: JEDI) {
+                        id
+                        ... {
+                            name
+                        }
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+            expect(result).toMatchInlineSnapshot(`
+                export type SomeQueryType = {|
+                    variables: {||},
+                    response: {|
+                  hero: ?({|
+                    id: string,
+
+                    /** The person's name*/
+                    name: ?string,
+                  |} | {|
+                    id: string,
+                    name: ?string,
+                  |})
+                |}
+                |};
+            `);
+        });
+
+        it('should handle an inline fragment on an object (not an interface)', () => {
+            const result = rawQueryToFlowTypes(
+                `
+                query SomeQuery {
+                    human(id: "hi") {
+                        id
+                        ... {
+                            name
+                        }
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+            expect(result).toMatchInlineSnapshot(`
+                export type SomeQueryType = {|
+                    variables: {||},
+                    response: {|
+
+                  /** A human character*/
+                  human: ?{|
+                    id: string,
+
+                    /** The person's name*/
+                    name: ?string,
+                  |}
+                |}
+                |};
+            `);
+        });
+
         it('should handle a complex input variable', () => {
             const result = rawQueryToFlowTypes(
                 `mutation addCharacter($character: CharacterInput!) {
