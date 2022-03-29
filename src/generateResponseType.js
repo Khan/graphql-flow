@@ -254,6 +254,7 @@ export const objectPropertiesToFlow = (
 
                 default:
                     config.errors.push(
+                        // eslint-disable-next-line flowtype-errors/uncovered
                         `Unsupported selection kind '${selection.kind}'`,
                     );
                     return [];
