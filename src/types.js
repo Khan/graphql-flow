@@ -14,6 +14,7 @@ import type {
 export type Selections = $ReadOnlyArray<SelectionNode>;
 
 export type Options = {|
+    regenerateCommand?: string,
     strictNullability?: boolean, // default true
     readOnlyArray?: boolean, // default true
     scalars?: Scalars,
