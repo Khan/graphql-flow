@@ -3,8 +3,11 @@
 import path from 'path';
 import {parse} from '@babel/parser';
 import gql from 'graphql-tag';
-import type {BabelNodeImportDeclaration} from '@babel/types';
-import type {TaggedTemplateExpression} from 'ast-types-flow';
+import type {
+    BabelNodeImportDeclaration,
+    BabelNodeVariableDeclarator,
+    BabelNodeTaggedTemplateExpression,
+} from '@babel/types';
 // $FlowIgnore
 import {traverseFast} from '@babel/types';
 import type {DocumentNode} from 'graphql/language/ast';
@@ -59,9 +62,9 @@ const resolveGqlTemplate = (
     template: Template,
     files: Files,
     errors: FileResult['errors'],
-    resolved: {[key: string]: DocumentNode},
+    resolved: {[key: string]: {document: DocumentNode, loc: Loc}},
     seen: {[key: string]: true},
-) => {
+): ?DocumentNode => {
     const key = template.loc.path + ':' + template.loc.start;
     if (seen[key]) {
         errors.push({
@@ -74,7 +77,7 @@ const resolveGqlTemplate = (
     }
     seen[key] = true;
     if (resolved[key]) {
-        return resolved[key];
+        return resolved[key].document;
     }
     const processed: {[key: string]: DocumentNode} = {};
     const expressions = template.expressions.map((expr) => {
@@ -95,8 +98,11 @@ const resolveGqlTemplate = (
     if (expressions.includes(null)) {
         return null;
     }
-    resolved[key] = gql(template.literals, expressions);
-    return resolved[key];
+    resolved[key] = {
+        document: gql(template.literals, ...expressions),
+        loc: template.loc,
+    };
+    return resolved[key].document;
 };
 
 type Template = {|
@@ -136,16 +142,20 @@ type Options = {babel: any};
 
 const externalReferences = (file: FileResult): Array<string> => {
     const paths = {};
-    const add = (v: Document | Import) => {
+    const add = (v: Document | Import, inDocument: boolean) => {
         if (v.type === 'import') {
-            paths[v.path] = true;
+            if (inDocument) {
+                paths[v.path] = true;
+            }
         } else {
-            v.source.expressions.forEach(add);
+            v.source.expressions.forEach((expr) => add(expr, true));
         }
     };
-    Object.keys(file.exports).forEach((k) => add(file.exports[k]));
-    Object.keys(file.locals).forEach((k) => add(file.locals[k]));
-    file.operations.forEach((op) => op.source.expressions.forEach(add));
+    Object.keys(file.exports).forEach((k) => add(file.exports[k], false));
+    Object.keys(file.locals).forEach((k) => add(file.locals[k], false));
+    file.operations.forEach((op) =>
+        op.source.expressions.forEach((expr) => add(expr, true)),
+    );
     return Object.keys(paths);
 };
 
@@ -162,7 +172,11 @@ export const processFile = (
         locals: {},
         errors: [],
     };
-    const ast = parse(contents, options.babel);
+    const ast = parse(contents, {
+        sourceType: 'module',
+        allowImportExportEverywhere: true,
+        plugins: [['flow', {enums: true}], 'jsx'],
+    });
     const gqlTagNames = [];
     const seenTemplates: {[key: number]: true} = {};
 
@@ -172,10 +186,12 @@ export const processFile = (
             if (newLocals) {
                 for (let k in newLocals) {
                     const local = newLocals[k];
-                    result.locals[k] = local;
+                    if (local.path.startsWith('/')) {
+                        result.locals[k] = local;
+                    }
                     if (
-                        local.name === 'default' &&
-                        local.path === 'graphql-tag'
+                        local.path === 'graphql-tag' &&
+                        local.name === 'default'
                     ) {
                         gqlTagNames.push(k);
                     }
@@ -185,7 +201,7 @@ export const processFile = (
         if (toplevel.type === 'ExportNamedDeclaration') {
             if (toplevel.source) {
                 const importPath = toplevel.source.value.startsWith('.')
-                    ? path.relative(dir, toplevel.source.value)
+                    ? path.resolve(path.join(dir, toplevel.source.value))
                     : toplevel.source.value;
                 toplevel.specifiers.forEach((spec) => {
                     result.exports[spec.exported.name] = {
@@ -209,23 +225,30 @@ export const processFile = (
             toplevel.type === 'VariableDeclaration' ||
             toplevel.type === 'ExportNamedDeclaration'
         ) {
-            toplevel.declarations.forEach((decl) => {
+            const decls: Array<BabelNodeVariableDeclarator> =
+                toplevel.type === 'VariableDeclaration'
+                    ? toplevel.declarations
+                    : toplevel.declaration?.declarations || [];
+            decls.forEach((decl) => {
+                if (decl.id.type !== 'Identifier' || !decl.init) {
+                    return;
+                }
+                const {init} = decl;
                 if (
-                    decl.id.type === 'Identifier' &&
-                    decl.init?.type === 'TaggedTemplateExpression' &&
-                    decl.init.tag.type === 'Identifier'
+                    init.type === 'TaggedTemplateExpression' &&
+                    init.tag.type === 'Identifier'
                 ) {
-                    const id = decl.init.tag.name;
-                    if (gqlTagNames.includes(decl.init.tag.name)) {
-                        seenTemplates[decl.init.start] = true;
-                        const tpl = processTemplate(decl.init, result);
+                    const id = decl.id.name;
+                    if (gqlTagNames.includes(init.tag.name)) {
+                        seenTemplates[init.start || -1] = true;
+                        const tpl = processTemplate(init, result);
                         if (tpl) {
-                            const document = (result.locals[decl.id.name] = {
+                            const document = (result.locals[id] = {
                                 type: 'document',
                                 source: tpl,
                             });
                             if (toplevel.type === 'ExportNamedDeclaration') {
-                                result.exports[decl.id.name] = document;
+                                result.exports[id] = document;
                             }
                         }
                     }
@@ -262,15 +285,15 @@ export const processFile = (
 };
 
 const processTemplate = (
-    tpl: TaggedTemplateExpression,
+    tpl: BabelNodeTaggedTemplateExpression,
     result: FileResult,
 ): ?Template => {
     // aha! Here we are!
-    const literals = tpl.quasi.quasis.map((q) => q.value.cooked);
+    const literals = tpl.quasi.quasis.map((q) => q.value.cooked || '');
     const expressions = tpl.quasi.expressions.map((expr) => {
-        const loc = {
-            start: expr.start,
-            end: expr.end,
+        const loc: Loc = {
+            start: expr.start || -1,
+            end: expr.end || -1,
             path: result.path,
         };
         if (expr.type !== 'Identifier') {
@@ -296,7 +319,7 @@ const processTemplate = (
     return {
         literals,
         expressions: expressions.filter(Boolean),
-        loc: {start: tpl.start, end: tpl.end, path: result.path},
+        loc: {start: tpl.start || -1, end: tpl.end || -1, path: result.path},
     };
 };
 
@@ -309,7 +332,7 @@ const getLocals = (
         return null;
     }
     const importPath = toplevel.source.value.startsWith('.')
-        ? path.relative(dir, toplevel.source.value)
+        ? path.resolve(path.join(dir, toplevel.source.value))
         : toplevel.source.value;
     const locals = {};
     toplevel.specifiers.forEach((spec) => {
@@ -352,18 +375,29 @@ export const processFiles = (
         if (state[next]) {
             return;
         }
-        const result = processFile(next, getFileSource(next), options);
-        state[next] = result;
-        externalReferences(result).forEach((path) => {
-            if (!state[path] && !toProcess.includes(path)) {
-                toProcess.push(path);
-            }
-        });
+        try {
+            const result = processFile(next, getFileSource(next), options);
+            state[next] = result;
+            externalReferences(result).forEach((path) => {
+                if (!state[path] && !toProcess.includes(path)) {
+                    toProcess.push(path);
+                }
+            });
+        } catch (err) {
+            console.log(next);
+            throw err;
+        }
     }
-    const resolved: {[key: string]: DocumentNode} = {};
+    const resolved: {[key: string]: {document: DocumentNode, loc: Loc}} = {};
     const errors: FileResult['errors'] = [];
     Object.keys(state).forEach((path) => {
         const file = state[path];
+        if (file.errors.length) {
+            console.log(`Errors in ${path}`);
+            file.errors.forEach((error) => {
+                console.log(` - ${error.message}`);
+            });
+        }
         file.operations.forEach((op) => {
             const result = resolveGqlTemplate(
                 op.source,
@@ -386,4 +420,5 @@ export const processFiles = (
             }
         });
     });
+    console.log(Object.keys(resolved).length);
 };
