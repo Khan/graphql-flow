@@ -62,7 +62,7 @@ const resolveGqlTemplate = (
     template: Template,
     files: Files,
     errors: FileResult['errors'],
-    resolved: {[key: string]: {document: DocumentNode, loc: Loc}},
+    resolved: Resolved,
     seen: {[key: string]: true},
 ): ?DocumentNode => {
     const key = template.loc.path + ':' + template.loc.start;
@@ -100,7 +100,7 @@ const resolveGqlTemplate = (
     }
     resolved[key] = {
         document: gql(template.literals, ...expressions),
-        loc: template.loc,
+        raw: template,
     };
     return resolved[key].document;
 };
@@ -393,18 +393,27 @@ const getLocals = (
     });
     return locals;
 };
+type Resolved = {
+    [key: string]: {
+        document: DocumentNode,
+        raw: Template,
+    },
+};
 
 export const processFiles = (
     files: Array<string>,
     getFileSource: (path: string) => string,
     options: Options,
-) => {
+): {
+    files: Files,
+    resolved: Resolved,
+} => {
     const state: Files = {};
     const toProcess = files.slice();
     while (toProcess.length) {
         const next = toProcess.shift();
         if (state[next]) {
-            return;
+            continue;
         }
         try {
             const result = processFile(next, getFileSource(next), options);
@@ -419,16 +428,10 @@ export const processFiles = (
             throw err;
         }
     }
-    const resolved: {[key: string]: {document: DocumentNode, loc: Loc}} = {};
+    const resolved: Resolved = {};
     const errors: FileResult['errors'] = [];
     Object.keys(state).forEach((path) => {
         const file = state[path];
-        if (file.errors.length) {
-            console.log(`Errors in ${path}`);
-            file.errors.forEach((error) => {
-                console.log(` - ${error.message}`);
-            });
-        }
         file.operations.forEach((op) => {
             const result = resolveGqlTemplate(
                 op.source,
@@ -451,5 +454,5 @@ export const processFiles = (
             }
         });
     });
-    console.log(Object.keys(resolved).length);
+    return {files: state, resolved};
 };

@@ -19,6 +19,7 @@ const indexPrelude = (regenerateCommand?: string) => `// @flow
 `;
 
 const generateTypeFiles = (
+    fileName: string,
     schema: Schema,
     document: DocumentNode,
     options: Options,
@@ -62,10 +63,6 @@ const generateTypeFiles = (
         }
     };
 
-    // Get the name of the file that `gql` was called from
-    const errorLines = new Error().stack.split('\n');
-    const fileName = errorLines[3].split('(').slice(-1)[0].split(':')[0];
-
     const generated = documentToFlowTypes(document, schema, options);
     generated.forEach(({name, typeName, code}) => {
         // We write all generated files to a `__generated__` subdir to keep
@@ -102,7 +99,7 @@ const generateTypeFiles = (
 
 type GraphqlTagFn = (raw: string, ...args: Array<any>) => DocumentNode;
 
-type SpyOptions = {
+export type SpyOptions = {
     pragma?: string,
     loosePragma?: string,
     ignorePragma?: string,
@@ -152,6 +149,10 @@ const spyOnGraphqlTagToCollectQueries = (
     const schema = schemaFromIntrospectionData(introspectionData);
 
     const wrapper = function gql() {
+        // Get the name of the file that `gql` was called from
+        const errorLines = new Error().stack.split('\n');
+        const fileName = errorLines[3].split('(').slice(-1)[0].split(':')[0];
+
         const document: DocumentNode = realGraphqlTag.apply(this, arguments); // eslint-disable-line flowtype-errors/uncovered
         const hasNonFragments = document.definitions.some(
             ({kind}) => kind !== 'FragmentDefinition',
@@ -167,7 +168,12 @@ const spyOnGraphqlTagToCollectQueries = (
             const rawSource: string = arguments[0].raw[0]; // eslint-disable-line flowtype-errors/uncovered
             const processedOptions = processPragmas(options, rawSource);
             if (processedOptions) {
-                generateTypeFiles(schema, withTypeNames, processedOptions);
+                generateTypeFiles(
+                    fileName,
+                    schema,
+                    withTypeNames,
+                    processedOptions,
+                );
             }
         }
         return document;
@@ -209,4 +215,5 @@ const processPragmas = (
 module.exports = {
     processPragmas,
     spyOnGraphqlTagToCollectQueries,
+    generateTypeFiles,
 };
