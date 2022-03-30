@@ -175,6 +175,14 @@ export const objectPropertiesToFlow = (
     return [].concat(
         ...selections.map((selection) => {
             switch (selection.kind) {
+                case 'InlineFragment': {
+                    return objectPropertiesToFlow(
+                        config,
+                        type,
+                        typeName,
+                        selection.selectionSet.selections,
+                    );
+                }
                 case 'FragmentSpread':
                     if (!config.fragments[selection.name.value]) {
                         config.errors.push(
@@ -246,6 +254,7 @@ export const objectPropertiesToFlow = (
 
                 default:
                     config.errors.push(
+                        // eslint-disable-next-line flowtype-errors/uncovered
                         `Unsupported selection kind '${selection.kind}'`,
                     );
                     return [];
@@ -397,23 +406,20 @@ Try using an inline fragment "... on SomeType {}".`);
         }
         return [];
     }
-    if (!selection.typeCondition) {
-        throw new Error('Expected selection to have a typeCondition');
-    }
-    const typeName = selection.typeCondition.name.value;
-    if (
-        (config.schema.interfacesByName[typeName] &&
-            config.schema.interfacesByName[typeName].possibleTypesByName[
+    if (selection.typeCondition) {
+        const typeName = selection.typeCondition.name.value;
+        const indirectMatch =
+            config.schema.interfacesByName[typeName]?.possibleTypesByName[
                 possible.name
-            ]) ||
-        typeName === possible.name
-    ) {
-        return objectPropertiesToFlow(
-            config,
-            config.schema.typesByName[possible.name],
-            possible.name,
-            selection.selectionSet.selections,
-        );
+            ];
+        if (typeName !== possible.name && !indirectMatch) {
+            return [];
+        }
     }
-    return [];
+    return objectPropertiesToFlow(
+        config,
+        config.schema.typesByName[possible.name],
+        possible.name,
+        selection.selectionSet.selections,
+    );
 };
