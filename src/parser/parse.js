@@ -10,6 +10,7 @@ import type {
 } from '@babel/types';
 import traverse from '@babel/traverse';
 import type {DocumentNode} from 'graphql/language/ast';
+// import {traverseFast} from '@babel/types';
 
 /*
 
@@ -177,7 +178,7 @@ export const processFile = (
         plugins: [['flow', {enums: true}], 'jsx'],
     });
     const gqlTagNames = [];
-    const seenTemplates: {[key: number]: true} = {};
+    const seenTemplates: {[key: number]: Document} = {};
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === 'ImportDeclaration') {
@@ -239,13 +240,13 @@ export const processFile = (
                     init.tag.type === 'Identifier'
                 ) {
                     if (gqlTagNames.includes(init.tag.name)) {
-                        seenTemplates[init.start || -1] = true;
                         const tpl = processTemplate(init, result);
                         if (tpl) {
                             const document = (result.locals[id] = {
                                 type: 'document',
                                 source: tpl,
                             });
+                            seenTemplates[init.start || -1] = document;
                             if (toplevel.type === 'ExportNamedDeclaration') {
                                 result.exports[id] = document;
                             }
@@ -262,31 +263,41 @@ export const processFile = (
         }
     });
 
+    const visitTpl = (node, path) => {
+        if (seenTemplates[node.start]) {
+            return;
+        }
+        // seenTemplates[node.start] = true;
+        if (
+            node.tag.type !== 'Identifier' ||
+            !gqlTagNames.includes(node.tag.name)
+        ) {
+            return;
+        }
+        const tpl = processTemplate(node, result, path, seenTemplates);
+        if (tpl) {
+            seenTemplates[node.start || -1] = {type: 'document', source: tpl};
+            result.operations.push({
+                source: tpl,
+                needsWrapping: true, // TODO: determine this?
+                // I think by tracking the `gqlOp` function, similar
+                // to how I track the gqlTagNames. TODO.
+            });
+        }
+    };
+
+    // Ok so this is much slower, but can it be good?
     traverse(ast, {
-        TaggedTemplateExpression({node}) {
-            if (node.type === 'TaggedTemplateExpression') {
-                if (seenTemplates[node.start]) {
-                    return;
-                }
-                seenTemplates[node.start] = true;
-                if (
-                    node.tag.type !== 'Identifier' ||
-                    !gqlTagNames.includes(node.tag.name)
-                ) {
-                    return;
-                }
-                const tpl = processTemplate(node, result);
-                if (tpl) {
-                    result.operations.push({
-                        source: tpl,
-                        needsWrapping: true, // TODO: determine this?
-                        // I think by tracking the `gqlOp` function, similar
-                        // to how I track the gqlTagNames. TODO.
-                    });
-                }
-            }
+        TaggedTemplateExpression(path) {
+            path.scope.getBinding;
+            visitTpl(path.node, path);
         },
     });
+    // traverseFast(ast, (node) => {
+    //     if (node.type === 'TaggedTemplateExpression') {
+    //         visitTpl(node);
+    //     }
+    // });
 
     return result;
 };
@@ -294,6 +305,8 @@ export const processFile = (
 const processTemplate = (
     tpl: BabelNodeTaggedTemplateExpression,
     result: FileResult,
+    path,
+    seenTemplates,
 ): ?Template => {
     // aha! Here we are!
     const literals = tpl.quasi.quasis.map((q) => q.value.cooked || '');
@@ -311,6 +324,17 @@ const processTemplate = (
             return null;
         }
         if (!result.locals[expr.name]) {
+            if (path && seenTemplates) {
+                const got = path.scope.getBinding(expr.name);
+                if (
+                    got &&
+                    got.path.node.init &&
+                    seenTemplates[got.path.node.init.start]
+                ) {
+                    console.log(got.path.node.init.start);
+                    return seenTemplates[got.path.node.init.start];
+                }
+            }
             result.errors.push({
                 loc,
                 message: `Unable to resolve ${expr.name}`,
