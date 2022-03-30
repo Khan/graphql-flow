@@ -8,8 +8,7 @@ import type {
     BabelNodeVariableDeclarator,
     BabelNodeTaggedTemplateExpression,
 } from '@babel/types';
-// $FlowIgnore
-import {traverseFast} from '@babel/types';
+import traverse from '@babel/traverse';
 import type {DocumentNode} from 'graphql/language/ast';
 
 /*
@@ -261,8 +260,10 @@ export const processFile = (
                 }
             });
         }
+    });
 
-        traverseFast(toplevel, (node) => {
+    traverse(ast, {
+        TaggedTemplateExpression({node}) {
             if (node.type === 'TaggedTemplateExpression') {
                 if (seenTemplates[node.start]) {
                     return;
@@ -284,7 +285,7 @@ export const processFile = (
                     });
                 }
             }
-        });
+        },
     });
 
     return result;
