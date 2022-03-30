@@ -63,7 +63,14 @@ const generateTypeFiles = (
         }
     };
 
-    const generated = documentToFlowTypes(document, schema, options);
+    let generated = [];
+    try {
+        generated = documentToFlowTypes(document, schema, options);
+    } catch (err) {
+        console.error(fileName);
+        console.error(err);
+        // throw err;
+    }
     generated.forEach(({name, typeName, code}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
@@ -151,19 +158,24 @@ const spyOnGraphqlTagToCollectQueries = (
     const wrapper = function gql() {
         // Get the name of the file that `gql` was called from
         const errorLines = new Error().stack.split('\n');
-        const fileName = errorLines[3].split('(').slice(-1)[0].split(':')[0];
+        const fileName = errorLines[2].split('(').slice(-1)[0].split(':')[0];
 
         const document: DocumentNode = realGraphqlTag.apply(this, arguments); // eslint-disable-line flowtype-errors/uncovered
         const hasNonFragments = document.definitions.some(
             ({kind}) => kind !== 'FragmentDefinition',
         );
+
+        if (
+            fileName.includes('course-editor') ||
+            fileName.endsWith('_test.js') ||
+            fileName.endsWith('.fixture.js')
+        ) {
+            return document;
+        }
+
         if (hasNonFragments) {
             // eslint-disable-next-line flowtype-errors/uncovered
             const withTypeNames: DocumentNode = addTypenameToDocument(document);
-            collection.push({
-                raw: print(withTypeNames),
-                errors: validate(clientSchema, document),
-            });
 
             const rawSource: string = arguments[0].raw[0]; // eslint-disable-line flowtype-errors/uncovered
             const processedOptions = processPragmas(options, rawSource);
@@ -175,6 +187,11 @@ const spyOnGraphqlTagToCollectQueries = (
                     processedOptions,
                 );
             }
+            collection.push({
+                raw: print(withTypeNames),
+                errors: validate(clientSchema, document),
+                processed: !!processedOptions,
+            });
         }
         return document;
     };
