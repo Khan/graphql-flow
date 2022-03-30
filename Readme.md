@@ -145,6 +145,9 @@ And then `yarn generate-types` or `npm run generate-types` gets your types gener
     loosePragma?: string,
     // If neither pragma nor loosePragma are specified, all graphql documents
     // that contain a query or mutation will be processed.
+
+    // Any graphql operations containing ignorePragma will be skipped
+    ignorePragma?: string,
 }
 ```
 
