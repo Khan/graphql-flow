@@ -234,11 +234,11 @@ export const processFile = (
                     return;
                 }
                 const {init} = decl;
+                const id = decl.id.name;
                 if (
                     init.type === 'TaggedTemplateExpression' &&
                     init.tag.type === 'Identifier'
                 ) {
-                    const id = decl.id.name;
                     if (gqlTagNames.includes(init.tag.name)) {
                         seenTemplates[init.start || -1] = true;
                         const tpl = processTemplate(init, result);
@@ -251,6 +251,12 @@ export const processFile = (
                                 result.exports[id] = document;
                             }
                         }
+                    }
+                }
+                if (init.type === 'Identifier' && result.locals[init.name]) {
+                    result.locals[id] = result.locals[init.name];
+                    if (toplevel.type === 'ExportNamedDeclaration') {
+                        result.exports[id] = result.locals[init.name];
                     }
                 }
             });

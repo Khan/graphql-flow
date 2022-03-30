@@ -25,7 +25,10 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
     }
 };
 
-const files = findGraphqlTagReferences(process.cwd());
+const files =
+    process.argv.length > 2
+        ? process.argv.slice(2)
+        : findGraphqlTagReferences(process.cwd());
 // console.log(files.length, files.slice(0, 24));
 processFiles(files, (f) => readFileSync(f, 'utf8'), {
     babel: {
