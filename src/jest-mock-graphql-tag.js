@@ -105,6 +105,7 @@ type GraphqlTagFn = (raw: string, ...args: Array<any>) => DocumentNode;
 type SpyOptions = {
     pragma?: string,
     loosePragma?: string,
+    ignorePragma?: string,
     scalars?: Scalars,
     strictNullability?: boolean,
     /**
@@ -133,6 +134,9 @@ type SpyOptions = {
  * If both pragma and loosePragma are empty, then all graphql
  * documents will be processed. Otherwise, only documents
  * with one of the pragmas will be processed.
+ * Any operations containing `ignorePragma` (if provided)
+ * will be skipped, regardless of whether they contain
+ * another specified pragma.
  */
 const spyOnGraphqlTagToCollectQueries = (
     realGraphqlTag: GraphqlTagFn,
@@ -176,6 +180,10 @@ const processPragmas = (
     options: SpyOptions,
     rawSource: string,
 ): null | Options => {
+    if (options.ignorePragma && rawSource.includes(options.ignorePragma)) {
+        return null;
+    }
+
     const autogen = options.loosePragma
         ? rawSource.includes(options.loosePragma)
         : false;

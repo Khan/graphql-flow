@@ -48,4 +48,16 @@ describe('processPragmas', () => {
             scalars: undefined,
         });
     });
+
+    it('should reject query with ignore pragma', () => {
+        expect(
+            processPragmas(
+                {ignorePragma: '# @ignore\n'},
+                `query X {
+                    # @ignore
+                    Y
+                }`,
+            ),
+        ).toEqual(null);
+    });
 });
