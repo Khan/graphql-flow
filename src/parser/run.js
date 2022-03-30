@@ -82,12 +82,22 @@ const options = {
     regenerateCommand: 'yarn generate-query-types',
 };
 
+const excludes = [
+    /_test.js$/,
+    /\bcourse-editor-package\b/,
+    /.fixture.js$/,
+    /\b__flowtests__\b/,
+    /\bcourse-editor\b/,
+];
+
+// Ok so this all takes a decent amount of time
+// In the "update" case it would be good to just
+// process the things that might have been touched by
+// changed files?
+
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
-    if (
-        raw.loc.path.endsWith('_test.js') ||
-        raw.loc.path.includes('course-editor-package')
-    ) {
+    if (excludes.some((rx) => rx.test(raw.loc.path))) {
         return; // skip tests
     }
     const hasNonFragments = document.definitions.some(
@@ -96,8 +106,9 @@ Object.keys(resolved).forEach((k) => {
     if (hasNonFragments) {
         // eslint-disable-next-line flowtype-errors/uncovered
         const withTypeNames: DocumentNode = addTypenameToDocument(document);
+        const printed = print(withTypeNames);
         collection.push({
-            raw: print(withTypeNames),
+            raw: printed,
             errors: validate(clientSchema, document),
         });
 
@@ -113,6 +124,7 @@ Object.keys(resolved).forEach((k) => {
                 );
             } catch (err) {
                 console.log(raw.loc.path);
+                console.log(printed);
                 throw err;
             }
         }
