@@ -143,7 +143,7 @@ describe('processing fragments in various ways', () => {
         `);
     });
 
-    it.only('should flag things it doesnt support', () => {
+    it('should flag things it doesnt support', () => {
         const files = processFiles(['/untrackableReference.js'], getFileSource);
         expect(files['/untrackableReference.js'].errors).toMatchInlineSnapshot(`
             Array [
