@@ -138,8 +138,6 @@ type FileResult = {|
 
 type Files = {[path: string]: FileResult};
 
-type Options = {babel: any};
-
 const externalReferences = (file: FileResult): Array<string> => {
     const paths = {};
     const add = (v: Document | Import, inDocument: boolean) => {
@@ -159,11 +157,7 @@ const externalReferences = (file: FileResult): Array<string> => {
     return Object.keys(paths);
 };
 
-export const processFile = (
-    filePath: string,
-    contents: string,
-    options: Options,
-): FileResult => {
+export const processFile = (filePath: string, contents: string): FileResult => {
     const dir = path.dirname(filePath);
     const result: FileResult = {
         path: filePath,
@@ -403,7 +397,6 @@ type Resolved = {
 export const processFiles = (
     files: Array<string>,
     getFileSource: (path: string) => string,
-    options: Options,
 ): {
     files: Files,
     resolved: Resolved,
@@ -416,7 +409,7 @@ export const processFiles = (
             continue;
         }
         try {
-            const result = processFile(next, getFileSource(next), options);
+            const result = processFile(next, getFileSource(next));
             state[next] = result;
             externalReferences(result).forEach((path) => {
                 if (!state[path] && !toProcess.includes(path)) {
