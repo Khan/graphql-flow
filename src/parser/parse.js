@@ -10,18 +10,33 @@ import type {
 } from '@babel/types';
 import traverse from '@babel/traverse';
 import type {DocumentNode} from 'graphql/language/ast';
-// import {traverseFast} from '@babel/types';
 
-/*
-
-- find `graphql-tag` imports
-- find usages of that variable
-- be keeping a map of variable references, for fragments thanks
-- follow whatever imports you must
-
-- OH make sure that, when doing a 'wrap with type', I ignore those that are already wrapped.
-
-*/
+/**
+ * This file is responsible for finding all gql`-annotated
+ * template strings in a set of provided files, and for resolving
+ * all fragment references to their eventual sources.
+ *
+ * Things that are supported:
+ * - importing fragments from other files
+ * - re-exporting fragments that were imported
+ * - using locally-defined fragments, even if they're
+ *   not at the top level (scope is honored correctly)
+ * - importing the gql tag as some other name
+ * 	 (e.g. 'import blah from "graphql-tag"')
+ *
+ * Things that are *not* supported:
+ * - doing anything other than 'const x = gql`my template`'
+ * 	 e.g. const x = someCond ? one fragment literal : another fragment literal
+ *   or const x = someFragmentPreprocessor(fragment literal)
+ * - importing the graphql tag fn from anywhere other than "graphql-tag"
+ * - anything else fancy with the graphql tag fn, e.g. 'const blah = gql; blah`xyz`'
+ * - including a fragment in an operation by anything other than a bare identifier,
+ *   e.g. 'const myQuery = gql`query xyz {...} ${cond ? someFrag : otherFrag}`.
+ *
+ * Things that could be supported, but are not yet:
+ * - tracking whether a given graphql operation has already been wrapped
+ *   in `gqlOp<Type>()` or not (to inform an auto-wrapper of the future)
+ */
 
 const resolveImport = (
     expr: Import,
@@ -140,19 +155,38 @@ type Files = {[path: string]: FileResult};
 
 const externalReferences = (file: FileResult): Array<string> => {
     const paths = {};
-    const add = (v: Document | Import, inDocument: boolean) => {
+    const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === 'import') {
-            if (inDocument) {
+            if (followImports) {
                 paths[v.path] = true;
             }
         } else {
             v.source.expressions.forEach((expr) => add(expr, true));
         }
     };
-    Object.keys(file.exports).forEach((k) => add(file.exports[k], false));
-    Object.keys(file.locals).forEach((k) => add(file.locals[k], false));
+    Object.keys(file.exports).forEach((k) =>
+        add(
+            file.exports[k],
+            // If we're re-exporting something, we need to follow that import.
+            true,
+        ),
+    );
+    Object.keys(file.locals).forEach((k) =>
+        add(
+            file.locals[k],
+            // If we've imported something but haven't used it or exported it,
+            // we don't need to follow the import.
+            false,
+        ),
+    );
     file.operations.forEach((op) =>
-        op.source.expressions.forEach((expr) => add(expr, true)),
+        op.source.expressions.forEach((expr) =>
+            add(
+                expr,
+                // Imports that are used in graphql expressions definitely need to be followed.
+                true,
+            ),
+        ),
     );
     return Object.keys(paths);
 };
@@ -172,7 +206,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         plugins: [['flow', {enums: true}], 'jsx'],
     });
     const gqlTagNames = [];
-    const seenTemplates: {[key: number]: Document} = {};
+    const seenTemplates: {[key: number]: Document | false} = {};
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === 'ImportDeclaration') {
@@ -235,15 +269,19 @@ export const processFile = (filePath: string, contents: string): FileResult => {
                 ) {
                     if (gqlTagNames.includes(init.tag.name)) {
                         const tpl = processTemplate(init, result);
+                        console.log('PROC', init.start);
                         if (tpl) {
                             const document = (result.locals[id] = {
                                 type: 'document',
                                 source: tpl,
                             });
                             seenTemplates[init.start || -1] = document;
+                            console.log('ADDED', init.start);
                             if (toplevel.type === 'ExportNamedDeclaration') {
                                 result.exports[id] = document;
                             }
+                        } else {
+                            seenTemplates[init.start || -1] = false;
                         }
                     }
                 }
@@ -258,9 +296,10 @@ export const processFile = (filePath: string, contents: string): FileResult => {
     });
 
     const visitTpl = (node, path) => {
-        if (seenTemplates[node.start]) {
+        if (seenTemplates[node.start] != null) {
             return;
         }
+        console.log('UMMM', node.start, Object.keys(seenTemplates));
         // seenTemplates[node.start] = true;
         if (
             node.tag.type !== 'Identifier' ||
@@ -277,6 +316,8 @@ export const processFile = (filePath: string, contents: string): FileResult => {
                 // I think by tracking the `gqlOp` function, similar
                 // to how I track the gqlTagNames. TODO.
             });
+        } else {
+            seenTemplates[node.start || -1] = false;
         }
     };
 
@@ -319,14 +360,14 @@ const processTemplate = (
         }
         if (!result.locals[expr.name]) {
             if (path && seenTemplates) {
-                const got = path.scope.getBinding(expr.name);
+                const binding = path.scope.getBinding(expr.name);
                 if (
-                    got &&
-                    got.path.node.init &&
-                    seenTemplates[got.path.node.init.start]
+                    binding &&
+                    binding.path.node.init &&
+                    seenTemplates[binding.path.node.init.start]
                 ) {
-                    console.log(got.path.node.init.start);
-                    return seenTemplates[got.path.node.init.start];
+                    console.log(binding.path.node.init.start);
+                    return seenTemplates[binding.path.node.init.start];
                 }
             }
             result.errors.push({
@@ -394,41 +435,17 @@ type Resolved = {
     },
 };
 
-export const processFiles = (
-    files: Array<string>,
-    getFileSource: (path: string) => string,
-): {
+export const resolveDocuments = (
     files: Files,
-    resolved: Resolved,
-} => {
-    const state: Files = {};
-    const toProcess = files.slice();
-    while (toProcess.length) {
-        const next = toProcess.shift();
-        if (state[next]) {
-            continue;
-        }
-        try {
-            const result = processFile(next, getFileSource(next));
-            state[next] = result;
-            externalReferences(result).forEach((path) => {
-                if (!state[path] && !toProcess.includes(path)) {
-                    toProcess.push(path);
-                }
-            });
-        } catch (err) {
-            console.log(next);
-            throw err;
-        }
-    }
+): {resolved: Resolved, errors: FileResult['errors']} => {
     const resolved: Resolved = {};
     const errors: FileResult['errors'] = [];
-    Object.keys(state).forEach((path) => {
-        const file = state[path];
+    Object.keys(files).forEach((path) => {
+        const file = files[path];
         file.operations.forEach((op) => {
             const result = resolveGqlTemplate(
                 op.source,
-                state,
+                files,
                 errors,
                 resolved,
                 {},
@@ -439,7 +456,7 @@ export const processFiles = (
             if (local.type === 'document') {
                 const result = resolveGqlTemplate(
                     local.source,
-                    state,
+                    files,
                     errors,
                     resolved,
                     {},
@@ -447,5 +464,29 @@ export const processFiles = (
             }
         });
     });
-    return {files: state, resolved};
+    return {resolved, errors};
+};
+
+export const processFiles = (
+    filePaths: Array<string>,
+    getFileSource: (path: string) => string,
+): Files => {
+    const files: Files = {};
+    const toProcess = filePaths.slice();
+    while (toProcess.length) {
+        const next = toProcess.shift();
+        if (files[next]) {
+            continue;
+        }
+        const result = processFile(next, getFileSource(next));
+        files[next] = result;
+        console.log('ok', next, externalReferences(result));
+        externalReferences(result).forEach((path) => {
+            console.log(path, result);
+            if (!files[path] && !toProcess.includes(path)) {
+                toProcess.push(path);
+            }
+        });
+    }
+    return files;
 };

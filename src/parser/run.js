@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const {execSync} = require('child_process');
 import {readFileSync} from 'fs';
-import {processFiles} from './parse';
+import {processFiles, resolveDocuments} from './parse';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
 import type {Schema, Options, Scalars} from '../types';
@@ -42,17 +42,13 @@ const inputFiles =
         ? process.argv.slice(3)
         : findGraphqlTagReferences(process.cwd());
 
-const {files, resolved} = processFiles(
-    inputFiles,
-    (f) => readFileSync(f, 'utf8'),
-    {
-        babel: {
-            sourceType: 'module',
-            flow: true,
-        },
-    },
-);
-
+const files = processFiles(inputFiles, (f) => readFileSync(f, 'utf8'));
+const {resolved, errors} = resolveDocuments(files);
+if (errors.length) {
+    errors.forEach((error) => {
+        console.error(`Resolution error ${error.message} in ${error.loc.path}`);
+    });
+}
 console.log(Object.keys(resolved).length, 'resolved queries');
 Object.keys(files).forEach((key) => {
     const file = files[key];
