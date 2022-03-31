@@ -10,6 +10,9 @@ const fixtureFiles = {
     '/firstFile.js': `
         import tagme from 'graphql-tag';
 
+        // Some complex syntax
+        const {x} = {x: 10}
+
         const notExported = tagme\`
         fragment Something on Otherthing {
             notExportedAttr
@@ -45,8 +48,13 @@ const fixtureFiles = {
         export {secondFragment};`,
 
     '/thirdFile.js': `
-        import {fromFirstFile, alsoFirst, seceondFragment} from './secondFile.js';
+        import {fromFirstFile, alsoFirst, secondFragment} from './secondFile.js';
         import gql from 'graphql-tag';
+        import type {someType} from './somePlace';
+
+        export const renamedSecond = secondFragment;
+
+        const otherTemplate = styled\`lets do this\`;
 
         const myQuery = gql\`
         query Some {
@@ -73,11 +81,11 @@ const fixtureFiles = {
             }
             \${anotherFragment}
             \${fromFirstFile}
-            \${secondFragment}
+            \${renamedSecond}
             \`;
         }`,
 
-    '/untrackableReference.js': `
+    '/invalidThings.js': `
         import gql from 'graphql-tag';
         import someExternalFragment from 'somewhere';
 
@@ -86,6 +94,8 @@ const fixtureFiles = {
             id
         }
         \${someExternalFragment}
+        \${someUndefinedFragment}
+        \${2 + 3}
         \`;
     `,
 };
@@ -111,19 +121,19 @@ describe('processing fragments in various ways', () => {
         );
         expect(printed).toMatchInlineSnapshot(`
             Object {
-              "/firstFile.js:208": "fragment FromFirstFile on Something {
-              firstFile
-            }",
-              "/firstFile.js:338": "fragment AlsoFromFirst on Something {
-              name
-            }",
-              "/firstFile.js:71": "fragment Something on Otherthing {
+              "/firstFile.js:131": "fragment Something on Otherthing {
               notExportedAttr
             }",
-              "/secondFile.js:255": "fragment SecondFragment on Thing {
+              "/firstFile.js:268": "fragment FromFirstFile on Something {
+              firstFile
+            }",
+              "/firstFile.js:398": "fragment AlsoFromFirst on Something {
+              name
+            }",
+              "/secondFile.js:368": "fragment SecondFragment on Thing {
               secondAttribute
             }",
-              "/thirdFile.js:148": "query Some {
+              "/thirdFile.js:305": "query Some {
               hello
               ...FromFirstFile
               ...AlsoFromFirst
@@ -136,25 +146,41 @@ describe('processing fragments in various ways', () => {
             fragment AlsoFromFirst on Something {
               name
             }",
-              "/thirdFile.js:400": "fragment Hello on Something {
+              "/thirdFile.js:557": "fragment Hello on Something {
               id
+            }",
+              "/thirdFile.js:618": "query InlineQuery {
+              hello
+              ok {
+                ...Hello
+                ...FromFirstFile
+              }
+              ...SecondFragment
+            }
+
+            fragment Hello on Something {
+              id
+            }
+
+            fragment FromFirstFile on Something {
+              firstFile
+            }
+
+            fragment SecondFragment on Thing {
+              secondAttribute
             }",
             }
         `);
     });
 
     it('should flag things it doesnt support', () => {
-        const files = processFiles(['/untrackableReference.js'], getFileSource);
-        expect(files['/untrackableReference.js'].errors).toMatchInlineSnapshot(`
+        const files = processFiles(['/invalidThings.js'], getFileSource);
+        expect(files['/invalidThings.js'].errors.map((m) => m.message))
+            .toMatchInlineSnapshot(`
             Array [
-              Object {
-                "loc": Object {
-                  "end": 201,
-                  "path": "/untrackableReference.js",
-                  "start": 181,
-                },
-                "message": "Unable to resolve someExternalFragment",
-              },
+              "Unable to resolve someExternalFragment",
+              "Unable to resolve someUndefinedFragment",
+              "Template literal interpolation must be an identifier",
             ]
         `);
     });

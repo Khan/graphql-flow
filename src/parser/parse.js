@@ -7,6 +7,8 @@ import type {
     BabelNodeVariableDeclarator,
     BabelNodeTaggedTemplateExpression,
     BabelNodeFile,
+    BabelNodeVariableDeclaration,
+    BabelNodeExportNamedDeclaration,
 } from '@babel/types';
 import traverse from '@babel/traverse';
 
@@ -22,6 +24,7 @@ import traverse from '@babel/traverse';
  *   not at the top level (scope is honored correctly)
  * - importing the gql tag as some other name
  * 	 (e.g. 'import blah from "graphql-tag"')
+ * - renaming fragments at the top level
  *
  * Things that are *not* supported:
  * - doing anything other than 'const x = gql`my template`'
@@ -31,6 +34,7 @@ import traverse from '@babel/traverse';
  * - anything else fancy with the graphql tag fn, e.g. 'const blah = gql; blah`xyz`'
  * - including a fragment in an operation by anything other than a bare identifier,
  *   e.g. 'const myQuery = gql`query xyz {...} ${cond ? someFrag : otherFrag}`.
+ * - getting fragments from e.g. function arguments, or renaming non-toplevel fragments
  *
  * Things that could be supported, but are not yet:
  * - tracking whether a given graphql operation has already been wrapped
@@ -57,7 +61,9 @@ export type Import = {|
 
 export type Operation = {|
     source: Template,
-    needsWrapping: boolean,
+    // TODO: Determine if an operation is already wrapped
+    // in `gqlOp` so we can automatically wrap if needed.
+    // needsWrapping: boolean,
 |};
 
 export type FileResult = {|
@@ -70,7 +76,15 @@ export type FileResult = {|
 
 export type Files = {[path: string]: FileResult};
 
-const externalReferences = (file: FileResult): Array<string> => {
+/**
+ * Finds all referenced imports that might possibly be relevant
+ * graphql fragments.
+ *
+ * Importantly, any values that are re-exported are treated as
+ * potentially relevant, and of course any values referenced
+ * from a graphql template are treated as relevant.
+ */
+const listExternalReferences = (file: FileResult): Array<string> => {
     const paths = {};
     const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === 'import') {
@@ -149,7 +163,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
                 const importPath = source.value.startsWith('.')
                     ? path.resolve(path.join(dir, source.value))
                     : source.value;
-                toplevel.specifiers.forEach((spec) => {
+                toplevel.specifiers?.forEach((spec) => {
                     if (
                         spec.type === 'ExportSpecifier' &&
                         spec.exported.type === 'Identifier'
@@ -159,64 +173,75 @@ export const processFile = (filePath: string, contents: string): FileResult => {
                             name: spec.local.name,
                             path: importPath,
                             loc: {
-                                start: spec.start,
-                                end: spec.end,
+                                start: spec.start ?? -1,
+                                end: spec.end ?? -1,
                                 path: filePath,
                             },
                         };
                     }
                 });
             } else {
-                toplevel.specifiers.forEach((spec) => {
-                    const local = result.locals[spec.local.name];
-                    if (local) {
-                        result.exports[spec.exported.name] = local;
+                toplevel.specifiers?.forEach((spec) => {
+                    if (spec.type === 'ExportSpecifier') {
+                        const local = result.locals[spec.local.name];
+                        if (local && spec.exported.type === 'Identifier') {
+                            result.exports[spec.exported.name] = local;
+                        }
                     }
                 });
             }
         }
 
-        if (
-            toplevel.type === 'VariableDeclaration' ||
-            toplevel.type === 'ExportNamedDeclaration'
-        ) {
-            const decls: Array<BabelNodeVariableDeclarator> =
-                toplevel.type === 'VariableDeclaration'
-                    ? toplevel.declarations
-                    : toplevel.declaration?.declarations || [];
-            decls.forEach((decl) => {
-                if (decl.id.type !== 'Identifier' || !decl.init) {
-                    return;
-                }
-                const {init} = decl;
-                const id = decl.id.name;
-                if (
-                    init.type === 'TaggedTemplateExpression' &&
-                    init.tag.type === 'Identifier'
-                ) {
-                    if (gqlTagNames.includes(init.tag.name)) {
-                        const tpl = processTemplate(init, result);
-                        if (tpl) {
-                            const document = (result.locals[id] = {
-                                type: 'document',
-                                source: tpl,
-                            });
-                            seenTemplates[init.start || -1] = document;
-                            console.log('ADDED', init.start);
-                            if (toplevel.type === 'ExportNamedDeclaration') {
-                                result.exports[id] = document;
-                            }
-                        } else {
-                            seenTemplates[init.start || -1] = false;
+        const processDeclarator = (
+            decl: BabelNodeVariableDeclarator,
+            isExported: boolean,
+        ) => {
+            if (decl.id.type !== 'Identifier' || !decl.init) {
+                return;
+            }
+            const {init} = decl;
+            const id = decl.id.name;
+            if (
+                init.type === 'TaggedTemplateExpression' &&
+                init.tag.type === 'Identifier'
+            ) {
+                if (gqlTagNames.includes(init.tag.name)) {
+                    const tpl = processTemplate(init, result);
+                    if (tpl) {
+                        const document = (result.locals[id] = {
+                            type: 'document',
+                            source: tpl,
+                        });
+                        seenTemplates[init.start ?? -1] = document;
+                        console.log('ADDED', init.start);
+                        if (isExported) {
+                            result.exports[id] = document;
                         }
+                    } else {
+                        seenTemplates[init.start ?? -1] = false;
                     }
                 }
-                if (init.type === 'Identifier' && result.locals[init.name]) {
-                    result.locals[id] = result.locals[init.name];
-                    if (toplevel.type === 'ExportNamedDeclaration') {
-                        result.exports[id] = result.locals[init.name];
-                    }
+            }
+            if (init.type === 'Identifier' && result.locals[init.name]) {
+                result.locals[id] = result.locals[init.name];
+                if (isExported) {
+                    result.exports[id] = result.locals[init.name];
                 }
+            }
+        };
+
+        if (toplevel.type === 'VariableDeclaration') {
+            toplevel.declarations.forEach((decl) => {
+                processDeclarator(decl, false);
+            });
+        }
+
+        if (
+            toplevel.type === 'ExportNamedDeclaration' &&
+            toplevel.declaration?.type === 'VariableDeclaration'
+        ) {
+            toplevel.declaration.declarations.forEach((decl) => {
+                processDeclarator(decl, true);
             });
         }
     });
@@ -225,8 +250,6 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         if (seenTemplates[node.start] != null) {
             return;
         }
-        console.log('UMMM', node.start, Object.keys(seenTemplates));
-        // seenTemplates[node.start] = true;
         if (
             node.tag.type !== 'Identifier' ||
             !gqlTagNames.includes(node.tag.name)
@@ -235,30 +258,20 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         }
         const tpl = processTemplate(node, result, path, seenTemplates);
         if (tpl) {
-            seenTemplates[node.start || -1] = {type: 'document', source: tpl};
+            seenTemplates[node.start ?? -1] = {type: 'document', source: tpl};
             result.operations.push({
                 source: tpl,
-                needsWrapping: true, // TODO: determine this?
-                // I think by tracking the `gqlOp` function, similar
-                // to how I track the gqlTagNames. TODO.
             });
         } else {
-            seenTemplates[node.start || -1] = false;
+            seenTemplates[node.start ?? -1] = false;
         }
     };
 
-    // Ok so this is much slower, but can it be good?
     traverse(ast, {
         TaggedTemplateExpression(path) {
-            path.scope.getBinding;
             visitTpl(path.node, path);
         },
     });
-    // traverseFast(ast, (node) => {
-    //     if (node.type === 'TaggedTemplateExpression') {
-    //         visitTpl(node);
-    //     }
-    // });
 
     return result;
 };
@@ -269,12 +282,12 @@ const processTemplate = (
     path,
     seenTemplates,
 ): ?Template => {
-    // aha! Here we are!
+    // 'cooked' is the string as runtime javascript will see it.
     const literals = tpl.quasi.quasis.map((q) => q.value.cooked || '');
     const expressions = tpl.quasi.expressions.map((expr) => {
         const loc: Loc = {
-            start: expr.start || -1,
-            end: expr.end || -1,
+            start: expr.start ?? -1,
+            end: expr.end ?? -1,
             path: result.path,
         };
         if (expr.type !== 'Identifier') {
@@ -311,7 +324,7 @@ const processTemplate = (
     return {
         literals,
         expressions: expressions.filter(Boolean),
-        loc: {start: tpl.start || -1, end: tpl.end || -1, path: result.path},
+        loc: {start: tpl.start ?? -1, end: tpl.end ?? -1, path: result.path},
     };
 };
 
@@ -345,11 +358,6 @@ const getLocals = (
                 path: importPath,
                 loc: {start: spec.start, end: spec.end, path: myPath},
             };
-        } else {
-            // TODO: shoudl I handle namespace imports? of fragments?
-            // I think we'll just lint against any fancy fragment usage.
-            // Got to be toplevel, folks.
-            // BUT I should allow re-exports of fragments
         }
     });
     return locals;
@@ -368,8 +376,8 @@ export const processFiles = (
         }
         const result = processFile(next, getFileSource(next));
         files[next] = result;
-        console.log('ok', next, externalReferences(result));
-        externalReferences(result).forEach((path) => {
+        console.log('ok', next, listExternalReferences(result));
+        listExternalReferences(result).forEach((path) => {
             console.log(path, result);
             if (!files[path] && !toProcess.includes(path)) {
                 toProcess.push(path);
