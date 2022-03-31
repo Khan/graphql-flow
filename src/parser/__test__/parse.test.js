@@ -98,6 +98,38 @@ const fixtureFiles = {
         \${2 + 3}
         \`;
     `,
+
+    '/circular.js': `
+        import gql from 'graphql-tag';
+        export {otherThing} from './invalidReferences.js';
+        import {one} from './invalidReferences.js';
+        export const two = gql\`
+        fragment Two {
+            id
+        }
+        \${one}
+        \`;
+    `,
+
+    '/invalidReferences.js': `
+        import gql from 'graphql-tag';
+        import {otherThing, two, doesntExist} from './circular.js';
+        export {otherThing}
+        const ok = gql\`
+        query Hello {
+            ...Ok
+        }
+        \${otherThing}
+        \${doesntExist}
+        \`;
+
+        export const one = gql\`
+        fragment One {
+            ...Ok
+        }
+        \${two}
+        \`;
+    `,
 };
 
 const getFileSource = (name) => {
@@ -183,5 +215,26 @@ describe('processing fragments in various ways', () => {
               "Template literal interpolation must be an identifier",
             ]
         `);
+    });
+
+    it('should flag resolution errors', () => {
+        const files = processFiles(['/invalidReferences.js'], getFileSource);
+        Object.keys(files).forEach((k) => {
+            expect(files[k].errors).toEqual([]);
+        });
+        const {resolved, errors} = resolveDocuments(files);
+        expect(errors.map((m) => m.message)).toMatchInlineSnapshot(`
+            Array [
+              "Circular import /circular.js -> /invalidReferences.js -> /circular.js",
+              "/circular.js has no valid gql export doesntExist",
+              "Recursive template dependency! /invalidReferences.js:294 -> /circular.js:178 -> /invalidReferences.js:294",
+              "Recursive template dependency! /circular.js:178 -> /invalidReferences.js:294 -> /circular.js:178",
+            ]
+        `);
+        const printed = {};
+        Object.keys(resolved).map(
+            (k) => (printed[k] = print(resolved[k].document).trim()),
+        );
+        expect(printed).toMatchInlineSnapshot(`Object {}`);
     });
 });
