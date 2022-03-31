@@ -1,7 +1,8 @@
 /* eslint-disable */
 // @flow
 
-import {processFiles, resolveDocuments} from '../parse';
+import {processFiles} from '../parse';
+import {resolveDocuments} from '../resolve';
 
 import {print} from 'graphql/language/printer';
 

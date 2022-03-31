@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const {execSync} = require('child_process');
 import {readFileSync} from 'fs';
-import {processFiles, resolveDocuments} from './parse';
+import {processFiles} from './parse';
+import {resolveDocuments} from './resolve';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
 import type {Schema, Options, Scalars} from '../types';
