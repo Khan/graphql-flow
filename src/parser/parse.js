@@ -45,7 +45,7 @@ export type Template = {|
     expressions: Array<Document | Import>,
     loc: Loc,
 |};
-export type Loc = {start: number, end: number, path: string};
+export type Loc = {start: number, end: number, path: string, line: number};
 
 export type Document = {|
     type: 'document',
@@ -176,6 +176,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
                             loc: {
                                 start: spec.start ?? -1,
                                 end: spec.end ?? -1,
+                                line: spec.loc?.start.line ?? -1,
                                 path: filePath,
                             },
                         };
@@ -248,7 +249,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
 
     const visitTpl = (
         node: BabelNodeTaggedTemplateExpression,
-        getBinding: (name: string) => Binding,
+        getBinding: (name: string) => Document | null,
     ) => {
         if (seenTemplates[node.start ?? -1] != null) {
             return;
@@ -259,7 +260,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         ) {
             return;
         }
-        const tpl = processTemplate(node, result, getBinding, seenTemplates);
+        const tpl = processTemplate(node, result, getBinding);
         if (tpl) {
             seenTemplates[node.start ?? -1] = {type: 'document', source: tpl};
             result.operations.push({
@@ -273,7 +274,16 @@ export const processFile = (filePath: string, contents: string): FileResult => {
     /* eslint-disable flowtype-errors/uncovered */
     traverse(ast, {
         TaggedTemplateExpression(path) {
-            visitTpl(path.node, (name) => path.scope.getBinding(name));
+            visitTpl(path.node, (name) => {
+                const binding = path.scope.getBinding(name);
+                const start = binding.path.node.init
+                    ? binding.path.node.init.start
+                    : null;
+                if (start && seenTemplates[start]) {
+                    return seenTemplates[start];
+                }
+                return null;
+            });
         },
     });
     /* eslint-enable flowtype-errors/uncovered */
@@ -286,8 +296,9 @@ type Binding = {path: {node: BabelNodeVariableDeclarator}};
 const processTemplate = (
     tpl: BabelNodeTaggedTemplateExpression,
     result: FileResult,
-    getBinding?: (name: string) => Binding,
-    seenTemplates,
+    getTemplate?: (name: string) => Document | null,
+    // getBinding?: (name: string) => Binding,
+    // seenTemplates,
 ): ?Template => {
     // 'cooked' is the string as runtime javascript will see it.
     const literals = tpl.quasi.quasis.map((q) => q.value.cooked || '');
@@ -296,6 +307,7 @@ const processTemplate = (
             const loc: Loc = {
                 start: expr.start ?? -1,
                 end: expr.end ?? -1,
+                line: expr.loc?.start.line ?? -1,
                 path: result.path,
             };
             if (expr.type !== 'Identifier') {
@@ -306,14 +318,9 @@ const processTemplate = (
                 return null;
             }
             if (!result.locals[expr.name]) {
-                if (getBinding && seenTemplates) {
-                    const binding = getBinding(expr.name);
-                    const start = binding.path.node.init
-                        ? binding.path.node.init.start
-                        : null;
-                    if (start && seenTemplates[start]) {
-                        return seenTemplates[start];
-                    }
+                if (getTemplate) {
+                    const found = getTemplate(expr.name);
+                    return found;
                 }
                 result.errors.push({
                     loc,
@@ -331,7 +338,12 @@ const processTemplate = (
     return {
         literals,
         expressions: expressions.filter(Boolean),
-        loc: {start: tpl.start ?? -1, end: tpl.end ?? -1, path: result.path},
+        loc: {
+            line: tpl.loc?.start.line ?? -1,
+            start: tpl.start ?? -1,
+            end: tpl.end ?? -1,
+            path: result.path,
+        },
     };
 };
 

@@ -70,19 +70,27 @@ const resolveGqlTemplate = (
     files: Files,
     errors: FileResult['errors'],
     resolved: Resolved,
-    seen: {[key: string]: true},
+    seen: {[key: string]: Template},
 ): ?DocumentNode => {
-    const key = template.loc.path + ':' + template.loc.start;
+    const key = template.loc.path + ':' + template.loc.line;
     if (seen[key]) {
+        console.log(new Error().stack);
         errors.push({
             loc: template.loc,
-            message: `Recursive template dependency! ${Object.keys(seen).join(
-                ' -> ',
-            )} -> ${key}`,
+            message: `Recursive template dependency! ${Object.keys(seen)
+                .map(
+                    (k) =>
+                        k +
+                        ' ~ ' +
+                        seen[k].expressions.length +
+                        ',' +
+                        seen[k].literals.length,
+                )
+                .join(' -> ')} -> ${key}`,
         });
         return null;
     }
-    seen[key] = true;
+    seen[key] = template;
     if (resolved[key]) {
         return resolved[key].document;
     }
