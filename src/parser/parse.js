@@ -1,16 +1,15 @@
-/* eslint-disable */
 // @flow
-import path from 'path';
-import {parse} from '@babel/parser';
 import type {
     BabelNodeImportDeclaration,
     BabelNodeVariableDeclarator,
     BabelNodeTaggedTemplateExpression,
     BabelNodeFile,
-    BabelNodeVariableDeclaration,
-    BabelNodeExportNamedDeclaration,
 } from '@babel/types';
-import traverse from '@babel/traverse';
+
+import {parse} from '@babel/parser'; // eslint-disable-line flowtype-errors/uncovered
+import traverse from '@babel/traverse'; // eslint-disable-line flowtype-errors/uncovered
+
+import path from 'path';
 
 /**
  * This file is responsible for finding all gql`-annotated
@@ -131,11 +130,13 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         locals: {},
         errors: [],
     };
+    /* eslint-disable flowtype-errors/uncovered */
     const ast: BabelNodeFile = parse(contents, {
         sourceType: 'module',
         allowImportExportEverywhere: true,
         plugins: [['flow', {enums: true}], 'jsx'],
     });
+    /* eslint-enable flowtype-errors/uncovered */
     const gqlTagNames = [];
     const seenTemplates: {[key: number]: Document | false} = {};
 
@@ -213,7 +214,6 @@ export const processFile = (filePath: string, contents: string): FileResult => {
                             source: tpl,
                         });
                         seenTemplates[init.start ?? -1] = document;
-                        console.log('ADDED', init.start);
                         if (isExported) {
                             result.exports[id] = document;
                         }
@@ -246,8 +246,11 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         }
     });
 
-    const visitTpl = (node, path) => {
-        if (seenTemplates[node.start] != null) {
+    const visitTpl = (
+        node: BabelNodeTaggedTemplateExpression,
+        getBinding: (name: string) => Binding,
+    ) => {
+        if (seenTemplates[node.start ?? -1] != null) {
             return;
         }
         if (
@@ -256,7 +259,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         ) {
             return;
         }
-        const tpl = processTemplate(node, result, path, seenTemplates);
+        const tpl = processTemplate(node, result, getBinding, seenTemplates);
         if (tpl) {
             seenTemplates[node.start ?? -1] = {type: 'document', source: tpl};
             result.operations.push({
@@ -267,56 +270,60 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         }
     };
 
+    /* eslint-disable flowtype-errors/uncovered */
     traverse(ast, {
         TaggedTemplateExpression(path) {
             visitTpl(path.node, path);
         },
     });
+    /* eslint-enable flowtype-errors/uncovered */
 
     return result;
 };
 
+type Binding = {path: {node: BabelNodeVariableDeclarator}};
+
 const processTemplate = (
     tpl: BabelNodeTaggedTemplateExpression,
     result: FileResult,
-    path,
+    getBinding?: (name: string) => Binding,
     seenTemplates,
 ): ?Template => {
     // 'cooked' is the string as runtime javascript will see it.
     const literals = tpl.quasi.quasis.map((q) => q.value.cooked || '');
-    const expressions = tpl.quasi.expressions.map((expr) => {
-        const loc: Loc = {
-            start: expr.start ?? -1,
-            end: expr.end ?? -1,
-            path: result.path,
-        };
-        if (expr.type !== 'Identifier') {
-            result.errors.push({
-                loc,
-                message: `Template literal interpolation must be an identifier`,
-            });
-            return null;
-        }
-        if (!result.locals[expr.name]) {
-            if (path && seenTemplates) {
-                const binding = path.scope.getBinding(expr.name);
-                if (
-                    binding &&
-                    binding.path.node.init &&
-                    seenTemplates[binding.path.node.init.start]
-                ) {
-                    console.log(binding.path.node.init.start);
-                    return seenTemplates[binding.path.node.init.start];
-                }
+    const expressions = tpl.quasi.expressions.map(
+        (expr): null | Document | Import => {
+            const loc: Loc = {
+                start: expr.start ?? -1,
+                end: expr.end ?? -1,
+                path: result.path,
+            };
+            if (expr.type !== 'Identifier') {
+                result.errors.push({
+                    loc,
+                    message: `Template literal interpolation must be an identifier`,
+                });
+                return null;
             }
-            result.errors.push({
-                loc,
-                message: `Unable to resolve ${expr.name}`,
-            });
-            return null;
-        }
-        return result.locals[expr.name];
-    });
+            if (!result.locals[expr.name]) {
+                if (getBinding && seenTemplates) {
+                    const binding = getBinding(expr.name);
+                    const start = binding.path.node.init
+                        ? binding.path.node.init.start
+                        : null;
+                    if (start && seenTemplates[start]) {
+                        return seenTemplates[start];
+                    }
+                }
+                result.errors.push({
+                    loc,
+                    message: `Unable to resolve ${expr.name}`,
+                });
+                return null;
+            }
+            return result.locals[expr.name];
+        },
+    );
     if (expressions.includes(null)) {
         // bail, stop processing.
         return;
@@ -376,9 +383,7 @@ export const processFiles = (
         }
         const result = processFile(next, getFileSource(next));
         files[next] = result;
-        console.log('ok', next, listExternalReferences(result));
         listExternalReferences(result).forEach((path) => {
-            console.log(path, result);
             if (!files[path] && !toProcess.includes(path)) {
                 toProcess.push(path);
             }

@@ -1,4 +1,3 @@
-/* eslint-disable */
 // @flow
 
 import {processFiles} from '../parse';
@@ -6,7 +5,7 @@ import {resolveDocuments} from '../resolve';
 
 import {print} from 'graphql/language/printer';
 
-const fixtureFiles = {
+const fixtureFiles: {[key: string]: string} = {
     '/firstFile.js': `
         import tagme from 'graphql-tag';
 
@@ -132,7 +131,7 @@ const fixtureFiles = {
     `,
 };
 
-const getFileSource = (name) => {
+const getFileSource = (name: string) => {
     if (!fixtureFiles[name]) {
         throw new Error(`No file ${name}`);
     }
