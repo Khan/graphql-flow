@@ -273,7 +273,7 @@ export const processFile = (filePath: string, contents: string): FileResult => {
     /* eslint-disable flowtype-errors/uncovered */
     traverse(ast, {
         TaggedTemplateExpression(path) {
-            visitTpl(path.node, path);
+            visitTpl(path.node, (name) => path.scope.getBinding(name));
         },
     });
     /* eslint-enable flowtype-errors/uncovered */
