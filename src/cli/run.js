@@ -1,6 +1,6 @@
 // @flow
 /* eslint-disable no-console */
-import type {SpyOptions} from '../generateTypeFiles';
+import type {ExternalOptions} from '../generateTypeFiles';
 import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
 
 import {processPragmas, generateTypeFiles} from '../generateTypeFiles';
@@ -45,13 +45,13 @@ const [_, __, configFile, ...cliFiles] = process.argv;
 type Config = {
     excludes: Array<RegExp>,
     schemaFilePath: string,
-    options: SpyOptions,
+    options: ExternalOptions,
 };
 
 type RawConfig = {
     excludes: Array<string>,
     schemaFilePath: string,
-    options: SpyOptions,
+    options: ExternalOptions,
 };
 
 const loadConfigFile = (configFile: string): Config => {

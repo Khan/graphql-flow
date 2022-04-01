@@ -3,7 +3,7 @@
 import type {DocumentNode} from 'graphql';
 import type {Options, Schema, Scalars} from './types';
 
-export type SpyOptions = {
+export type ExternalOptions = {
     pragma?: string,
     loosePragma?: string,
     ignorePragma?: string,
@@ -97,7 +97,7 @@ export const generateTypeFiles = (
 };
 
 export const processPragmas = (
-    options: SpyOptions,
+    options: ExternalOptions,
     rawSource: string,
 ): null | Options => {
     if (options.ignorePragma && rawSource.includes(options.ignorePragma)) {
