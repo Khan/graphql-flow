@@ -2,6 +2,12 @@
 
 This is a tool for generating flow types from graphql queries in javascript frontends.
 
+## Using as a CLI tool
+
+
+
+## Using from jest
+
 The core of this tool is the `documentToFlowTypes` function, which takes a `DocumentNode` (such as is returned by the `graphql-tag` package) as well as your backend's graphql schema (see below for instructions on how to produce this), and produces a list of stringified flow types, one for each query and mutation defined in that graphql block.
 
 It looks something like this:

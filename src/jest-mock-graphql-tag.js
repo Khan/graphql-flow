@@ -6,8 +6,8 @@ import {buildClientSchema} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 import {schemaFromIntrospectionData} from './schemaFromIntrospectionData';
-import type {SpyOptions} from './generate-type-files';
-import {generateTypeFiles, processPragmas} from './generate-type-files';
+import type {SpyOptions} from './generateTypeFiles';
+import {generateTypeFiles, processPragmas} from './generateTypeFiles';
 
 type GraphqlTagFn = (raw: string, ...args: Array<any>) => DocumentNode;
 
@@ -92,7 +92,5 @@ const spyOnGraphqlTagToCollectQueries = (
 };
 
 module.exports = {
-    processPragmas,
     spyOnGraphqlTagToCollectQueries,
-    generateTypeFiles,
 };

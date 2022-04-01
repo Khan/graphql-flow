@@ -1,9 +1,9 @@
 // @flow
 /* eslint-disable no-console */
-import type {SpyOptions} from '../generate-type-files';
+import type {SpyOptions} from '../generateTypeFiles';
 import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
 
-import {processPragmas, generateTypeFiles} from '../jest-mock-graphql-tag';
+import {processPragmas, generateTypeFiles} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
