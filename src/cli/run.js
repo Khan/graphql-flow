@@ -1,5 +1,6 @@
 // @flow
 /* eslint-disable no-console */
+import type {SpyOptions} from '../generate-type-files';
 import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
 
 import {processPragmas, generateTypeFiles} from '../jest-mock-graphql-tag';
@@ -39,7 +40,34 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
     }
 };
 
-const [_, __, schemaFilePath, ...cliFiles] = process.argv;
+const [_, __, configFile, ...cliFiles] = process.argv;
+
+type Config = {
+    excludes: Array<RegExp>,
+    schemaFilePath: string,
+    options: SpyOptions,
+};
+
+type RawConfig = {
+    excludes: Array<string>,
+    schemaFilePath: string,
+    options: SpyOptions,
+};
+
+const loadConfigFile = (configFile: string): Config => {
+    // eslint-disable-next-line flowtype-errors/uncovered
+    const data: RawConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    return {
+        options: data.options,
+        excludes: data.excludes.map((string) => new RegExp(string)),
+        schemaFilePath: path.join(
+            path.dirname(configFile),
+            data.schemaFilePath,
+        ),
+    };
+};
+
+const config = loadConfigFile(configFile);
 
 const inputFiles = cliFiles.length
     ? cliFiles
@@ -76,33 +104,15 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 // eslint-disable-next-line flowtype-errors/uncovered
 const introspectionData: IntrospectionQuery = JSON.parse(
-    fs.readFileSync(schemaFilePath, 'utf8'),
+    fs.readFileSync(config.schemaFilePath, 'utf8'),
 );
 const clientSchema = buildClientSchema(introspectionData);
 const schema = schemaFromIntrospectionData(introspectionData);
 const collection: Array<{raw: string, errors: $ReadOnlyArray<Error>}> = [];
 
-const options = {
-    scalars: {
-        JSONString: 'string',
-        KALocale: 'string',
-        NaiveDateTime: 'string',
-    },
-    readOnlyArray: false,
-    regenerateCommand: 'yarn generate-query-types',
-};
-
-const excludes = [
-    /_test.js$/,
-    /\bcourse-editor-package\b/,
-    /.fixture.js$/,
-    /\b__flowtests__\b/,
-    /\bcourse-editor\b/,
-];
-
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
-    if (excludes.some((rx) => rx.test(raw.loc.path))) {
+    if (config.excludes.some((rx) => rx.test(raw.loc.path))) {
         return; // skip
     }
     const hasNonFragments = document.definitions.some(
@@ -118,7 +128,7 @@ Object.keys(resolved).forEach((k) => {
         });
 
         const rawSource: string = raw.literals[0];
-        const processedOptions = processPragmas(options, rawSource);
+        const processedOptions = processPragmas(config.options, rawSource);
         if (processedOptions) {
             try {
                 generateTypeFiles(
