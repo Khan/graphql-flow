@@ -1,18 +1,21 @@
 // @flow
-/* eslint-disable */
-const fs = require('fs');
-const path = require('path');
-const {execSync} = require('child_process');
-import {readFileSync} from 'fs';
-import {processFiles} from './parse';
-import {resolveDocuments} from './resolve';
-import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
+/* eslint-disable no-console */
+import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
+
+import {processPragmas, generateTypeFiles} from '../jest-mock-graphql-tag';
+import {processFiles} from '../parser/parse';
+import {resolveDocuments} from '../parser/resolve';
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
-import type {Schema, Options, Scalars} from '../types';
-import {validate} from 'graphql/validation';
+
+import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
+
+import {execSync} from 'child_process';
+import fs from 'fs';
+import {readFileSync} from 'fs';
 import {buildClientSchema, type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
-import {processPragmas, generateTypeFiles} from '../jest-mock-graphql-tag';
+import {validate} from 'graphql/validation';
+import path from 'path';
 
 const findGraphqlTagReferences = (root: string): Array<string> => {
     try {
@@ -36,24 +39,18 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
     }
 };
 
-const schemaFilePath = process.argv[2];
+const [_, __, schemaFilePath, ...cliFiles] = process.argv;
 
-const inputFiles =
-    process.argv.length > 3
-        ? process.argv.slice(3)
-        : findGraphqlTagReferences(process.cwd());
+const inputFiles = cliFiles.length
+    ? cliFiles
+    : findGraphqlTagReferences(process.cwd());
 
 const files = processFiles(inputFiles, (f) => readFileSync(f, 'utf8'));
-const {resolved, errors} = resolveDocuments(files);
-if (errors.length) {
-    errors.forEach((error) => {
-        console.error(`Resolution error ${error.message} in ${error.loc.path}`);
-    });
-}
-console.log(Object.keys(resolved).length, 'resolved queries');
+let filesHadErrors = false;
 Object.keys(files).forEach((key) => {
     const file = files[key];
     if (file.errors.length) {
+        filesHadErrors = true;
         console.log(`Errors in ${file.path}`);
         file.errors.forEach((error) => {
             console.log(` - ${error.message}`);
@@ -61,13 +58,29 @@ Object.keys(files).forEach((key) => {
     }
 });
 
-const introspectionData = JSON.parse(fs.readFileSync(schemaFilePath, 'utf8'));
+if (filesHadErrors) {
+    console.log('Aborting');
+    process.exit(1); // eslint-disable-line flowtype-errors/uncovered
+}
+
+const {resolved, errors} = resolveDocuments(files);
+if (errors.length) {
+    errors.forEach((error) => {
+        console.error(`Resolution error ${error.message} in ${error.loc.path}`);
+    });
+    console.log('Aborting');
+    process.exit(1); // eslint-disable-line flowtype-errors/uncovered
+}
+
+console.log(Object.keys(resolved).length, 'resolved queries');
+
+// eslint-disable-next-line flowtype-errors/uncovered
+const introspectionData: IntrospectionQuery = JSON.parse(
+    fs.readFileSync(schemaFilePath, 'utf8'),
+);
 const clientSchema = buildClientSchema(introspectionData);
 const schema = schemaFromIntrospectionData(introspectionData);
-const collection: Array<{
-    raw: string,
-    errors: $ReadOnlyArray<Error>,
-}> = [];
+const collection: Array<{raw: string, errors: $ReadOnlyArray<Error>}> = [];
 
 const options = {
     scalars: {
@@ -87,15 +100,10 @@ const excludes = [
     /\bcourse-editor\b/,
 ];
 
-// Ok so this all takes a decent amount of time
-// In the "update" case it would be good to just
-// process the things that might have been touched by
-// changed files?
-
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
     if (excludes.some((rx) => rx.test(raw.loc.path))) {
-        return; // skip tests
+        return; // skip
     }
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
@@ -119,9 +127,13 @@ Object.keys(resolved).forEach((k) => {
                     withTypeNames,
                     processedOptions,
                 );
+                // eslint-disable-next-line flowtype-errors/uncovered
             } catch (err) {
-                console.log(raw.loc.path);
+                console.log(
+                    `Error while generating operation from ${raw.loc.path}`,
+                );
                 console.log(printed);
+                // eslint-disable-next-line flowtype-errors/uncovered
                 throw err;
             }
         }
