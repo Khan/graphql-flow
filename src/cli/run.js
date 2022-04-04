@@ -1,18 +1,17 @@
 // @flow
 /* eslint-disable no-console */
-import type {ExternalOptions} from '../generateTypeFiles';
 import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
 
-import {processPragmas, generateTypeFiles} from '../generateTypeFiles';
+import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
+import {loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import fs from 'fs';
-import {readFileSync} from 'fs';
+import fs, {readFileSync} from 'fs';
 import {buildClientSchema, type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
@@ -42,31 +41,6 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
 
 const [_, __, configFile, ...cliFiles] = process.argv;
 
-type Config = {
-    excludes: Array<RegExp>,
-    schemaFilePath: string,
-    options: ExternalOptions,
-};
-
-type RawConfig = {
-    excludes: Array<string>,
-    schemaFilePath: string,
-    options: ExternalOptions,
-};
-
-const loadConfigFile = (configFile: string): Config => {
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const data: RawConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    return {
-        options: data.options,
-        excludes: data.excludes.map((string) => new RegExp(string)),
-        schemaFilePath: path.join(
-            path.dirname(configFile),
-            data.schemaFilePath,
-        ),
-    };
-};
-
 const config = loadConfigFile(configFile);
 
 const inputFiles = cliFiles.length
@@ -74,6 +48,7 @@ const inputFiles = cliFiles.length
     : findGraphqlTagReferences(process.cwd());
 
 const files = processFiles(inputFiles, (f) => readFileSync(f, 'utf8'));
+
 let filesHadErrors = false;
 Object.keys(files).forEach((key) => {
     const file = files[key];
@@ -108,7 +83,6 @@ const introspectionData: IntrospectionQuery = JSON.parse(
 );
 const clientSchema = buildClientSchema(introspectionData);
 const schema = schemaFromIntrospectionData(introspectionData);
-const collection: Array<{raw: string, errors: $ReadOnlyArray<Error>}> = [];
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
@@ -122,10 +96,16 @@ Object.keys(resolved).forEach((k) => {
         // eslint-disable-next-line flowtype-errors/uncovered
         const withTypeNames: DocumentNode = addTypenameToDocument(document);
         const printed = print(withTypeNames);
-        collection.push({
-            raw: printed,
-            errors: validate(clientSchema, document),
-        });
+        const errors = validate(clientSchema, document);
+        if (errors.length) {
+            errors.forEach((error) => {
+                console.log(
+                    `Schema validation found errors for ${raw.loc.path}!`,
+                );
+                console.log(printed);
+                console.error(error);
+            });
+        }
 
         const rawSource: string = raw.literals[0];
         const processedOptions = processPragmas(config.options, rawSource);
