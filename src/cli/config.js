@@ -4,21 +4,25 @@ import type {ExternalOptions} from '../generateTypeFiles';
 import fs from 'fs';
 import path from 'path';
 
-type Config = {
+export type CliConfig = {
     excludes: Array<RegExp>,
     schemaFilePath: string,
     options: ExternalOptions,
 };
 
-type RawConfig = {
+/**
+ * This is the json-compatible form of the config
+ * object.
+ */
+type JSONConfig = {
     excludes: Array<string>,
     schemaFilePath: string,
     options: ExternalOptions,
 };
 
-export const loadConfigFile = (configFile: string): Config => {
+export const loadConfigFile = (configFile: string): CliConfig => {
     // eslint-disable-next-line flowtype-errors/uncovered
-    const data: RawConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    const data: JSONConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
     return {
         options: data.options,
         excludes: data.excludes.map((string) => new RegExp(string)),
