@@ -1,6 +1,9 @@
 {
     "name": "@khanacademy/graphql-flow",
     "version": "0.0.2",
+    "bin": {
+        "graphql-flow": "./dist/cli/run.js"
+    },
     "scripts": {
         "test": "jest",
         "publish:ci": "yarn run build && yarn run copy-flow && changeset publish",
