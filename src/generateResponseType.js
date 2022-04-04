@@ -176,10 +176,12 @@ export const objectPropertiesToFlow = (
         ...selections.map((selection) => {
             switch (selection.kind) {
                 case 'InlineFragment': {
+                    const newTypeName =
+                        selection.typeCondition?.name.value ?? typeName;
                     return objectPropertiesToFlow(
                         config,
-                        type,
-                        typeName,
+                        config.schema.typesByName[newTypeName],
+                        newTypeName,
                         selection.selectionSet.selections,
                     );
                 }
