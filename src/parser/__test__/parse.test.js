@@ -152,19 +152,19 @@ describe('processing fragments in various ways', () => {
         );
         expect(printed).toMatchInlineSnapshot(`
             Object {
-              "/firstFile.js:131": "fragment Something on Otherthing {
-              notExportedAttr
-            }",
-              "/firstFile.js:268": "fragment FromFirstFile on Something {
+              "/firstFile.js:13": "fragment FromFirstFile on Something {
               firstFile
             }",
-              "/firstFile.js:398": "fragment AlsoFromFirst on Something {
+              "/firstFile.js:19": "fragment AlsoFromFirst on Something {
               name
             }",
-              "/secondFile.js:368": "fragment SecondFragment on Thing {
+              "/firstFile.js:7": "fragment Something on Otherthing {
+              notExportedAttr
+            }",
+              "/secondFile.js:10": "fragment SecondFragment on Thing {
               secondAttribute
             }",
-              "/thirdFile.js:305": "query Some {
+              "/thirdFile.js:10": "query Some {
               hello
               ...FromFirstFile
               ...AlsoFromFirst
@@ -177,10 +177,10 @@ describe('processing fragments in various ways', () => {
             fragment AlsoFromFirst on Something {
               name
             }",
-              "/thirdFile.js:557": "fragment Hello on Something {
+              "/thirdFile.js:21": "fragment Hello on Something {
               id
             }",
-              "/thirdFile.js:618": "query InlineQuery {
+              "/thirdFile.js:23": "query InlineQuery {
               hello
               ok {
                 ...Hello
@@ -226,8 +226,8 @@ describe('processing fragments in various ways', () => {
             Array [
               "Circular import /circular.js -> /invalidReferences.js -> /circular.js",
               "/circular.js has no valid gql export doesntExist",
-              "Recursive template dependency! /invalidReferences.js:294 -> /circular.js:178 -> /invalidReferences.js:294",
-              "Recursive template dependency! /circular.js:178 -> /invalidReferences.js:294 -> /circular.js:178",
+              "Recursive template dependency! /invalidReferences.js:13 ~ 1,2 -> /circular.js:5 ~ 1,2 -> /invalidReferences.js:13",
+              "Recursive template dependency! /circular.js:5 ~ 1,2 -> /invalidReferences.js:13 ~ 1,2 -> /circular.js:5",
             ]
         `);
         const printed = {};

@@ -291,8 +291,6 @@ export const processFile = (filePath: string, contents: string): FileResult => {
     return result;
 };
 
-type Binding = {path: {node: BabelNodeVariableDeclarator}};
-
 const processTemplate = (
     tpl: BabelNodeTaggedTemplateExpression,
     result: FileResult,

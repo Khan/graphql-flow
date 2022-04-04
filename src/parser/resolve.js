@@ -74,7 +74,6 @@ const resolveGqlTemplate = (
 ): ?DocumentNode => {
     const key = template.loc.path + ':' + template.loc.line;
     if (seen[key]) {
-        console.log(new Error().stack);
         errors.push({
             loc: template.loc,
             message: `Recursive template dependency! ${Object.keys(seen)
@@ -98,16 +97,14 @@ const resolveGqlTemplate = (
         if (expr.type === 'import') {
             const document = resolveImport(expr, files, errors, {});
             return document
-                ? resolveGqlTemplate(
-                      document.source,
-                      files,
-                      errors,
-                      resolved,
-                      seen,
-                  )
+                ? resolveGqlTemplate(document.source, files, errors, resolved, {
+                      ...seen,
+                  })
                 : null;
         }
-        return resolveGqlTemplate(expr.source, files, errors, resolved, seen);
+        return resolveGqlTemplate(expr.source, files, errors, resolved, {
+            ...seen,
+        });
     });
     if (expressions.includes(null)) {
         return null;
