@@ -1,18 +1,15 @@
 // @flow
 /* eslint-disable no-console */
-import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
-
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
-import {loadConfigFile} from './config';
+import {getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import fs, {readFileSync} from 'fs';
-import {buildClientSchema, type DocumentNode} from 'graphql';
+import {readFileSync} from 'fs';
+import {type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
@@ -34,6 +31,10 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
 const [_, __, configFile, ...cliFiles] = process.argv;
 
 const config = loadConfigFile(configFile);
+
+const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
+    config.schemaFilePath,
+);
 
 const inputFiles = cliFiles.length
     ? cliFiles
@@ -69,14 +70,7 @@ if (errors.length) {
 
 console.log(Object.keys(resolved).length, 'resolved queries');
 
-// eslint-disable-next-line flowtype-errors/uncovered
-const introspectionData: IntrospectionQuery = JSON.parse(
-    fs.readFileSync(config.schemaFilePath, 'utf8'),
-);
-const schemaForValidation = buildClientSchema(introspectionData);
-const schemaForTypeGeneration = schemaFromIntrospectionData(introspectionData);
-
-let validationFailures = 0;
+let validationFailures: number = 0;
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
@@ -96,6 +90,7 @@ Object.keys(resolved).forEach((k) => {
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
     const printed = print(withTypeNames);
     const errors = validate(schemaForValidation, withTypeNames);
+    /* eslint-disable flowtype-errors/uncovered */
     if (errors.length) {
         errors.forEach((error) => {
             console.log(`Schema validation found errors for ${raw.loc.path}!`);
@@ -104,6 +99,7 @@ Object.keys(resolved).forEach((k) => {
             validationFailures++;
         });
     }
+    /* eslint-enable flowtype-errors/uncovered */
 
     try {
         generateTypeFiles(
@@ -124,5 +120,6 @@ Object.keys(resolved).forEach((k) => {
 
 if (validationFailures) {
     console.error(`Encountered ${validationFailures} while printing types.`);
+    // eslint-disable-next-line flowtype-errors/uncovered
     process.exit(1);
 }
