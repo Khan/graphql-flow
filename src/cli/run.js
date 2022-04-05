@@ -73,15 +73,15 @@ Object.keys(files).forEach((key) => {
     const file = files[key];
     if (file.errors.length) {
         filesHadErrors = true;
-        console.log(`Errors in ${file.path}`);
+        console.error(`Errors in ${file.path}`);
         file.errors.forEach((error) => {
-            console.log(` - ${error.message}`);
+            console.error(` - ${error.message}`);
         });
     }
 });
 
 if (filesHadErrors) {
-    console.log('Aborting');
+    console.error('Aborting');
     process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
@@ -92,7 +92,7 @@ if (errors.length) {
     errors.forEach((error) => {
         console.error(`Resolution error ${error.message} in ${error.loc.path}`);
     });
-    console.log('Aborting');
+    console.error('Aborting');
     process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
@@ -130,8 +130,10 @@ Object.keys(resolved).forEach((k) => {
     const errors = validate(schemaForValidation, withTypeNames);
     if (errors.length) {
         errors.forEach((error) => {
-            console.log(`Schema validation found errors for ${raw.loc.path}!`);
-            console.log(printed);
+            console.error(
+                `Schema validation found errors for ${raw.loc.path}!`,
+            );
+            console.error(printed);
             console.error(error);
             validationFailures++;
         });
@@ -147,8 +149,8 @@ Object.keys(resolved).forEach((k) => {
         );
         // eslint-disable-next-line flowtype-errors/uncovered
     } catch (err) {
-        console.log(`Error while generating operation from ${raw.loc.path}`);
-        console.log(printed);
+        console.error(`Error while generating operation from ${raw.loc.path}`);
+        console.error(printed);
         // eslint-disable-next-line flowtype-errors/uncovered
         console.error(err);
         validationFailures++;
@@ -156,7 +158,9 @@ Object.keys(resolved).forEach((k) => {
 });
 
 if (validationFailures) {
-    console.error(`Encountered ${validationFailures} while printing types.`);
+    console.error(
+        `Encountered ${validationFailures} validating failures while printing types.`,
+    );
     // eslint-disable-next-line flowtype-errors/uncovered
     process.exit(1);
 }
