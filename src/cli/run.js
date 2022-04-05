@@ -46,10 +46,16 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
 
 const [_, __, configFile, ...cliFiles] = process.argv;
 
-if (configFile === '-h' || configFile === '--help' || configFile === 'help') {
+if (
+    configFile === '-h' ||
+    configFile === '--help' ||
+    configFile === 'help' ||
+    !configFile
+) {
     console.log(`graphql-flow
 
 Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
+    process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
 const config = loadConfigFile(configFile);
@@ -101,7 +107,7 @@ const introspectionData: IntrospectionQuery = JSON.parse(
 const schemaForValidation = buildClientSchema(introspectionData);
 const schemaForTypeGeneration = schemaFromIntrospectionData(introspectionData);
 
-let validationFailures = 0;
+let validationFailures: number = 0;
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
@@ -120,6 +126,7 @@ Object.keys(resolved).forEach((k) => {
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
     const printed = print(withTypeNames);
+    /* eslint-disable flowtype-errors/uncovered */
     const errors = validate(schemaForValidation, withTypeNames);
     if (errors.length) {
         errors.forEach((error) => {
@@ -129,6 +136,7 @@ Object.keys(resolved).forEach((k) => {
             validationFailures++;
         });
     }
+    /* eslint-enable flowtype-errors/uncovered */
 
     try {
         generateTypeFiles(
@@ -149,5 +157,6 @@ Object.keys(resolved).forEach((k) => {
 
 if (validationFailures) {
     console.error(`Encountered ${validationFailures} while printing types.`);
+    // eslint-disable-next-line flowtype-errors/uncovered
     process.exit(1);
 }
