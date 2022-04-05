@@ -46,6 +46,12 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
 
 const [_, __, configFile, ...cliFiles] = process.argv;
 
+if (configFile === '-h' || configFile === '--help' || configFile === 'help') {
+    console.log(`graphql-flow
+
+Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
+}
+
 const config = loadConfigFile(configFile);
 
 const inputFiles = cliFiles.length
