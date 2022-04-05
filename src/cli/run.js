@@ -17,6 +17,19 @@ import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
 
+/**
+ * This CLI tool executes the following steps:
+ * 1) process options
+ * 2) crawl files to find all operations and fragments, with
+ *   tagged template literals and expressions.
+ * 3) resolve the found operations, passing the literals and
+ *   fragments into the `graphql-tag` function to produce
+ *   the DocumentNodes.
+ * 4) generate types for all resolved Queries & Mutations
+ */
+
+/** Step (1) */
+
 const findGraphqlTagReferences = (root: string): Array<string> => {
     const response = execSync(
         "git grep -I --word-regexp --name-only --fixed-strings 'graphql-tag' -- '*.js' '*.jsx'",
@@ -39,6 +52,8 @@ const inputFiles = cliFiles.length
     ? cliFiles
     : findGraphqlTagReferences(process.cwd());
 
+/** Step (2) */
+
 const files = processFiles(inputFiles, (f) => readFileSync(f, 'utf8'));
 
 let filesHadErrors = false;
@@ -58,6 +73,8 @@ if (filesHadErrors) {
     process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
+/** Step (3) */
+
 const {resolved, errors} = resolveDocuments(files);
 if (errors.length) {
     errors.forEach((error) => {
@@ -68,6 +85,8 @@ if (errors.length) {
 }
 
 console.log(Object.keys(resolved).length, 'resolved queries');
+
+/** Step (4) */
 
 // eslint-disable-next-line flowtype-errors/uncovered
 const introspectionData: IntrospectionQuery = JSON.parse(
