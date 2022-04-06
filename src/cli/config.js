@@ -1,7 +1,18 @@
 // @flow
 import type {ExternalOptions} from '../generateTypeFiles';
+import type {Schema} from '../types';
+import type {GraphQLSchema} from 'graphql/type/schema';
+
+import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
 
 import fs from 'fs';
+import {
+    buildClientSchema,
+    buildSchema,
+    getIntrospectionQuery,
+    graphqlSync,
+    type IntrospectionQuery,
+} from 'graphql';
 import path from 'path';
 
 export type CliConfig = {
@@ -61,4 +72,30 @@ export const loadConfigFile = (configFile: string): CliConfig => {
             data.schemaFilePath,
         ),
     };
+};
+
+/**
+ * Loads a .json 'introspection query response', or a .graphql schema definition.
+ */
+export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
+    const raw = fs.readFileSync(schemaFilePath, 'utf8');
+    if (schemaFilePath.endsWith('.graphql')) {
+        const schemaForValidation = buildSchema(raw);
+        const queryResponse = graphqlSync(
+            schemaForValidation,
+            getIntrospectionQuery({descriptions: true}),
+        );
+        const schemaForTypeGeneration = schemaFromIntrospectionData(
+            // eslint-disable-next-line flowtype-errors/uncovered
+            ((queryResponse.data: any): IntrospectionQuery),
+        );
+        return [schemaForValidation, schemaForTypeGeneration];
+    } else {
+        // eslint-disable-next-line flowtype-errors/uncovered
+        const introspectionData: IntrospectionQuery = JSON.parse(raw);
+        const schemaForValidation = buildClientSchema(introspectionData);
+        const schemaForTypeGeneration =
+            schemaFromIntrospectionData(introspectionData);
+        return [schemaForValidation, schemaForTypeGeneration];
+    }
 };

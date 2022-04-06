@@ -8,7 +8,9 @@ Write a config file, with the following options:
 
 ```json
 {
-    // Response to the "introspection query" (see below). This path is resolved relative to the config file location.
+    // Response to the "introspection query" (see below), or a .graphql schema file.
+    // The file extension indicates the format, .json or .graphql (default .json).
+    // This path is resolved relative to the config file location.
     "schemaFilePath": "../some/schema-file.json",
     // List of regexes
     "excludes": ["\\bsome-thing", "_test.jsx?$"],

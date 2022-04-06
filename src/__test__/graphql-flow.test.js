@@ -4,12 +4,12 @@
  * Tests for our graphql flow generation!
  */
 
-import type {IntrospectionQuery, DocumentNode} from 'graphql';
-import type {Schema, Options} from '../types';
-import {buildSchema, getIntrospectionQuery, graphqlSync} from 'graphql';
-import fs from 'fs';
-const {documentToFlowTypes} = require('..');
-const {schemaFromIntrospectionData} = require('../schemaFromIntrospectionData');
+import type {DocumentNode} from 'graphql';
+
+import {getSchemas} from '../cli/config';
+import {documentToFlowTypes} from '..';
+
+import type {Options} from '../types';
 
 // This allows us to "snapshot" a string cleanly.
 /* eslint-disable flowtype-errors/uncovered */
@@ -19,24 +19,7 @@ expect.addSnapshotSerializer({
 });
 /* eslint-enable flowtype-errors/uncovered */
 
-const generateTestSchema = (): Schema => {
-    const raw = fs.readFileSync(__dirname + '/example-schema.graphql', 'utf8');
-    const queryResponse = graphqlSync(
-        buildSchema(raw),
-        getIntrospectionQuery({descriptions: true}),
-    );
-    if (!queryResponse.data) {
-        throw new Error(
-            'Failed to parse example schema: ' + JSON.stringify(queryResponse),
-        );
-    }
-    return schemaFromIntrospectionData(
-        // eslint-disable-next-line flowtype-errors/uncovered
-        ((queryResponse.data: any): IntrospectionQuery),
-    );
-};
-
-const exampleSchema = generateTestSchema();
+const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
 
 const rawQueryToFlowTypes = (query: string, options?: Options): string => {
     // We need the "requireActual" because we mock graphql-tag in jest-setup.js

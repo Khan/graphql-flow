@@ -1,18 +1,15 @@
 // @flow
 /* eslint-disable no-console */
-import type {IntrospectionQuery} from 'graphql/utilities/introspectionQuery';
-
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
-import {loadConfigFile} from './config';
+import {getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import fs, {readFileSync} from 'fs';
-import {buildClientSchema, type DocumentNode} from 'graphql';
+import {readFileSync} from 'fs';
+import {type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
@@ -60,6 +57,10 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
 
 const config = loadConfigFile(configFile);
 
+const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
+    config.schemaFilePath,
+);
+
 const inputFiles = cliFiles.length
     ? cliFiles
     : findGraphqlTagReferences(process.cwd());
@@ -100,13 +101,6 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 /** Step (4) */
 
-// eslint-disable-next-line flowtype-errors/uncovered
-const introspectionData: IntrospectionQuery = JSON.parse(
-    fs.readFileSync(config.schemaFilePath, 'utf8'),
-);
-const schemaForValidation = buildClientSchema(introspectionData);
-const schemaForTypeGeneration = schemaFromIntrospectionData(introspectionData);
-
 let validationFailures: number = 0;
 
 Object.keys(resolved).forEach((k) => {
@@ -128,6 +122,7 @@ Object.keys(resolved).forEach((k) => {
     const printed = print(withTypeNames);
     /* eslint-disable flowtype-errors/uncovered */
     const errors = validate(schemaForValidation, withTypeNames);
+    /* eslint-disable flowtype-errors/uncovered */
     if (errors.length) {
         errors.forEach((error) => {
             console.error(
@@ -159,7 +154,7 @@ Object.keys(resolved).forEach((k) => {
 
 if (validationFailures) {
     console.error(
-        `Encountered ${validationFailures} validating failures while printing types.`,
+        `Encountered ${validationFailures} validation failures while printing types.`,
     );
     // eslint-disable-next-line flowtype-errors/uncovered
     process.exit(1);
