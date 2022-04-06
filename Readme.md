@@ -2,64 +2,67 @@
 
 This is a tool for generating flow types from graphql queries in javascript frontends.
 
-The core of this tool is the `documentToFlowTypes` function, which takes a `DocumentNode` (such as is returned by the `graphql-tag` package) as well as your backend's graphql schema (see below for instructions on how to produce this), and produces a list of stringified flow types, one for each query and mutation defined in that graphql block.
+## Using as a CLI tool
 
-It looks something like this:
+Write a config file, with the following options:
 
-```js
-import gql from 'graphql-tag';
-import {documentToFlowTypes, schemaFromIntrospectionData} from 'graphql-flow';
-import myIntrospectionData from './server-introspection-response.json';
-
-const schema = schemaFromIntrospectionData(myIntrospectionData);
-
-const MyQuery = gql`
-    query SomeQuery {
-        human(id: "Han Solo") {
-            id
-            name
-            homePlanet
-            friends {
-                name
-            }
+```json
+{
+    // Response to the "introspection query" (see below). This path is resolved relative to the config file location.
+    "schemaFilePath": "../some/schema-file.json",
+    // List of regexes
+    "excludes": ["\\bsome-thing", "_test.jsx?$"],
+    // Options for type generation (see below)
+    "options": {
+        "scalars": {
+            "JSONString": "string"
         }
     }
-`;
-
-console.log(documentToFlowTypes(MyQuery, schema))
-/*
-export type SomeQueryResponseType = {|
-    human: ?{|
-        id: string,
-        name: ?string,
-        homePlanet: ?string,
-        friends: ?$ReadOnlyArray<?{|
-            name: ?string
-        |}>,
-    |}
-|};
-*/
-```
-
-If you already have a setup whereby you collect all of your graphql literals, that may be all you need!
-
-Otherwise, we provide a way to hook into jest to automatically collect your queries and generate the types.
-
-## Options for `documentToFlowTypes`
-
-```js
-{
-    // Use nullable types where the graphql type is nullable. Included for legacy compatability,
-    // will probably remove once the mobile repo no longer needs it.
-    strictNullability: boolean = true,
-    // Output `$ReadOnlyArray<>` instead of `Array<>`, for stricter flow typing. On by default.
-    readOnlyArray: boolean = true,
-    // A mapping of custom scalar names to the underlying json representation.
-    scalars: {[key: string]: 'string' | 'boolean' | 'number'}
 }
 ```
 
-## Using jest to do the heavy lifting:
+Then run from the CLI, like so:
+
+```bash
+$ graphql-flow path/to/config.json
+```
+
+Files will be discovered relative to the current working directory.
+
+To specify what file should be checked, pass them in as subsequent cli arguments.
+
+## Options (for the cli 'options' config item, or when running from jest):
+
+```ts
+type Options = {
+    // These are from the `documentToFlowTypes` options object above
+    strictNullability: boolean = true,
+    readOnlyArray: boolean = true,
+    scalars: {[key: string]: 'string' | 'boolean' | 'number'}
+
+    // Specify an opt-in pragma that must be present in a graphql string source
+    // in order for it to be picked up and processed
+    // e.g. set this to `"# @autogen\n"` to only generate types for queries that
+    // have the comment `# @autogen` in them.
+    pragma?: string,
+    // Specify a pragma that will turn off `strictNullability` for that
+    // source file. e.g. `"# @autogen-loose\n"`.
+    loosePragma?: string,
+    // If neither pragma nor loosePragma are specified, all graphql documents
+    // that contain a query or mutation will be processed.
+
+    // Any graphql operations containing ignorePragma will be skipped
+    ignorePragma?: string,
+}
+```
+
+## Using from jest
+
+You can also use jest to do the heavy lifting, running all of your code and collecting queries
+by mocking out the `graphql-tag` function itself. This requires that all graphql operations are
+defined at the top level (no queries defined in functions or components, for example), but does
+support complicated things like returning a fragment from a function (which is probably
+not a great idea code-style-wise anyway).
 
 ### jest-setup.js
 
@@ -74,6 +77,7 @@ if (process.env.GRAPHQL_FLOW) {
 
         return jest.requireActual('../tools/graphql-flow/jest-mock-graphql-tag.js')(
             introspectionData,
+            // See "Options" type above
             {
                 pragma: '# @autogen\n',
                 loosePragma: '# @autogen-loose\n',
@@ -125,31 +129,6 @@ You can add a script to package.json, like so:
 And then `yarn generate-types` or `npm run generate-types` gets your types generated!
 
 🚀
-
-### Options for the `jest-mock-graphql-tag.js` helper:
-
-```js
-{
-    // These are from the `documentToFlowTypes` options object above
-    strictNullability: boolean = true,
-    readOnlyArray: boolean = true,
-    scalars: {[key: string]: 'string' | 'boolean' | 'number'}
-
-    // Specify an opt-in pragma that must be present in a graphql string source
-    // in order for it to be picked up and processed
-    // e.g. set this to `"# @autogen\n"` to only generate types for queries that
-    // have the comment `# @autogen` in them.
-    pragma?: string,
-    // Specify a pragma that will turn off `strictNullability` for that
-    // source file. e.g. `"# @autogen-loose\n"`.
-    loosePragma?: string,
-    // If neither pragma nor loosePragma are specified, all graphql documents
-    // that contain a query or mutation will be processed.
-
-    // Any graphql operations containing ignorePragma will be skipped
-    ignorePragma?: string,
-}
-```
 
 ## Introspecting your backend's graphql schema
 Here's how to get your backend's schema in the way that this tool expects, using the builtin 'graphql introspection query':

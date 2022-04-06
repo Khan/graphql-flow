@@ -1,5 +1,5 @@
 // @flow
-import {processPragmas} from '../jest-mock-graphql-tag';
+import {processPragmas} from '../generateTypeFiles';
 
 const pragma = '# @autogen\n';
 const loosePragma = '# @autogen-loose\n';
