@@ -18,6 +18,7 @@ export type ExternalOptions = {
     regenerateCommand?: string,
     readOnlyArray?: boolean,
     splitTypes?: boolean,
+    generatedDirectory?: string,
 };
 
 const indexPrelude = (regenerateCommand?: string) => `// @flow
@@ -36,7 +37,10 @@ export const generateTypeFiles = (
     document: DocumentNode,
     options: Options,
 ) => {
-    const generatedDir = path.join(path.dirname(fileName), '__generated__');
+    const generatedDir = path.join(
+        path.dirname(fileName),
+        options.generatedDirectory ?? '__generated__',
+    );
     const indexFile = path.join(generatedDir, 'index.js');
 
     if (!fs.existsSync(generatedDir)) {
@@ -121,6 +125,7 @@ export const processPragmas = (
             readOnlyArray: options.readOnlyArray,
             scalars: options.scalars,
             splitTypes: options.splitTypes,
+            generatedDirectory: options.generatedDirectory,
         };
     } else {
         return null;

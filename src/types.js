@@ -19,6 +19,7 @@ export type Options = {|
     readOnlyArray?: boolean, // default true
     scalars?: Scalars,
     splitTypes?: boolean,
+    generatedDirectory?: string,
 |};
 
 export type Schema = {
