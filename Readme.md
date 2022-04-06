@@ -29,7 +29,7 @@ Then run from the CLI, like so:
 $ graphql-flow path/to/config.json
 ```
 
-Files will be discovoered relative to the current working directory.
+Files will be discovered relative to the current working directory.
 
 To specify what file should be checked, pass them in as subsequent cli arguments.
 
@@ -62,8 +62,9 @@ type Options = {
 
 You can also use jest to do the heavy lifting, running all of your code and collecting queries
 by mocking out the `graphql-tag` function itself. This requires that all graphql operations are
-defined at the top level (no queries defined in functions or components, for example), but can
-support more complicated fragment includes.
+defined at the top level (no queries defined in functions or components, for example), but does
+support complicated things like returning a fragment from a function (which is probably
+not a great idea code-style-wise anyway).
 
 ### jest-setup.js
 
