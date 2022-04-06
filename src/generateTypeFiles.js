@@ -17,6 +17,7 @@ export type ExternalOptions = {
      */
     regenerateCommand?: string,
     readOnlyArray?: boolean,
+    splitTypes?: boolean,
 };
 
 const indexPrelude = (regenerateCommand?: string) => `// @flow
@@ -82,6 +83,11 @@ export const generateTypeFiles = (
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
             code;
+        if (options.splitTypes) {
+            fileContents +=
+                `export type ${name} = ${typeName}['response'];\n` +
+                `export type ${name}Variables = ${typeName}['variables'];\n`;
+        }
 
         fs.writeFileSync(targetPath, fileContents);
         addToIndex(targetPath, typeName);
@@ -114,6 +120,7 @@ export const processPragmas = (
                 : autogenStrict || !autogen,
             readOnlyArray: options.readOnlyArray,
             scalars: options.scalars,
+            splitTypes: options.splitTypes,
         };
     } else {
         return null;

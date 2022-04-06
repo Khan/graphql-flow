@@ -18,6 +18,7 @@ export type Options = {|
     strictNullability?: boolean, // default true
     readOnlyArray?: boolean, // default true
     scalars?: Scalars,
+    splitTypes?: boolean,
 |};
 
 export type Schema = {
