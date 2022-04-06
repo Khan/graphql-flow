@@ -27,7 +27,7 @@ Then run from the CLI, like so:
 $ graphql-flow path/to/config.json
 ```
 
-Files will be discovoered relative to the current working directory.
+Files will be discovered relative to the current working directory.
 
 To specify what file should be checked, pass them in as subsequent cli arguments.
 
