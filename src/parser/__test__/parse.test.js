@@ -7,6 +7,8 @@ import {print} from 'graphql/language/printer';
 
 const fixtureFiles: {[key: string]: string} = {
     '/firstFile.js': `
+        // Note that you can import graphql-tag as
+        // something other than gql.
         import tagme from 'graphql-tag';
 
         // Some complex syntax
@@ -36,6 +38,7 @@ const fixtureFiles: {[key: string]: string} = {
         // This import won't be followed, because it's not exported
         // or used in any graphql documents.
         import hello from './someOtherFile.js';
+        // Re-exporting a fragment!
         export {fromFirstFile}
         export {alsoFirst} from './firstFile.js';
 
@@ -66,6 +69,7 @@ const fixtureFiles: {[key: string]: string} = {
         \`;
 
         export const runInlineQuery = () => {
+            // Here's a fragment defined inline!
             const anotherFragment = gql\`fragment Hello on Something { id }\`;
 
             return gql\`
@@ -86,6 +90,7 @@ const fixtureFiles: {[key: string]: string} = {
 
     '/invalidThings.js': `
         import gql from 'graphql-tag';
+        // Importing a fragment from an npm module is invalid.
         import someExternalFragment from 'somewhere';
 
         const myQuery = gql\`
@@ -94,6 +99,7 @@ const fixtureFiles: {[key: string]: string} = {
         }
         \${someExternalFragment}
         \${someUndefinedFragment}
+        // Fancy fragment expressions not supported
         \${2 + 3}
         \`;
     `,
@@ -113,6 +119,7 @@ const fixtureFiles: {[key: string]: string} = {
     '/invalidReferences.js': `
         import gql from 'graphql-tag';
         import {otherThing, two, doesntExist} from './circular.js';
+        // 'otherThing' is imported circularly
         export {otherThing}
         const ok = gql\`
         query Hello {
@@ -122,6 +129,7 @@ const fixtureFiles: {[key: string]: string} = {
         \${doesntExist}
         \`;
 
+        // fragments 'one' & 'two' depend on each other
         export const one = gql\`
         fragment One {
             ...Ok
