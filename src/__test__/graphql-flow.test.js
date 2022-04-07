@@ -75,14 +75,14 @@ describe('graphql-flow generation', () => {
 
               /** A human character*/
               human: ?{|
+                friends: ?$ReadOnlyArray<?{|
+                  name: ?string
+                |}>,
+                homePlanet: ?string,
                 id: string,
 
                 /** The person's name*/
                 name: ?string,
-                homePlanet: ?string,
-                friends: ?$ReadOnlyArray<?{|
-                  name: ?string
-                |}>,
               |}
             |}
             |};
@@ -132,16 +132,16 @@ describe('graphql-flow generation', () => {
                 variables: {||},
                 response: {|
               friend: ?({|
-                __typename: "Human",
-                id: string,
-                hands: ?number,
+                __typename: "Animal"
               |} | {|
                 __typename: "Droid",
 
                 /** The robot's primary function*/
                 primaryFunction: string,
               |} | {|
-                __typename: "Animal"
+                __typename: "Human",
+                hands: ?number,
+                id: string,
               |})
             |}
             |};
@@ -184,41 +184,55 @@ describe('graphql-flow generation', () => {
 
               /** A human character*/
               human: ?{|
+                alive: ?boolean,
+                friends: ?$ReadOnlyArray<?({|
+                  __typename: "Droid",
+                  appearsIn: ?$ReadOnlyArray<
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
+                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  friends: ?$ReadOnlyArray<?{|
+                    id: string
+                  |}>,
+                  id: string,
+                  name: ?string,
+                |} | {|
+                  __typename: "Human",
+                  appearsIn: ?$ReadOnlyArray<
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
+                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  friends: ?$ReadOnlyArray<?{|
+                    id: string
+                  |}>,
+                  hands: ?number,
+                  id: string,
+                  name: ?string,
+                |})>,
+                hands: ?number,
+                homePlanet: ?string,
                 id: string,
 
                 /** The person's name*/
                 name: ?string,
-                homePlanet: ?string,
-                hands: ?number,
-                alive: ?boolean,
-                friends: ?$ReadOnlyArray<?({|
-                  __typename: "Human",
-                  id: string,
-                  name: ?string,
-                  friends: ?$ReadOnlyArray<?{|
-                    id: string
-                  |}>,
-                  appearsIn: ?$ReadOnlyArray<
-                  /** - NEW_HOPE
-                  - EMPIRE
-                  - JEDI*/
-                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-                  hands: ?number,
-                |} | {|
-                  __typename: "Droid",
-                  id: string,
-                  name: ?string,
-                  friends: ?$ReadOnlyArray<?{|
-                    id: string
-                  |}>,
-                  appearsIn: ?$ReadOnlyArray<
-                  /** - NEW_HOPE
-                  - EMPIRE
-                  - JEDI*/
-                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-                |})>,
               |}
             |}
+            |};
+
+            export type Profile = {|
+              __typename: "Droid" | "Human",
+              appearsIn: ?$ReadOnlyArray<
+              /** - NEW_HOPE
+              - EMPIRE
+              - JEDI*/
+              ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+              friends: ?$ReadOnlyArray<?{|
+                id: string
+              |}>,
+              id: string,
+              name: ?string,
             |};
         `);
     });
@@ -284,6 +298,47 @@ describe('graphql-flow generation', () => {
     });
 
     describe('Fragment dependency resolution', () => {
+        it('should do the one thing', () => {
+            const result = rawQueryToFlowTypes(
+                `query Hello {
+                    hero(episode: JEDI) {
+                        ...onChar
+                    }
+                }
+
+                fragment onChar on Character {
+                    __typename
+                    ... on Droid {
+                        primaryFunction
+                    }
+                }`,
+            );
+            expect(result).toMatchInlineSnapshot(`
+                export type HelloType = {|
+                    variables: {||},
+                    response: {|
+                  hero: ?({|
+                    __typename: "Droid",
+
+                    /** The robot's primary function*/
+                    primaryFunction: string,
+                  |} | {|
+                    __typename: "Human"
+                  |})
+                |}
+                |};
+
+                export type onChar = {|
+                  __typename: "Droid",
+
+                  /** The robot's primary function*/
+                  primaryFunction: string,
+                |} | {|
+                  __typename: "Human"
+                |};
+            `);
+        });
+
         it('should be good', () => {
             const result = rawQueryToFlowTypes(
                 `query Deps {
@@ -318,9 +373,20 @@ describe('graphql-flow generation', () => {
 
                     /** The robot's primary function*/
                     primaryFunction: string,
-                    homePlanet: ?string,
                   |}
                 |}
+                |};
+
+                export type Hello = {|
+                  __typename: "Droid",
+                  name: ?string,
+
+                  /** The robot's primary function*/
+                  primaryFunction: string,
+                |} | {|
+                  __typename: "Human",
+                  homePlanet: ?string,
+                  name: ?string,
                 |};
             `);
         });
@@ -353,15 +419,15 @@ describe('graphql-flow generation', () => {
                   episode?: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
                 |},
                     response: {|
+                  hero: ?{|
+                    name: ?string
+                  |},
 
                   /** A human character*/
                   human: ?{|
                     friends: ?Array<?{|
                       name: ?string
                     |}>
-                  |},
-                  hero: ?{|
-                    name: ?string
                   |},
                 |}
                 |};
@@ -387,11 +453,11 @@ describe('graphql-flow generation', () => {
                     response: {|
                   hero: ?({|
                     id: string,
-
-                    /** The person's name*/
                     name: ?string,
                   |} | {|
                     id: string,
+
+                    /** The person's name*/
                     name: ?string,
                   |})
                 |}

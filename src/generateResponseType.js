@@ -7,6 +7,7 @@ import type {
     FieldNode,
     IntrospectionOutputTypeRef,
     OperationDefinitionNode,
+    FragmentDefinitionNode,
 } from 'graphql';
 import type {Config, Schema, Selections} from './types';
 import {
@@ -21,7 +22,7 @@ import type {
     IntrospectionObjectType,
     IntrospectionUnionType,
 } from 'graphql/utilities/introspectionQuery';
-import type {
+import {
     BabelNodeObjectTypeProperty,
     BabelNodeObjectTypeSpreadProperty,
 } from '@babel/types';
@@ -39,6 +40,61 @@ export const generateResponseType = (
             : schema.typesByName.Query,
         query.operation === 'mutation' ? 'mutation' : 'query',
     );
+    // eslint-disable-next-line flowtype-errors/uncovered
+    return generate(ast).code;
+};
+
+const sortedObjectTypeAnnotation = (
+    properties: Array<
+        BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
+    >,
+) => {
+    return babelTypes.objectTypeAnnotation(
+        properties.sort((a, b) => {
+            if (
+                a.type === 'ObjectTypeProperty' &&
+                b.type === 'ObjectTypeProperty'
+            ) {
+                const aName = a.key.type === 'Identifier' ? a.key.name : '';
+                const bName = b.key.type === 'Identifier' ? b.key.name : '';
+                return aName < bName ? -1 : 1;
+            }
+            return 0;
+        }),
+        undefined /* indexers */,
+        undefined /* callProperties */,
+        undefined /* internalSlots */,
+        true /* exact */,
+    );
+};
+
+export const generateFragmentType = (
+    schema: Schema,
+    fragment: FragmentDefinitionNode,
+    config: Config,
+): string => {
+    const onType = fragment.typeCondition.name.value;
+    let ast;
+
+    if (schema.typesByName[onType]) {
+        ast = sortedObjectTypeAnnotation(
+            objectPropertiesToFlow(
+                config,
+                schema.typesByName[onType],
+                onType,
+                fragment.selectionSet.selections,
+            ),
+        );
+    } else if (schema.interfacesByName[onType]) {
+        ast = unionOrInterfaceToFlow(
+            config,
+            config.schema.interfacesByName[onType],
+            fragment.selectionSet.selections,
+        );
+    } else {
+        throw new Error(`Unknown ${onType}`);
+    }
+
     // eslint-disable-next-line flowtype-errors/uncovered
     return generate(ast).code;
 };
@@ -127,6 +183,7 @@ export const typeToFlow = (
     if (!config.strictNullability) {
         return _typeToFlow(config, type, selection);
     }
+    // console.log('ttf', type.name);
     const inner = _typeToFlow(config, type, selection);
     const result = babelTypes.nullableTypeAnnotation(inner);
     return transferLeadingComments(inner, result);
@@ -139,7 +196,7 @@ const querySelectionToObjectType = (
     typeName: string,
 ): BabelNodeFlowType => {
     let seenTypeName = false;
-    return babelTypes.objectTypeAnnotation(
+    return sortedObjectTypeAnnotation(
         objectPropertiesToFlow(config, type, typeName, selections).filter(
             (type) => {
                 // The apollo-utilities "addTypeName" utility will add it
@@ -149,18 +206,23 @@ const querySelectionToObjectType = (
                     type.type === 'ObjectTypeProperty' &&
                     type.key.name === '__typename'
                 ) {
+                    const name =
+                        type.value.type === 'StringLiteralTypeAnnotation'
+                            ? type.value.value
+                            : 'INVALID';
                     if (seenTypeName) {
+                        if (name !== seenTypeName) {
+                            throw new Error(
+                                `Got two different type names ${name}, ${seenTypeName}`,
+                            );
+                        }
                         return false;
                     }
-                    seenTypeName = true;
+                    seenTypeName = name;
                 }
                 return true;
             },
         ),
-        undefined /* indexers */,
-        undefined /* callProperties */,
-        undefined /* internalSlots */,
-        true /* exact */,
     );
 };
 
@@ -178,6 +240,10 @@ export const objectPropertiesToFlow = (
                 case 'InlineFragment': {
                     const newTypeName =
                         selection.typeCondition?.name.value ?? typeName;
+                    console.log('Inline folks', typeName, newTypeName);
+                    if (newTypeName !== typeName) {
+                        return [];
+                    }
                     return objectPropertiesToFlow(
                         config,
                         config.schema.typesByName[newTypeName],
@@ -200,6 +266,11 @@ export const objectPropertiesToFlow = (
                         ];
                     }
 
+                    console.log(
+                        'SPREAD FRGAGMET',
+                        typeName,
+                        selection.name.value,
+                    );
                     return objectPropertiesToFlow(
                         config,
                         type,
@@ -213,6 +284,7 @@ export const objectPropertiesToFlow = (
                     const alias: string = selection.alias
                         ? selection.alias.value
                         : name;
+                    // console.log('field', name);
                     if (name === '__typename') {
                         return [
                             babelTypes.objectTypeProperty(
@@ -276,50 +348,72 @@ export const unionOrInterfaceToFlow = (
 ): BabelNodeFlowType => {
     const selectedAttributes: Array<
         Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>,
-    > = type.possibleTypes.map((possible) => {
-        let seenTypeName = false;
-        return selections
-            .map((selection) =>
-                unionOrInterfaceSelection(config, type, possible, selection),
-            )
-            .flat()
-            .filter((type) => {
-                // The apollo-utilities "addTypeName" utility will add it
-                // even if it's already specified :( so we have to filter out
-                // the extra one here.
-                if (
-                    type.type === 'ObjectTypeProperty' &&
-                    type.key.name === '__typename'
-                ) {
-                    if (seenTypeName) {
-                        return false;
+    > = type.possibleTypes
+        .slice()
+        .sort((a, b) => {
+            return a.name < b.name ? -1 : 1;
+        })
+        .map((possible) => {
+            let seenTypeName = false;
+            return selections
+                .map((selection) =>
+                    unionOrInterfaceSelection(
+                        config,
+                        type,
+                        possible,
+                        selection,
+                    ),
+                )
+                .flat()
+                .filter((type) => {
+                    // The apollo-utilities "addTypeName" utility will add it
+                    // even if it's already specified :( so we have to filter out
+                    // the extra one here.
+                    if (
+                        type.type === 'ObjectTypeProperty' &&
+                        type.key.name === '__typename'
+                    ) {
+                        if (seenTypeName) {
+                            return false;
+                        }
+                        seenTypeName = true;
                     }
-                    seenTypeName = true;
-                }
-                return true;
-            });
-    });
+                    return true;
+                });
+        });
     const allFields = selections.every(
         (selection) => selection.kind === 'Field',
     );
-    if (selectedAttributes.length === 1 || allFields) {
-        return babelTypes.objectTypeAnnotation(
-            selectedAttributes[0],
-            undefined /* indexers */,
-            undefined /* callProperties */,
-            undefined /* internalSlots */,
-            true /* exact */,
+    // If they're all fields, the only selection that could be different is __typename
+    if (allFields) {
+        const sharedAttributes = selectedAttributes[0].slice();
+        const hasTypeName = selectedAttributes[0].findIndex(
+            (x) =>
+                x.type === 'ObjectTypeProperty' &&
+                x.key.type === 'Identifier' &&
+                x.key.name === '__typename',
         );
+        if (hasTypeName !== -1) {
+            sharedAttributes[hasTypeName] = babelTypes.objectTypeProperty(
+                babelTypes.identifier('__typename'),
+                babelTypes.unionTypeAnnotation(
+                    selectedAttributes.map(
+                        (attrs) =>
+                            ((attrs[
+                                hasTypeName
+                            ]: any): BabelNodeObjectTypeProperty).value,
+                    ),
+                ),
+            );
+        }
+        return sortedObjectTypeAnnotation(sharedAttributes);
+    }
+    if (selectedAttributes.length === 1) {
+        return sortedObjectTypeAnnotation(selectedAttributes[0]);
     }
     return babelTypes.unionTypeAnnotation(
         selectedAttributes.map((properties) =>
-            babelTypes.objectTypeAnnotation(
-                properties,
-                undefined /* indexers */,
-                undefined /* callProperties */,
-                undefined /* internalSlots */,
-                true /* exact */,
-            ),
+            sortedObjectTypeAnnotation(properties),
         ),
     );
 };

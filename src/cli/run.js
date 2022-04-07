@@ -113,27 +113,30 @@ Object.keys(resolved).forEach((k) => {
     );
     const rawSource: string = raw.literals[0];
     const processedOptions = processPragmas(config.options, rawSource);
-    if (!hasNonFragments || !processedOptions) {
+    if (!processedOptions) {
         return;
     }
 
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
     const printed = print(withTypeNames);
-    /* eslint-disable flowtype-errors/uncovered */
-    const errors = validate(schemaForValidation, withTypeNames);
-    /* eslint-disable flowtype-errors/uncovered */
-    if (errors.length) {
-        errors.forEach((error) => {
-            console.error(
-                `Schema validation found errors for ${raw.loc.path}!`,
-            );
-            console.error(printed);
-            console.error(error);
-            validationFailures++;
-        });
+
+    if (hasNonFragments) {
+        /* eslint-disable flowtype-errors/uncovered */
+        const errors = validate(schemaForValidation, withTypeNames);
+        /* eslint-disable flowtype-errors/uncovered */
+        if (errors.length) {
+            errors.forEach((error) => {
+                console.error(
+                    `Schema validation found errors for ${raw.loc.path}!`,
+                );
+                console.error(printed);
+                console.error(error);
+                validationFailures++;
+            });
+        }
+        /* eslint-enable flowtype-errors/uncovered */
     }
-    /* eslint-enable flowtype-errors/uncovered */
 
     try {
         generateTypeFiles(

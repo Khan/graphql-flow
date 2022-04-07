@@ -9,7 +9,10 @@
  */
 import type {DefinitionNode, DocumentNode} from 'graphql';
 
-import {generateResponseType} from './generateResponseType';
+import {
+    generateFragmentType,
+    generateResponseType,
+} from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
 export {spyOnGraphqlTagToCollectQueries} from './jest-mock-graphql-tag';
 
@@ -58,6 +61,7 @@ export const documentToFlowTypes = (
     name: string,
     typeName: string,
     code: string,
+    isFragment?: boolean,
 }> => {
     const errors: Array<string> = [];
     const config = optionsToConfig(
@@ -68,6 +72,15 @@ export const documentToFlowTypes = (
     );
     const result = document.definitions
         .map((item) => {
+            if (item.kind === 'FragmentDefinition') {
+                const name = item.name.value;
+                const code = `export type ${name} = ${generateFragmentType(
+                    schema,
+                    item,
+                    config,
+                )};`;
+                return {name, typeName: name, code, isFragment: true};
+            }
             if (
                 item.kind === 'OperationDefinition' &&
                 (item.operation === 'query' || item.operation === 'mutation') &&
