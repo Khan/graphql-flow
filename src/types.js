@@ -1,5 +1,6 @@
 // @flow
 
+import type {BabelNode} from '@babel/types';
 import type {
     FragmentDefinitionNode,
     IntrospectionEnumType,
@@ -20,6 +21,7 @@ export type Options = {|
     scalars?: Scalars,
     splitTypes?: boolean,
     generatedDirectory?: string,
+    soManyKidsInThisHouse?: boolean,
 |};
 
 export type Schema = {
@@ -46,6 +48,7 @@ export type Schema = {
 };
 
 export type Config = {
+    path: Array<string>,
     strictNullability: boolean,
     readOnlyArray: boolean,
     fragments: {[key: string]: FragmentDefinitionNode},
@@ -53,5 +56,6 @@ export type Config = {
     schema: Schema,
     scalars: Scalars,
     errors: Array<string>,
+    kidsInThisHouse: null | {[key: string]: BabelNode},
 };
 export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};

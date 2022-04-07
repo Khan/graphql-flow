@@ -284,7 +284,6 @@ export const objectPropertiesToFlow = (
                     const alias: string = selection.alias
                         ? selection.alias.value
                         : name;
-                    // console.log('field', name);
                     if (name === '__typename') {
                         return [
                             babelTypes.objectTypeProperty(
@@ -317,7 +316,10 @@ export const objectPropertiesToFlow = (
                                 babelTypes.objectTypeProperty(
                                     babelTypes.identifier(alias),
                                     typeToFlow(
-                                        config,
+                                        {
+                                            ...config,
+                                            path: config.path.concat([name]),
+                                        },
                                         typeField.type,
                                         selection,
                                     ),

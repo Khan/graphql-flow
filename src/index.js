@@ -39,6 +39,8 @@ const optionsToConfig = (
         fragments,
         schema,
         errors,
+        kidsInThisHouse: options?.soManyKidsInThisHouse ? {} : null,
+        path: [],
         ...internalOptions,
     };
 
@@ -77,7 +79,7 @@ export const documentToFlowTypes = (
                 const code = `export type ${name} = ${generateFragmentType(
                     schema,
                     item,
-                    config,
+                    {...config, path: [name]},
                 )};`;
                 return {name, typeName: name, code, isFragment: true};
             }
@@ -87,8 +89,14 @@ export const documentToFlowTypes = (
                 item.name
             ) {
                 const name = item.name.value;
-                const response = generateResponseType(schema, item, config);
-                const variables = generateVariablesType(schema, item, config);
+                const response = generateResponseType(schema, item, {
+                    ...config,
+                    path: [name],
+                });
+                const variables = generateVariablesType(schema, item, {
+                    ...config,
+                    path: [name],
+                });
 
                 const typeName = `${name}Type`;
                 // TODO(jared): Maybe make this template configurable?
