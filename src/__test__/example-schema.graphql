@@ -35,7 +35,7 @@ type Droid implements Character {
   friends: [Character]
   appearsIn: [Episode]
   """The robot's primary function"""
-  primaryFunction: String
+  primaryFunction: String!
 }
 
 type Animal {

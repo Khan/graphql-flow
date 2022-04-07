@@ -45,8 +45,8 @@ export const generateTypeFiles = (
 
     if (!fs.existsSync(generatedDir)) {
         fs.mkdirSync(generatedDir, {recursive: true});
-
-        // Now write an index.js for each __generated__ dir.
+    }
+    if (!fs.existsSync(indexFile)) {
         fs.writeFileSync(indexFile, indexPrelude(options.regenerateCommand));
     }
 
@@ -74,7 +74,8 @@ export const generateTypeFiles = (
     generated.forEach(({name, typeName, code}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
-        const targetFileName = `${typeName}.js`;
+        // TODO: name -> typeName
+        const targetFileName = `${name}.js`;
         const targetPath = path.join(generatedDir, targetFileName);
 
         let fileContents =
@@ -86,10 +87,10 @@ export const generateTypeFiles = (
             (options.regenerateCommand
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
-            code;
+            code.replace(/\s+$/g, '');
         if (options.splitTypes) {
             fileContents +=
-                `export type ${name} = ${typeName}['response'];\n` +
+                `\nexport type ${name} = ${typeName}['response'];\n` +
                 `export type ${name}Variables = ${typeName}['variables'];\n`;
         }
 

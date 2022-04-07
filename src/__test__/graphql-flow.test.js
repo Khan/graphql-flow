@@ -139,7 +139,7 @@ describe('graphql-flow generation', () => {
                 __typename: "Droid",
 
                 /** The robot's primary function*/
-                primaryFunction: ?string,
+                primaryFunction: string,
               |} | {|
                 __typename: "Animal"
               |})
@@ -280,6 +280,49 @@ describe('graphql-flow generation', () => {
             ).toThrowErrorMatchingInlineSnapshot(
                 `Graphql-flow type generation failed! No fragment named 'UnknownFragment'. Did you forget to include it in the template literal?`,
             );
+        });
+    });
+
+    describe('Fragment dependency resolution', () => {
+        it('should be good', () => {
+            const result = rawQueryToFlowTypes(
+                `query Deps {
+                    droid(id: "hello") {
+                        ...Hello
+                    }
+                    # hero(episode: JEDI) {
+                }
+
+                fragment Hello on Character {
+                    __typename
+                    name
+                    ... on Droid {
+                        primaryFunction
+                    }
+                    # Hmmm : this shouldn't show up
+                    ... on Human {
+                        homePlanet
+                    }
+                }`,
+            );
+
+            expect(result).toMatchInlineSnapshot(`
+                export type DepsType = {|
+                    variables: {||},
+                    response: {|
+
+                  /** A robot character*/
+                  droid: ?{|
+                    __typename: "Droid",
+                    name: ?string,
+
+                    /** The robot's primary function*/
+                    primaryFunction: string,
+                    homePlanet: ?string,
+                  |}
+                |}
+                |};
+            `);
         });
     });
 
