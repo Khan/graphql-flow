@@ -328,7 +328,7 @@ export const objectPropertiesToFlow = (
                                     typeToFlow(
                                         {
                                             ...config,
-                                            path: config.path.concat([name]),
+                                            path: config.path.concat([alias]),
                                         },
                                         typeField.type,
                                         selection,
