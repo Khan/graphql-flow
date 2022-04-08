@@ -19,6 +19,7 @@ export type ExternalOptions = {
     readOnlyArray?: boolean,
     splitTypes?: boolean,
     generatedDirectory?: string,
+    soManyKidsInThisHouse?: boolean,
 };
 
 const indexPrelude = (regenerateCommand?: string) => `// @flow
@@ -71,7 +72,7 @@ export const generateTypeFiles = (
     };
 
     const generated = documentToFlowTypes(document, schema, options);
-    generated.forEach(({name, typeName, code, isFragment}) => {
+    generated.forEach(({name, typeName, code, isFragment, extraTypes}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
         // TODO: name -> typeName
@@ -93,6 +94,9 @@ export const generateTypeFiles = (
                 `\nexport type ${name} = ${typeName}['response'];\n` +
                 `export type ${name}Variables = ${typeName}['variables'];\n`;
         }
+        Object.keys(extraTypes).forEach((name) => {
+            fileContents += `\n\nexport type ${name} = ${extraTypes[name]};`;
+        });
 
         fs.writeFileSync(targetPath, fileContents);
         addToIndex(targetPath, typeName);
@@ -127,6 +131,7 @@ export const processPragmas = (
             scalars: options.scalars,
             splitTypes: options.splitTypes,
             generatedDirectory: options.generatedDirectory,
+            soManyKidsInThisHouse: options.soManyKidsInThisHouse,
         };
     } else {
         return null;

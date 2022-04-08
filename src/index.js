@@ -9,6 +9,7 @@
  */
 import type {DefinitionNode, DocumentNode} from 'graphql';
 
+import generate from '@babel/generator';
 import {
     generateFragmentType,
     generateResponseType,
@@ -39,7 +40,7 @@ const optionsToConfig = (
         fragments,
         schema,
         errors,
-        kidsInThisHouse: options?.soManyKidsInThisHouse ? {} : null,
+        kidsInThisHouse: null,
         path: [],
         ...internalOptions,
     };
@@ -64,6 +65,7 @@ export const documentToFlowTypes = (
     typeName: string,
     code: string,
     isFragment?: boolean,
+    extraTypes: {[key: string]: string},
 }> => {
     const errors: Array<string> = [];
     const config = optionsToConfig(
@@ -76,22 +78,43 @@ export const documentToFlowTypes = (
         .map((item) => {
             if (item.kind === 'FragmentDefinition') {
                 const name = item.name.value;
+                const kids = {};
                 const code = `export type ${name} = ${generateFragmentType(
                     schema,
                     item,
-                    {...config, path: [name]},
+                    {
+                        ...config,
+                        path: [name],
+                        kidsInThisHouse: options?.soManyKidsInThisHouse
+                            ? kids
+                            : null,
+                    },
                 )};`;
-                return {name, typeName: name, code, isFragment: true};
+                const extraTypes: {[key: string]: string} = {};
+                Object.keys(kids).forEach((k) => {
+                    extraTypes[k] = generate(kids[k]).code;
+                });
+                return {
+                    name,
+                    typeName: name,
+                    code,
+                    isFragment: true,
+                    extraTypes,
+                };
             }
             if (
                 item.kind === 'OperationDefinition' &&
                 (item.operation === 'query' || item.operation === 'mutation') &&
                 item.name
             ) {
+                const kids = {};
                 const name = item.name.value;
                 const response = generateResponseType(schema, item, {
                     ...config,
                     path: [name],
+                    kidsInThisHouse: options?.soManyKidsInThisHouse
+                        ? kids
+                        : null,
                 });
                 const variables = generateVariablesType(schema, item, {
                     ...config,
@@ -103,7 +126,11 @@ export const documentToFlowTypes = (
                 // We'll see what's required to get webapp on board.
                 const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
 
-                return {name, typeName, code};
+                const extraTypes: {[key: string]: string} = {};
+                Object.keys(kids).forEach((k) => {
+                    extraTypes[k] = generate(kids[k]).code;
+                });
+                return {name, typeName, code, extraTypes};
             }
         })
         .filter(Boolean);

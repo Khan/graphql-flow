@@ -45,11 +45,12 @@ export const generateResponseType = (
 };
 
 const sortedObjectTypeAnnotation = (
+    config: Config,
     properties: Array<
         BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
     >,
 ) => {
-    return babelTypes.objectTypeAnnotation(
+    const obj = babelTypes.objectTypeAnnotation(
         properties.sort((a, b) => {
             if (
                 a.type === 'ObjectTypeProperty' &&
@@ -66,6 +67,13 @@ const sortedObjectTypeAnnotation = (
         undefined /* internalSlots */,
         true /* exact */,
     );
+    const name = config.path.join('_');
+    if (config.kidsInThisHouse != null && config.path.length > 1) {
+        config.kidsInThisHouse[name] = obj;
+        return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
+    } else {
+        return obj;
+    }
 };
 
 export const generateFragmentType = (
@@ -78,6 +86,7 @@ export const generateFragmentType = (
 
     if (schema.typesByName[onType]) {
         ast = sortedObjectTypeAnnotation(
+            config,
             objectPropertiesToFlow(
                 config,
                 schema.typesByName[onType],
@@ -89,6 +98,12 @@ export const generateFragmentType = (
         ast = unionOrInterfaceToFlow(
             config,
             config.schema.interfacesByName[onType],
+            fragment.selectionSet.selections,
+        );
+    } else if (schema.unionsByName[onType]) {
+        ast = unionOrInterfaceToFlow(
+            config,
+            config.schema.unionsByName[onType],
             fragment.selectionSet.selections,
         );
     } else {
@@ -197,6 +212,7 @@ const querySelectionToObjectType = (
 ): BabelNodeFlowType => {
     let seenTypeName = false;
     return sortedObjectTypeAnnotation(
+        config,
         objectPropertiesToFlow(config, type, typeName, selections).filter(
             (type) => {
                 // The apollo-utilities "addTypeName" utility will add it
@@ -240,7 +256,6 @@ export const objectPropertiesToFlow = (
                 case 'InlineFragment': {
                     const newTypeName =
                         selection.typeCondition?.name.value ?? typeName;
-                    console.log('Inline folks', typeName, newTypeName);
                     if (newTypeName !== typeName) {
                         return [];
                     }
@@ -266,11 +281,6 @@ export const objectPropertiesToFlow = (
                         ];
                     }
 
-                    console.log(
-                        'SPREAD FRGAGMET',
-                        typeName,
-                        selection.name.value,
-                    );
                     return objectPropertiesToFlow(
                         config,
                         type,
@@ -348,48 +358,57 @@ export const unionOrInterfaceToFlow = (
           }),
     selections: Selections,
 ): BabelNodeFlowType => {
-    const selectedAttributes: Array<
-        Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>,
-    > = type.possibleTypes
+    const selectedAttributes: Array<{
+        attributes: Array<
+            BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
+        >,
+        typeName: string,
+    }> = type.possibleTypes
         .slice()
         .sort((a, b) => {
             return a.name < b.name ? -1 : 1;
         })
         .map((possible) => {
             let seenTypeName = false;
-            return selections
-                .map((selection) =>
-                    unionOrInterfaceSelection(
-                        config,
-                        type,
-                        possible,
-                        selection,
-                    ),
-                )
-                .flat()
-                .filter((type) => {
-                    // The apollo-utilities "addTypeName" utility will add it
-                    // even if it's already specified :( so we have to filter out
-                    // the extra one here.
-                    if (
-                        type.type === 'ObjectTypeProperty' &&
-                        type.key.name === '__typename'
-                    ) {
-                        if (seenTypeName) {
-                            return false;
+            return {
+                attributes: selections
+                    .map((selection) =>
+                        unionOrInterfaceSelection(
+                            {
+                                ...config,
+                                path: config.path.concat([possible.name]),
+                            },
+                            type,
+                            possible,
+                            selection,
+                        ),
+                    )
+                    .flat()
+                    .filter((type) => {
+                        // The apollo-utilities "addTypeName" utility will add it
+                        // even if it's already specified :( so we have to filter out
+                        // the extra one here.
+                        if (
+                            type.type === 'ObjectTypeProperty' &&
+                            type.key.name === '__typename'
+                        ) {
+                            if (seenTypeName) {
+                                return false;
+                            }
+                            seenTypeName = true;
                         }
-                        seenTypeName = true;
-                    }
-                    return true;
-                });
+                        return true;
+                    }),
+                typeName: possible.name,
+            };
         });
     const allFields = selections.every(
         (selection) => selection.kind === 'Field',
     );
     // If they're all fields, the only selection that could be different is __typename
     if (allFields) {
-        const sharedAttributes = selectedAttributes[0].slice();
-        const hasTypeName = selectedAttributes[0].findIndex(
+        const sharedAttributes = selectedAttributes[0].attributes.slice();
+        const hasTypeName = selectedAttributes[0].attributes.findIndex(
             (x) =>
                 x.type === 'ObjectTypeProperty' &&
                 x.key.type === 'Identifier' &&
@@ -401,21 +420,27 @@ export const unionOrInterfaceToFlow = (
                 babelTypes.unionTypeAnnotation(
                     selectedAttributes.map(
                         (attrs) =>
-                            ((attrs[
+                            ((attrs.attributes[
                                 hasTypeName
                             ]: any): BabelNodeObjectTypeProperty).value,
                     ),
                 ),
             );
         }
-        return sortedObjectTypeAnnotation(sharedAttributes);
+        return sortedObjectTypeAnnotation(config, sharedAttributes);
     }
     if (selectedAttributes.length === 1) {
-        return sortedObjectTypeAnnotation(selectedAttributes[0]);
+        return sortedObjectTypeAnnotation(
+            config,
+            selectedAttributes[0].attributes,
+        );
     }
     return babelTypes.unionTypeAnnotation(
-        selectedAttributes.map((properties) =>
-            sortedObjectTypeAnnotation(properties),
+        selectedAttributes.map(({typeName, attributes}) =>
+            sortedObjectTypeAnnotation(
+                {...config, path: config.path.concat([typeName])},
+                attributes,
+            ),
         ),
     );
 };
@@ -463,13 +488,20 @@ const unionOrInterfaceSelection = (
             liftLeadingPropertyComments(
                 babelTypes.objectTypeProperty(
                     babelTypes.identifier(alias),
-                    typeToFlow(config, typeField.type, selection),
+                    typeToFlow(
+                        {...config, path: config.path.concat([name])},
+                        typeField.type,
+                        selection,
+                    ),
                 ),
             ),
         ];
     }
     if (selection.kind === 'FragmentSpread') {
         const fragment = config.fragments[selection.name.value];
+        if (!fragment) {
+            throw new Error(`Unknown fragment ${selection.name.value}`);
+        }
         const typeName = fragment.typeCondition.name.value;
         if (
             (config.schema.interfacesByName[typeName] &&
