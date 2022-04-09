@@ -435,7 +435,7 @@ export const unionOrInterfaceToFlow = (
             selectedAttributes[0].attributes,
         );
     }
-    return babelTypes.unionTypeAnnotation(
+    const result = babelTypes.unionTypeAnnotation(
         selectedAttributes.map(({typeName, attributes}) =>
             sortedObjectTypeAnnotation(
                 {...config, path: config.path.concat([typeName])},
@@ -443,6 +443,12 @@ export const unionOrInterfaceToFlow = (
             ),
         ),
     );
+    const name = config.path.join('_');
+    if (config.kidsInThisHouse && config.path.length > 1) {
+        config.kidsInThisHouse[name] = result;
+        return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
+    }
+    return result;
 };
 const unionOrInterfaceSelection = (
     config,
