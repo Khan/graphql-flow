@@ -198,7 +198,6 @@ export const typeToFlow = (
     if (!config.strictNullability) {
         return _typeToFlow(config, type, selection);
     }
-    // console.log('ttf', type.name);
     const inner = _typeToFlow(config, type, selection);
     const result = babelTypes.nullableTypeAnnotation(inner);
     return transferLeadingComments(inner, result);
@@ -420,6 +419,7 @@ export const unionOrInterfaceToFlow = (
                 babelTypes.unionTypeAnnotation(
                     selectedAttributes.map(
                         (attrs) =>
+                            // eslint-disable-next-line flowtype-errors/uncovered
                             ((attrs.attributes[
                                 hasTypeName
                             ]: any): BabelNodeObjectTypeProperty).value,

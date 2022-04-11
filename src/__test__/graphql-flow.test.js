@@ -30,7 +30,7 @@ const rawQueryToFlowTypes = (query: string, options?: Options): string => {
         scalars: {PositiveNumber: 'number'},
         ...options,
     })
-        .map(({code}) => code)
+        .map(({typeName, code}) => `// ${typeName}.js\n${code}`)
         .join('\n\n');
 };
 
@@ -43,12 +43,40 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {|
               candies: number
             |},
                 response: {|
               candies: ?string
+            |}
+            |};
+        `);
+    });
+
+    it('should split types', () => {
+        const result = rawQueryToFlowTypes(
+            `
+            query SomeQuery($id: String!) {
+                human(id: $id) { id }
+            }
+        `,
+            {splitTypes: true},
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
+            export type SomeQueryType = {|
+                variables: {|
+              id: string
+            |},
+                response: {|
+
+              /** A human character*/
+              human: ?{|
+                id: string
+              |}
             |}
             |};
         `);
@@ -69,6 +97,7 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -99,6 +128,7 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -128,6 +158,7 @@ describe('graphql-flow generation', () => {
             }
         `);
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -178,6 +209,7 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -221,6 +253,7 @@ describe('graphql-flow generation', () => {
             |}
             |};
 
+            // Profile.js
             export type Profile = {|
               __typename: "Droid" | "Human",
               appearsIn: ?$ReadOnlyArray<
@@ -252,6 +285,7 @@ describe('graphql-flow generation', () => {
         );
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -314,6 +348,7 @@ describe('graphql-flow generation', () => {
                 }`,
             );
             expect(result).toMatchInlineSnapshot(`
+                // HelloType.js
                 export type HelloType = {|
                     variables: {||},
                     response: {|
@@ -328,6 +363,7 @@ describe('graphql-flow generation', () => {
                 |}
                 |};
 
+                // onChar.js
                 export type onChar = {|
                   __typename: "Droid",
 
@@ -362,6 +398,7 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
+                // DepsType.js
                 export type DepsType = {|
                     variables: {||},
                     response: {|
@@ -377,6 +414,7 @@ describe('graphql-flow generation', () => {
                 |}
                 |};
 
+                // Hello.js
                 export type Hello = {|
                   __typename: "Droid",
                   name: ?string,
@@ -409,6 +447,7 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
                 export type SomeQueryType = {|
                     variables: {|
                   id: string,
@@ -448,6 +487,7 @@ describe('graphql-flow generation', () => {
                 {readOnlyArray: false},
             );
             expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
                 export type SomeQueryType = {|
                     variables: {||},
                     response: {|
@@ -479,6 +519,7 @@ describe('graphql-flow generation', () => {
                 {readOnlyArray: false},
             );
             expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
                 export type SomeQueryType = {|
                     variables: {||},
                     response: {|
@@ -506,6 +547,7 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
+                // addCharacterType.js
                 export type addCharacterType = {|
                     variables: {|
 
