@@ -183,7 +183,6 @@ export const typeToFlow = (
     if (!config.strictNullability) {
         return _typeToFlow(config, type, selection);
     }
-    // console.log('ttf', type.name);
     const inner = _typeToFlow(config, type, selection);
     const result = babelTypes.nullableTypeAnnotation(inner);
     return transferLeadingComments(inner, result);
@@ -240,7 +239,6 @@ export const objectPropertiesToFlow = (
                 case 'InlineFragment': {
                     const newTypeName =
                         selection.typeCondition?.name.value ?? typeName;
-                    console.log('Inline folks', typeName, newTypeName);
                     if (newTypeName !== typeName) {
                         return [];
                     }
@@ -266,11 +264,6 @@ export const objectPropertiesToFlow = (
                         ];
                     }
 
-                    console.log(
-                        'SPREAD FRGAGMET',
-                        typeName,
-                        selection.name.value,
-                    );
                     return objectPropertiesToFlow(
                         config,
                         type,
@@ -284,7 +277,6 @@ export const objectPropertiesToFlow = (
                     const alias: string = selection.alias
                         ? selection.alias.value
                         : name;
-                    // console.log('field', name);
                     if (name === '__typename') {
                         return [
                             babelTypes.objectTypeProperty(
