@@ -42,6 +42,15 @@ type Options = {
     readOnlyArray: boolean = true,
     scalars: {[key: string]: 'string' | 'boolean' | 'number'}
 
+    // Specify the name of the generated types directory
+    generatedDirectory: string = '__generated__',
+
+    // The default generated type contains both the types of the response
+    // and the variables, combined as [operatioName]Type. Setting
+    // `splitTypes = true` adds the additional exports [operationName]
+    // (for the response) and [operationName]Variables (for the variables).
+    splitTypes?: boolean,
+
     // Specify an opt-in pragma that must be present in a graphql string source
     // in order for it to be picked up and processed
     // e.g. set this to `"# @autogen\n"` to only generate types for queries that
