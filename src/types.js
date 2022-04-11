@@ -21,7 +21,7 @@ export type Options = {|
     scalars?: Scalars,
     splitTypes?: boolean,
     generatedDirectory?: string,
-    soManyKidsInThisHouse?: boolean,
+    exportAllObjectTypes?: boolean,
 |};
 
 export type Schema = {
@@ -56,6 +56,6 @@ export type Config = {
     schema: Schema,
     scalars: Scalars,
     errors: Array<string>,
-    kidsInThisHouse: null | {[key: string]: BabelNode},
+    allObjectTypes: null | {[key: string]: BabelNode},
 };
 export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};

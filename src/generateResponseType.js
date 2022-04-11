@@ -68,8 +68,8 @@ const sortedObjectTypeAnnotation = (
         true /* exact */,
     );
     const name = config.path.join('_');
-    if (config.kidsInThisHouse != null && config.path.length > 1) {
-        config.kidsInThisHouse[name] = obj;
+    if (config.allObjectTypes != null && config.path.length > 1) {
+        config.allObjectTypes[name] = obj;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     } else {
         return obj;
@@ -444,8 +444,8 @@ export const unionOrInterfaceToFlow = (
         ),
     );
     const name = config.path.join('_');
-    if (config.kidsInThisHouse && config.path.length > 1) {
-        config.kidsInThisHouse[name] = result;
+    if (config.allObjectTypes && config.path.length > 1) {
+        config.allObjectTypes[name] = result;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     }
     return result;

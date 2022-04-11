@@ -19,7 +19,7 @@ export type ExternalOptions = {
     readOnlyArray?: boolean,
     splitTypes?: boolean,
     generatedDirectory?: string,
-    soManyKidsInThisHouse?: boolean,
+    exportAllObjectTypes?: boolean,
 };
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
@@ -154,7 +154,7 @@ export const processPragmas = (
             scalars: options.scalars,
             splitTypes: options.splitTypes,
             generatedDirectory: options.generatedDirectory,
-            soManyKidsInThisHouse: options.soManyKidsInThisHouse,
+            exportAllObjectTypes: options.exportAllObjectTypes,
         };
     } else {
         return null;

@@ -9,7 +9,7 @@
  */
 import type {DefinitionNode, DocumentNode} from 'graphql';
 
-import generate from '@babel/generator';
+import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import {
     generateFragmentType,
     generateResponseType,
@@ -40,7 +40,7 @@ const optionsToConfig = (
         fragments,
         schema,
         errors,
-        kidsInThisHouse: null,
+        allObjectTypes: null,
         path: [],
         ...internalOptions,
     };
@@ -85,13 +85,14 @@ export const documentToFlowTypes = (
                     {
                         ...config,
                         path: [name],
-                        kidsInThisHouse: options?.soManyKidsInThisHouse
+                        allObjectTypes: options?.exportAllObjectTypes
                             ? kids
                             : null,
                     },
                 )};`;
                 const extraTypes: {[key: string]: string} = {};
                 Object.keys(kids).forEach((k) => {
+                    // eslint-disable-next-line flowtype-errors/uncovered
                     extraTypes[k] = generate(kids[k]).code;
                 });
                 return {
@@ -112,9 +113,7 @@ export const documentToFlowTypes = (
                 const response = generateResponseType(schema, item, {
                     ...config,
                     path: [name],
-                    kidsInThisHouse: options?.soManyKidsInThisHouse
-                        ? kids
-                        : null,
+                    allObjectTypes: options?.exportAllObjectTypes ? kids : null,
                 });
                 const variables = generateVariablesType(schema, item, {
                     ...config,
@@ -128,6 +127,7 @@ export const documentToFlowTypes = (
 
                 const extraTypes: {[key: string]: string} = {};
                 Object.keys(kids).forEach((k) => {
+                    // eslint-disable-next-line flowtype-errors/uncovered
                     extraTypes[k] = generate(kids[k]).code;
                 });
                 return {name, typeName, code, extraTypes};
