@@ -391,6 +391,7 @@ export const unionOrInterfaceToFlow = (
                 babelTypes.unionTypeAnnotation(
                     selectedAttributes.map(
                         (attrs) =>
+                            // eslint-disable-next-line flowtype-errors/uncovered
                             ((attrs[
                                 hasTypeName
                             ]: any): BabelNodeObjectTypeProperty).value,
