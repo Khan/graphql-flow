@@ -77,7 +77,7 @@ export const generateTypeFileContents = (
             (options.regenerateCommand
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
-            code.replace(/\s+$/g, '');
+            code;
         if (options.splitTypes && !isFragment) {
             fileContents +=
                 `\nexport type ${name} = ${typeName}['response'];\n` +
@@ -88,7 +88,7 @@ export const generateTypeFileContents = (
         });
 
         addToIndex(targetPath, typeName);
-        files[targetPath] = fileContents;
+        files[targetPath] = fileContents.replace(/\s+$/g, '') + '\n';
     });
 
     return {files, indexContents};
@@ -108,8 +108,8 @@ export const generateTypeFiles = (
 
     if (!fs.existsSync(generatedDir)) {
         fs.mkdirSync(generatedDir, {recursive: true});
-
-        // Now write an index.js for each __generated__ dir.
+    }
+    if (!fs.existsSync(indexFile)) {
         fs.writeFileSync(indexFile, indexPrelude(options.regenerateCommand));
     }
 

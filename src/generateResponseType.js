@@ -357,6 +357,9 @@ export const unionOrInterfaceToFlow = (
           }),
     selections: Selections,
 ): BabelNodeFlowType => {
+    const allFields = selections.every(
+        (selection) => selection.kind === 'Field',
+    );
     const selectedAttributes: Array<{
         attributes: Array<
             BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
@@ -375,7 +378,9 @@ export const unionOrInterfaceToFlow = (
                         unionOrInterfaceSelection(
                             {
                                 ...config,
-                                path: config.path.concat([possible.name]),
+                                path: allFields
+                                    ? config.path
+                                    : config.path.concat([possible.name]),
                             },
                             type,
                             possible,
@@ -401,9 +406,6 @@ export const unionOrInterfaceToFlow = (
                 typeName: possible.name,
             };
         });
-    const allFields = selections.every(
-        (selection) => selection.kind === 'Field',
-    );
     // If they're all fields, the only selection that could be different is __typename
     if (allFields) {
         const sharedAttributes = selectedAttributes[0].attributes.slice();
