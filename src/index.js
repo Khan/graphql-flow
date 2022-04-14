@@ -78,7 +78,7 @@ export const documentToFlowTypes = (
         .map((item) => {
             if (item.kind === 'FragmentDefinition') {
                 const name = item.name.value;
-                const kids = {};
+                const types = {};
                 const code = `export type ${name} = ${generateFragmentType(
                     schema,
                     item,
@@ -86,14 +86,14 @@ export const documentToFlowTypes = (
                         ...config,
                         path: [name],
                         allObjectTypes: options?.exportAllObjectTypes
-                            ? kids
+                            ? types
                             : null,
                     },
                 )};`;
                 const extraTypes: {[key: string]: string} = {};
-                Object.keys(kids).forEach((k) => {
+                Object.keys(types).forEach((k) => {
                     // eslint-disable-next-line flowtype-errors/uncovered
-                    extraTypes[k] = generate(kids[k]).code;
+                    extraTypes[k] = generate(types[k]).code;
                 });
                 return {
                     name,
@@ -108,12 +108,14 @@ export const documentToFlowTypes = (
                 (item.operation === 'query' || item.operation === 'mutation') &&
                 item.name
             ) {
-                const kids = {};
+                const types = {};
                 const name = item.name.value;
                 const response = generateResponseType(schema, item, {
                     ...config,
                     path: [name],
-                    allObjectTypes: options?.exportAllObjectTypes ? kids : null,
+                    allObjectTypes: options?.exportAllObjectTypes
+                        ? types
+                        : null,
                 });
                 const variables = generateVariablesType(schema, item, {
                     ...config,
@@ -126,9 +128,9 @@ export const documentToFlowTypes = (
                 const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
 
                 const extraTypes: {[key: string]: string} = {};
-                Object.keys(kids).forEach((k) => {
+                Object.keys(types).forEach((k) => {
                     // eslint-disable-next-line flowtype-errors/uncovered
-                    extraTypes[k] = generate(kids[k]).code;
+                    extraTypes[k] = generate(types[k]).code;
                 });
                 return {name, typeName, code, extraTypes};
             }
