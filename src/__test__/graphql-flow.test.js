@@ -54,6 +54,32 @@ describe('graphql-flow generation', () => {
         `);
     });
 
+    it('should split types', () => {
+        const result = rawQueryToFlowTypes(
+            `
+            query SomeQuery($id: String!) {
+                human(id: $id) { id }
+            }
+        `,
+            {splitTypes: true},
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+            export type SomeQueryType = {|
+                variables: {|
+              id: string
+            |},
+                response: {|
+
+              /** A human character*/
+              human: ?{|
+                id: string
+              |}
+            |}
+            |};
+        `);
+    });
+
     it('should work with a basic query', () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
