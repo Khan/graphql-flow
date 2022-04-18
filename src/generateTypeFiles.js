@@ -121,6 +121,8 @@ export const generateTypeFiles = (
     Object.keys(files).forEach((key) => {
         fs.writeFileSync(key, files[key]);
     });
+
+    fs.writeFileSync(indexFile, indexContents);
 };
 
 export const processPragmas = (
