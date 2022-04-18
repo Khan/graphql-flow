@@ -331,8 +331,8 @@ describe('graphql-flow generation', () => {
         });
     });
 
-    describe('Fragment dependency resolution', () => {
-        it('should do the one thing', () => {
+    describe('Fragments', () => {
+        it('should resolve correctly, and produce a type file for the fragment', () => {
             const result = rawQueryToFlowTypes(
                 `query Hello {
                     hero(episode: JEDI) {
@@ -375,13 +375,12 @@ describe('graphql-flow generation', () => {
             `);
         });
 
-        it('should be good', () => {
+        it('Should specialize the fragment type correctly', () => {
             const result = rawQueryToFlowTypes(
                 `query Deps {
                     droid(id: "hello") {
                         ...Hello
                     }
-                    # hero(episode: JEDI) {
                 }
 
                 fragment Hello on Character {
@@ -390,13 +389,14 @@ describe('graphql-flow generation', () => {
                     ... on Droid {
                         primaryFunction
                     }
-                    # Hmmm : this shouldn't show up
                     ... on Human {
                         homePlanet
                     }
                 }`,
             );
 
+            // Note how `homePlanet` is ommitted in
+            // `DepsType.response.droid`
             expect(result).toMatchInlineSnapshot(`
                 // DepsType.js
                 export type DepsType = {|

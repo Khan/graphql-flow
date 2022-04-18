@@ -76,7 +76,7 @@ export const generateTypeFileContents = (
             (options.regenerateCommand
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
-            code.replace(/\s+$/g, '');
+            code.replace(/\s+$/gm, '');
         if (options.splitTypes && !isFragment) {
             fileContents +=
                 `\nexport type ${name} = ${typeName}['response'];\n` +
