@@ -68,7 +68,8 @@ const sortedObjectTypeAnnotation = (
         true /* exact */,
     );
     const name = config.path.join('_');
-    if (config.allObjectTypes != null && config.path.length > 1) {
+    const isTopLevelType = config.path.length <= 1;
+    if (config.allObjectTypes != null && !isTopLevelType) {
         config.allObjectTypes[name] = obj;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     } else {
@@ -203,40 +204,44 @@ export const typeToFlow = (
     return transferLeadingComments(inner, result);
 };
 
+const ensureOnlyOneTypenameProperty = (properties) => {
+    let seenTypeName: false | string = false;
+    return properties.filter((type) => {
+        // The apollo-utilities "addTypeName" utility will add it
+        // even if it's already specified :( so we have to filter out
+        // the extra one here.
+        if (
+            type.type === 'ObjectTypeProperty' &&
+            type.key.name === '__typename'
+        ) {
+            const name =
+                type.value.type === 'StringLiteralTypeAnnotation'
+                    ? type.value.value
+                    : 'INVALID';
+            if (seenTypeName) {
+                if (name !== seenTypeName) {
+                    throw new Error(
+                        `Got two different type names ${name}, ${seenTypeName}`,
+                    );
+                }
+                return false;
+            }
+            seenTypeName = name;
+        }
+        return true;
+    });
+};
+
 const querySelectionToObjectType = (
     config: Config,
     selections,
     type,
     typeName: string,
 ): BabelNodeFlowType => {
-    let seenTypeName = false;
     return sortedObjectTypeAnnotation(
         config,
-        objectPropertiesToFlow(config, type, typeName, selections).filter(
-            (type) => {
-                // The apollo-utilities "addTypeName" utility will add it
-                // even if it's already specified :( so we have to filter out
-                // the extra one here.
-                if (
-                    type.type === 'ObjectTypeProperty' &&
-                    type.key.name === '__typename'
-                ) {
-                    const name =
-                        type.value.type === 'StringLiteralTypeAnnotation'
-                            ? type.value.value
-                            : 'INVALID';
-                    if (seenTypeName) {
-                        if (name !== seenTypeName) {
-                            throw new Error(
-                                `Got two different type names ${name}, ${seenTypeName}`,
-                            );
-                        }
-                        return false;
-                    }
-                    seenTypeName = name;
-                }
-                return true;
-            },
+        ensureOnlyOneTypenameProperty(
+            objectPropertiesToFlow(config, type, typeName, selections),
         ),
     );
 };
@@ -371,59 +376,46 @@ export const unionOrInterfaceToFlow = (
             return a.name < b.name ? -1 : 1;
         })
         .map((possible) => {
-            let seenTypeName = false;
+            const configWithUpdatedPath = {
+                ...config,
+                path: allFields
+                    ? config.path
+                    : config.path.concat([possible.name]),
+            };
             return {
-                attributes: selections
-                    .map((selection) =>
-                        unionOrInterfaceSelection(
-                            {
-                                ...config,
-                                path: allFields
-                                    ? config.path
-                                    : config.path.concat([possible.name]),
-                            },
-                            type,
-                            possible,
-                            selection,
-                        ),
-                    )
-                    .flat()
-                    .filter((type) => {
-                        // The apollo-utilities "addTypeName" utility will add it
-                        // even if it's already specified :( so we have to filter out
-                        // the extra one here.
-                        if (
-                            type.type === 'ObjectTypeProperty' &&
-                            type.key.name === '__typename'
-                        ) {
-                            if (seenTypeName) {
-                                return false;
-                            }
-                            seenTypeName = true;
-                        }
-                        return true;
-                    }),
                 typeName: possible.name,
+                attributes: ensureOnlyOneTypenameProperty(
+                    selections
+                        .map((selection) =>
+                            unionOrInterfaceSelection(
+                                configWithUpdatedPath,
+                                type,
+                                possible,
+                                selection,
+                            ),
+                        )
+                        .flat(),
+                ),
             };
         });
     // If they're all fields, the only selection that could be different is __typename
     if (allFields) {
         const sharedAttributes = selectedAttributes[0].attributes.slice();
-        const hasTypeName = selectedAttributes[0].attributes.findIndex(
+        const typeNameIndex = selectedAttributes[0].attributes.findIndex(
             (x) =>
                 x.type === 'ObjectTypeProperty' &&
                 x.key.type === 'Identifier' &&
                 x.key.name === '__typename',
         );
-        if (hasTypeName !== -1) {
-            sharedAttributes[hasTypeName] = babelTypes.objectTypeProperty(
+        if (typeNameIndex !== -1) {
+            sharedAttributes[typeNameIndex] = babelTypes.objectTypeProperty(
                 babelTypes.identifier('__typename'),
                 babelTypes.unionTypeAnnotation(
                     selectedAttributes.map(
                         (attrs) =>
                             // eslint-disable-next-line flowtype-errors/uncovered
                             ((attrs.attributes[
-                                hasTypeName
+                                typeNameIndex
                             ]: any): BabelNodeObjectTypeProperty).value,
                     ),
                 ),
