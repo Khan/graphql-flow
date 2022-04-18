@@ -1,5 +1,17 @@
 # @khanacademy/graphql-flow
 
+## 0.1.0
+
+### Minor Changes
+
+-   b08ed1b: Build out a cli tool that does our own parsing of javascript files, dramatically speeding things up!
+
+### Patch Changes
+
+-   8cdcdc2: Support inline fragments on objects
+-   fd5c6b7: Allow schema to be provided as a .graphql file, not just .json
+-   6869203: Add 'ignorePragma' option, to allow skipping of documents
+
 ## 0.0.2
 
 ### Patch Changes
