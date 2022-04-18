@@ -47,7 +47,6 @@ describe('generateTypeFileContents', () => {
             export type HelloType = {|
                 variables: {||},
                 response: {|
-
               /** A human character*/
               human: ?{|
                 id: string
