@@ -60,10 +60,10 @@ export const generateTypeFileContents = (
     };
 
     const generated = documentToFlowTypes(document, schema, options);
-    generated.forEach(({name, typeName, code}) => {
+    generated.forEach(({name, typeName, code, isFragment}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
-        const targetFileName = `${typeName}.js`;
+        const targetFileName = `${name}.js`;
         const targetPath = path.join(generatedDir, targetFileName);
 
         let fileContents =
@@ -75,7 +75,7 @@ export const generateTypeFileContents = (
             (options.regenerateCommand
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
-            code;
+            code.replace(/\s+$/gm, '');
         if (options.splitTypes) {
             fileContents +=
                 `\nexport type ${name} = ${typeName}['response'];\n` +

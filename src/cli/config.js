@@ -53,6 +53,8 @@ export const loadConfigFile = (configFile: string): CliConfig => {
             'strictNullability',
             'regenerateCommand',
             'readOnlyArray',
+            'splitTypes',
+            'generatedDirectory',
         ];
         Object.keys(data.options).forEach((k) => {
             if (!externalOptionsKeys.includes(k)) {

@@ -30,7 +30,7 @@ const rawQueryToFlowTypes = (query: string, options?: Options): string => {
         scalars: {PositiveNumber: 'number'},
         ...options,
     })
-        .map(({code}) => code)
+        .map(({typeName, code}) => `// ${typeName}.js\n${code}`)
         .join('\n\n');
 };
 
@@ -43,6 +43,7 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {|
               candies: number
@@ -65,6 +66,7 @@ describe('graphql-flow generation', () => {
         );
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {|
               id: string
@@ -95,20 +97,21 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
 
               /** A human character*/
               human: ?{|
+                friends: ?$ReadOnlyArray<?{|
+                  name: ?string
+                |}>,
+                homePlanet: ?string,
                 id: string,
 
                 /** The person's name*/
                 name: ?string,
-                homePlanet: ?string,
-                friends: ?$ReadOnlyArray<?{|
-                  name: ?string
-                |}>,
               |}
             |}
             |};
@@ -125,6 +128,7 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -154,20 +158,21 @@ describe('graphql-flow generation', () => {
             }
         `);
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
               friend: ?({|
-                __typename: "Human",
-                id: string,
-                hands: ?number,
+                __typename: "Animal"
               |} | {|
                 __typename: "Droid",
 
                 /** The robot's primary function*/
-                primaryFunction: ?string,
+                primaryFunction: string,
               |} | {|
-                __typename: "Animal"
+                __typename: "Human",
+                hands: ?number,
+                id: string,
               |})
             |}
             |};
@@ -204,47 +209,63 @@ describe('graphql-flow generation', () => {
         `);
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
 
               /** A human character*/
               human: ?{|
+                alive: ?boolean,
+                friends: ?$ReadOnlyArray<?({|
+                  __typename: "Droid",
+                  appearsIn: ?$ReadOnlyArray<
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
+                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  friends: ?$ReadOnlyArray<?{|
+                    id: string
+                  |}>,
+                  id: string,
+                  name: ?string,
+                |} | {|
+                  __typename: "Human",
+                  appearsIn: ?$ReadOnlyArray<
+                  /** - NEW_HOPE
+                  - EMPIRE
+                  - JEDI*/
+                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+                  friends: ?$ReadOnlyArray<?{|
+                    id: string
+                  |}>,
+                  hands: ?number,
+                  id: string,
+                  name: ?string,
+                |})>,
+                hands: ?number,
+                homePlanet: ?string,
                 id: string,
 
                 /** The person's name*/
                 name: ?string,
-                homePlanet: ?string,
-                hands: ?number,
-                alive: ?boolean,
-                friends: ?$ReadOnlyArray<?({|
-                  __typename: "Human",
-                  id: string,
-                  name: ?string,
-                  friends: ?$ReadOnlyArray<?{|
-                    id: string
-                  |}>,
-                  appearsIn: ?$ReadOnlyArray<
-                  /** - NEW_HOPE
-                  - EMPIRE
-                  - JEDI*/
-                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-                  hands: ?number,
-                |} | {|
-                  __typename: "Droid",
-                  id: string,
-                  name: ?string,
-                  friends: ?$ReadOnlyArray<?{|
-                    id: string
-                  |}>,
-                  appearsIn: ?$ReadOnlyArray<
-                  /** - NEW_HOPE
-                  - EMPIRE
-                  - JEDI*/
-                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-                |})>,
               |}
             |}
+            |};
+
+            // Profile.js
+            export type Profile = {|
+              __typename: "Droid" | "Human",
+              appearsIn: ?$ReadOnlyArray<
+              /** - NEW_HOPE
+              - EMPIRE
+              - JEDI*/
+              ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
+              friends: ?$ReadOnlyArray<?{|
+                id: string
+              |}>,
+              id: string,
+              name: ?string,
             |};
         `);
     });
@@ -264,6 +285,7 @@ describe('graphql-flow generation', () => {
         );
 
         expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
             export type SomeQueryType = {|
                 variables: {||},
                 response: {|
@@ -309,6 +331,105 @@ describe('graphql-flow generation', () => {
         });
     });
 
+    describe('Fragments', () => {
+        it('should resolve correctly, and produce a type file for the fragment', () => {
+            const result = rawQueryToFlowTypes(
+                `query Hello {
+                    hero(episode: JEDI) {
+                        ...onChar
+                    }
+                }
+
+                fragment onChar on Character {
+                    __typename
+                    ... on Droid {
+                        primaryFunction
+                    }
+                }`,
+            );
+            expect(result).toMatchInlineSnapshot(`
+                // HelloType.js
+                export type HelloType = {|
+                    variables: {||},
+                    response: {|
+                  hero: ?({|
+                    __typename: "Droid",
+
+                    /** The robot's primary function*/
+                    primaryFunction: string,
+                  |} | {|
+                    __typename: "Human"
+                  |})
+                |}
+                |};
+
+                // onChar.js
+                export type onChar = {|
+                  __typename: "Droid",
+
+                  /** The robot's primary function*/
+                  primaryFunction: string,
+                |} | {|
+                  __typename: "Human"
+                |};
+            `);
+        });
+
+        it('Should specialize the fragment type correctly', () => {
+            const result = rawQueryToFlowTypes(
+                `query Deps {
+                    droid(id: "hello") {
+                        ...Hello
+                    }
+                }
+
+                fragment Hello on Character {
+                    __typename
+                    name
+                    ... on Droid {
+                        primaryFunction
+                    }
+                    ... on Human {
+                        homePlanet
+                    }
+                }`,
+            );
+
+            // Note how `homePlanet` is ommitted in
+            // `DepsType.response.droid`
+            expect(result).toMatchInlineSnapshot(`
+                // DepsType.js
+                export type DepsType = {|
+                    variables: {||},
+                    response: {|
+
+                  /** A robot character*/
+                  droid: ?{|
+                    __typename: "Droid",
+                    name: ?string,
+
+                    /** The robot's primary function*/
+                    primaryFunction: string,
+                  |}
+                |}
+                |};
+
+                // Hello.js
+                export type Hello = {|
+                  __typename: "Droid",
+                  name: ?string,
+
+                  /** The robot's primary function*/
+                  primaryFunction: string,
+                |} | {|
+                  __typename: "Human",
+                  homePlanet: ?string,
+                  name: ?string,
+                |};
+            `);
+        });
+    });
+
     describe('Input variables', () => {
         it('should generate a variables type', () => {
             const result = rawQueryToFlowTypes(
@@ -326,6 +447,7 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
                 export type SomeQueryType = {|
                     variables: {|
                   id: string,
@@ -336,15 +458,15 @@ describe('graphql-flow generation', () => {
                   episode?: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
                 |},
                     response: {|
+                  hero: ?{|
+                    name: ?string
+                  |},
 
                   /** A human character*/
                   human: ?{|
                     friends: ?Array<?{|
                       name: ?string
                     |}>
-                  |},
-                  hero: ?{|
-                    name: ?string
                   |},
                 |}
                 |};
@@ -365,16 +487,17 @@ describe('graphql-flow generation', () => {
                 {readOnlyArray: false},
             );
             expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
                 export type SomeQueryType = {|
                     variables: {||},
                     response: {|
                   hero: ?({|
                     id: string,
-
-                    /** The person's name*/
                     name: ?string,
                   |} | {|
                     id: string,
+
+                    /** The person's name*/
                     name: ?string,
                   |})
                 |}
@@ -396,6 +519,7 @@ describe('graphql-flow generation', () => {
                 {readOnlyArray: false},
             );
             expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
                 export type SomeQueryType = {|
                     variables: {||},
                     response: {|
@@ -423,6 +547,7 @@ describe('graphql-flow generation', () => {
             );
 
             expect(result).toMatchInlineSnapshot(`
+                // addCharacterType.js
                 export type addCharacterType = {|
                     variables: {|
 
