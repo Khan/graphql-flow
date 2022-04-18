@@ -63,7 +63,6 @@ export const generateTypeFileContents = (
     generated.forEach(({name, typeName, code, isFragment}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
-        // TODO: name -> typeName
         const targetFileName = `${name}.js`;
         const targetPath = path.join(generatedDir, targetFileName);
 
