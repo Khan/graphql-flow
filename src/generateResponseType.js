@@ -69,7 +69,7 @@ const sortedObjectTypeAnnotation = (
     );
     const name = config.path.join('_');
     const isTopLevelType = config.path.length <= 1;
-    if (config.allObjectTypes != null && config.path.length > 1) {
+    if (config.allObjectTypes != null && !isTopLevelType) {
         config.allObjectTypes[name] = obj;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     } else {
