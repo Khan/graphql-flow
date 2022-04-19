@@ -55,6 +55,7 @@ export const loadConfigFile = (configFile: string): CliConfig => {
             'readOnlyArray',
             'splitTypes',
             'generatedDirectory',
+            'exportAllObjectTypes',
         ];
         Object.keys(data.options).forEach((k) => {
             if (!externalOptionsKeys.includes(k)) {

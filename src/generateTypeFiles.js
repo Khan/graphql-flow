@@ -19,6 +19,7 @@ export type ExternalOptions = {
     readOnlyArray?: boolean,
     splitTypes?: boolean,
     generatedDirectory?: string,
+    exportAllObjectTypes?: boolean,
 };
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
@@ -60,7 +61,7 @@ export const generateTypeFileContents = (
     };
 
     const generated = documentToFlowTypes(document, schema, options);
-    generated.forEach(({name, typeName, code, isFragment}) => {
+    generated.forEach(({name, typeName, code, isFragment, extraTypes}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
         const targetFileName = `${name}.js`;
@@ -75,15 +76,22 @@ export const generateTypeFileContents = (
             (options.regenerateCommand
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
-            code.replace(/\s+$/gm, '');
-        if (options.splitTypes) {
+            code;
+        if (options.splitTypes && !isFragment) {
             fileContents +=
                 `\nexport type ${name} = ${typeName}['response'];\n` +
                 `export type ${name}Variables = ${typeName}['variables'];\n`;
         }
+        Object.keys(extraTypes).forEach((name) => {
+            fileContents += `\n\nexport type ${name} = ${extraTypes[name]};`;
+        });
 
         addToIndex(targetPath, typeName);
-        files[targetPath] = fileContents;
+        files[targetPath] =
+            fileContents
+                // Remove whitespace from the ends of lines; babel's generate sometimes
+                // leaves them hanging around.
+                .replace(/\s+$/gm, '') + '\n';
     });
 
     return {files, indexContents};
@@ -103,8 +111,8 @@ export const generateTypeFiles = (
 
     if (!fs.existsSync(generatedDir)) {
         fs.mkdirSync(generatedDir, {recursive: true});
-
-        // Now write an index.js for each __generated__ dir.
+    }
+    if (!fs.existsSync(indexFile)) {
         fs.writeFileSync(indexFile, indexPrelude(options.regenerateCommand));
     }
 
@@ -151,6 +159,7 @@ export const processPragmas = (
             scalars: options.scalars,
             splitTypes: options.splitTypes,
             generatedDirectory: options.generatedDirectory,
+            exportAllObjectTypes: options.exportAllObjectTypes,
         };
     } else {
         return null;

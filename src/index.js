@@ -9,6 +9,7 @@
  */
 import type {DefinitionNode, DocumentNode} from 'graphql';
 
+import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import {
     generateFragmentType,
     generateResponseType,
@@ -39,6 +40,8 @@ const optionsToConfig = (
         fragments,
         schema,
         errors,
+        allObjectTypes: null,
+        path: [],
         ...internalOptions,
     };
 
@@ -62,6 +65,7 @@ export const documentToFlowTypes = (
     typeName: string,
     code: string,
     isFragment?: boolean,
+    extraTypes: {[key: string]: string},
 }> => {
     const errors: Array<string> = [];
     const config = optionsToConfig(
@@ -74,28 +78,61 @@ export const documentToFlowTypes = (
         .map((item) => {
             if (item.kind === 'FragmentDefinition') {
                 const name = item.name.value;
+                const types = {};
                 const code = `export type ${name} = ${generateFragmentType(
                     schema,
                     item,
-                    config,
+                    {
+                        ...config,
+                        path: [name],
+                        allObjectTypes: options?.exportAllObjectTypes
+                            ? types
+                            : null,
+                    },
                 )};`;
-                return {name, typeName: name, code, isFragment: true};
+                const extraTypes: {[key: string]: string} = {};
+                Object.keys(types).forEach((k) => {
+                    // eslint-disable-next-line flowtype-errors/uncovered
+                    extraTypes[k] = generate(types[k]).code;
+                });
+                return {
+                    name,
+                    typeName: name,
+                    code,
+                    isFragment: true,
+                    extraTypes,
+                };
             }
             if (
                 item.kind === 'OperationDefinition' &&
                 (item.operation === 'query' || item.operation === 'mutation') &&
                 item.name
             ) {
+                const types = {};
                 const name = item.name.value;
-                const response = generateResponseType(schema, item, config);
-                const variables = generateVariablesType(schema, item, config);
+                const response = generateResponseType(schema, item, {
+                    ...config,
+                    path: [name],
+                    allObjectTypes: options?.exportAllObjectTypes
+                        ? types
+                        : null,
+                });
+                const variables = generateVariablesType(schema, item, {
+                    ...config,
+                    path: [name],
+                });
 
                 const typeName = `${name}Type`;
                 // TODO(jared): Maybe make this template configurable?
                 // We'll see what's required to get webapp on board.
                 const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
 
-                return {name, typeName, code};
+                const extraTypes: {[key: string]: string} = {};
+                Object.keys(types).forEach((k) => {
+                    // eslint-disable-next-line flowtype-errors/uncovered
+                    extraTypes[k] = generate(types[k]).code;
+                });
+                return {name, typeName, code, extraTypes};
             }
         })
         .filter(Boolean);

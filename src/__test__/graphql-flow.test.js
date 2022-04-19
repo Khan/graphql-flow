@@ -30,7 +30,14 @@ const rawQueryToFlowTypes = (query: string, options?: Options): string => {
         scalars: {PositiveNumber: 'number'},
         ...options,
     })
-        .map(({typeName, code}) => `// ${typeName}.js\n${code}`)
+        .map(
+            ({typeName, code, extraTypes}) =>
+                `// ${typeName}.js\n${code}` +
+                Object.keys(extraTypes)
+                    .sort()
+                    .map((k) => `\nexport type ${k} = ${extraTypes[k]};`)
+                    .join(''),
+        )
         .join('\n\n');
 };
 
@@ -428,6 +435,59 @@ describe('graphql-flow generation', () => {
                 |};
             `);
         });
+    });
+
+    it('should generate all types when exportAllObjectTypes is set', () => {
+        const result = rawQueryToFlowTypes(
+            `
+            query SomeQuery {
+                human(id: "Han Solo") {
+                    id
+                    name
+                    homePlanet
+                    hands
+                    alive
+                    friends {
+                        __typename
+                        ... on Human {
+                            hands
+                        }
+                    }
+                }
+            }
+        `,
+            {exportAllObjectTypes: true},
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+            // SomeQueryType.js
+            export type SomeQueryType = {|
+                variables: {||},
+                response: {|
+
+              /** A human character*/
+              human: ?SomeQuery_human
+            |}
+            |};
+            export type SomeQuery_human = {|
+              alive: ?boolean,
+              friends: ?$ReadOnlyArray<?SomeQuery_human_friends>,
+              hands: ?number,
+              homePlanet: ?string,
+              id: string,
+
+              /** The person's name*/
+              name: ?string,
+            |};
+            export type SomeQuery_human_friends = SomeQuery_human_friends_Droid | SomeQuery_human_friends_Human;
+            export type SomeQuery_human_friends_Droid = {|
+              __typename: "Droid"
+            |};
+            export type SomeQuery_human_friends_Human = {|
+              __typename: "Human",
+              hands: ?number,
+            |};
+        `);
     });
 
     describe('Input variables', () => {
