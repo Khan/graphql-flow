@@ -76,8 +76,8 @@ export const generateTypeFileContents = (
             (options.regenerateCommand
                 ? `// To regenerate, run '${options.regenerateCommand}'.\n`
                 : '') +
-            code.replace(/\s+$/gm, '');
-        if (options.splitTypes) {
+            code;
+        if (options.splitTypes && !isFragment) {
             fileContents +=
                 `\nexport type ${name} = ${typeName}['response'];\n` +
                 `export type ${name}Variables = ${typeName}['variables'];\n`;
@@ -87,7 +87,11 @@ export const generateTypeFileContents = (
         });
 
         addToIndex(targetPath, typeName);
-        files[targetPath] = fileContents.replace(/\s+$/g, '') + '\n';
+        files[targetPath] =
+            fileContents
+                // Remove whitespace from the ends of lines; babel's generate sometimes
+                // leaves them hanging around.
+                .replace(/\s+$/gm, '') + '\n';
     });
 
     return {files, indexContents};

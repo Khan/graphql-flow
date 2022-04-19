@@ -69,7 +69,7 @@ const sortedObjectTypeAnnotation = (
     );
     const name = config.path.join('_');
     const isTopLevelType = config.path.length <= 1;
-    if (config.allObjectTypes != null && !isTopLevelType) {
+    if (config.allObjectTypes != null && config.path.length > 1) {
         config.allObjectTypes[name] = obj;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     } else {
@@ -429,6 +429,36 @@ export const unionOrInterfaceToFlow = (
             selectedAttributes[0].attributes,
         );
     }
+    /**
+     * When generating the objects for the sub-options of a union, the path needs
+     * to include the name of the object type.
+     * ```
+     * query getFriend {
+     *     friend {
+     *         ... on Human { id }
+     *         ... on Droid { arms }
+     *     }
+     * }
+     * ```
+     * produces
+     * ```
+     * type getFriend = {friend: getFriend_friend_Human | getFriend_friend_Droid }
+     * type getFriend_friend_Human = {id: string}
+     * type getFriend_friend_Droid = {arms: number}
+     * ```
+     * Note that this is different from when an attribute has a plain object type.
+     * ```
+     * query getHuman {
+     *     me: human(id: "me") { id }
+     * }
+     * ```
+     * produces
+     * ```
+     * type getHuman = {me: getHuman_me}
+     * type getHuman_me = {id: string}
+     * ```
+     * instead of e.g. `getHuman_me_Human`.
+     */
     const result = babelTypes.unionTypeAnnotation(
         selectedAttributes.map(({typeName, attributes}) =>
             sortedObjectTypeAnnotation(
