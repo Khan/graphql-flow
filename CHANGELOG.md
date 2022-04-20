@@ -1,5 +1,16 @@
 # @khanacademy/graphql-flow
 
+## 0.2.0
+
+### Minor Changes
+
+-   d9a8229: Generate types for fragments!
+
+### Patch Changes
+
+-   7497164: Fix a bug in index file generation that resulted in duplicate entries
+-   26abf9b: Add options for specifying the name of the generated directory, and for exporting the response and variables types.
+
 ## 0.1.0
 
 ### Minor Changes
