@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 0.2.1
+
+### Patch Changes
+
+-   e8a8025: Add shebang to the exported binary, so that it runs
+
 ## 0.2.0
 
 ### Minor Changes
