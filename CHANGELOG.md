@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 0.2.2
+
+### Patch Changes
+
+-   31dd235: Compile for node 12 instead of 16
+
 ## 0.2.1
 
 ### Patch Changes
