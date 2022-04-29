@@ -60,7 +60,7 @@ describe('generateTypeFileContents', () => {
     });
 
     it('should respect the typeFileName option', () => {
-        const {indexContents, files} = generateTypeFileContents(
+        const {files} = generateTypeFileContents(
             'hello.js',
             exampleSchema,
             gql`
