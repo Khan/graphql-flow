@@ -9,7 +9,7 @@ import {getSchemas, loadConfigFile} from './config';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import {existsSync, mkdir, readFileSync, writeFileSync} from 'fs';
+import {existsSync, mkdir, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
@@ -181,9 +181,7 @@ if (validationFailures) {
 if (config.dumpOperations) {
     const dumpOperations = config.dumpOperations;
     const parent = dirname(dumpOperations);
-    if (!existsSync(parent)) {
-        mkdir(parent, {recursive: true});
-    }
+    mkdirSync(parent, {recursive: true});
     writeFileSync(
         dumpOperations,
         JSON.stringify(printedOperations.sort(), null, 2),
