@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 0.2.3
+
+### Patch Changes
+
+-   f5ea353: Add 'typeFileName' config option to fit the mobile repo's expectations
+
 ## 0.2.2
 
 ### Patch Changes
