@@ -9,7 +9,7 @@ import {getSchemas, loadConfigFile} from './config';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import {readFileSync} from 'fs';
+import {existsSync, readFileSync} from 'fs';
 import {type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
@@ -68,7 +68,15 @@ const inputFiles = cliFiles.length
 
 /** Step (2) */
 
-const files = processFiles(inputFiles, (f) => readFileSync(f, 'utf8'));
+const files = processFiles(inputFiles, (f) => {
+    if (existsSync(f)) {
+        return readFileSync(f, 'utf8');
+    }
+    if (existsSync(f + '.js')) {
+        return readFileSync(f + '.js', 'utf8');
+    }
+    throw new Error(`Unable to find ${f}`);
+});
 
 let filesHadErrors = false;
 Object.keys(files).forEach((key) => {

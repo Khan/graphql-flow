@@ -22,6 +22,7 @@ export type Options = {|
     splitTypes?: boolean,
     generatedDirectory?: string,
     exportAllObjectTypes?: boolean,
+    typeFileName?: string,
 |};
 
 export type Schema = {

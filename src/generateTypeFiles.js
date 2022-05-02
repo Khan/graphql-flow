@@ -20,6 +20,7 @@ export type ExternalOptions = {
     splitTypes?: boolean,
     generatedDirectory?: string,
     exportAllObjectTypes?: boolean,
+    typeFileName?: string,
 };
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
@@ -64,7 +65,9 @@ export const generateTypeFileContents = (
     generated.forEach(({name, typeName, code, isFragment, extraTypes}) => {
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
-        const targetFileName = `${name}.js`;
+        const targetFileName = options.typeFileName
+            ? options.typeFileName.replace('[operationName]', name)
+            : `${name}.js`;
         const targetPath = path.join(generatedDir, targetFileName);
 
         let fileContents =
@@ -160,6 +163,7 @@ export const processPragmas = (
             splitTypes: options.splitTypes,
             generatedDirectory: options.generatedDirectory,
             exportAllObjectTypes: options.exportAllObjectTypes,
+            typeFileName: options.typeFileName,
         };
     } else {
         return null;
