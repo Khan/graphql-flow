@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 0.2.4
+
+### Patch Changes
+
+-   843839c: Add 'dumpOperations' config option, to enable safelisting
+
 ## 0.2.3
 
 ### Patch Changes
