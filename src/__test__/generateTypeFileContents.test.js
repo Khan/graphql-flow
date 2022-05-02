@@ -70,7 +70,10 @@ describe('generateTypeFileContents', () => {
                     }
                 }
             `,
-            {splitTypes: true, typeFileName: 'prefix-[name]-suffix.js'},
+            {
+                splitTypes: true,
+                typeFileName: 'prefix-[operationName]-suffix.js',
+            },
             '__generated__',
             indexPrelude('yarn queries'),
         );

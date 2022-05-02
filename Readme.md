@@ -72,7 +72,7 @@ type Options = {
     exportAllObjectTypes?: boolean,
 
     // A template for the name of generated files
-    // default: [name].js
+    // default: [operationName].js
     typeFileName?: string,
 }
 ```

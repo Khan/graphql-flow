@@ -69,12 +69,13 @@ const inputFiles = cliFiles.length
 /** Step (2) */
 
 const files = processFiles(inputFiles, (f) => {
-    if (!existsSync(f)) {
-        if (existsSync(f + '.js')) {
-            return readFileSync(f + '.js', 'utf8');
-        }
+    if (existsSync(f)) {
+        return readFileSync(f, 'utf8');
     }
-    return readFileSync(f, 'utf8');
+    if (existsSync(f + '.js')) {
+        return readFileSync(f + '.js', 'utf8');
+    }
+    throw new Error(`Unable to find ${f}`);
 });
 
 let filesHadErrors = false;

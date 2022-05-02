@@ -66,7 +66,7 @@ export const generateTypeFileContents = (
         // We write all generated files to a `__generated__` subdir to keep
         // things tidy.
         const targetFileName = options.typeFileName
-            ? options.typeFileName.replace('[name]', name)
+            ? options.typeFileName.replace('[operationName]', name)
             : `${name}.js`;
         const targetPath = path.join(generatedDir, targetFileName);
 
