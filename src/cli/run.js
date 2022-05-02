@@ -184,5 +184,8 @@ if (config.dumpOperations) {
     if (!existsSync(parent)) {
         mkdir(parent, {recursive: true});
     }
-    writeFileSync(dumpOperations, JSON.stringify(printedOperations.sort()));
+    writeFileSync(
+        dumpOperations,
+        JSON.stringify(printedOperations.sort(), null, 2),
+    );
 }
