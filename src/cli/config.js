@@ -18,6 +18,7 @@ import path from 'path';
 export type CliConfig = {
     excludes: Array<RegExp>,
     schemaFilePath: string,
+    dumpOperations?: string,
     options: ExternalOptions,
 };
 
@@ -29,6 +30,7 @@ type JSONConfig = {
     excludes?: Array<string>,
     schemaFilePath: string,
     options?: ExternalOptions,
+    dumpOperations?: string,
 };
 
 export const loadConfigFile = (configFile: string): CliConfig => {
@@ -75,6 +77,7 @@ export const loadConfigFile = (configFile: string): CliConfig => {
             path.dirname(configFile),
             data.schemaFilePath,
         ),
+        dumpOperations: data.dumpOperations,
     };
 };
 

@@ -9,11 +9,12 @@ import {getSchemas, loadConfigFile} from './config';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import {existsSync, readFileSync} from 'fs';
+import {existsSync, mkdir, readFileSync, writeFileSync} from 'fs';
 import {type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
+import {dirname} from 'path';
 
 /**
  * This CLI tool executes the following steps:
@@ -111,6 +112,7 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 /** Step (4) */
 
 let validationFailures: number = 0;
+const printedOperations: Array<string> = [];
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
@@ -129,6 +131,7 @@ Object.keys(resolved).forEach((k) => {
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
     const printed = print(withTypeNames);
+    printedOperations.push(printed);
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */
@@ -170,4 +173,13 @@ if (validationFailures) {
     );
     // eslint-disable-next-line flowtype-errors/uncovered
     process.exit(1);
+}
+
+if (config.dumpOperations) {
+    const dumpOperations = config.dumpOperations;
+    const parent = dirname(dumpOperations);
+    if (!existsSync(parent)) {
+        mkdir(parent, {recursive: true});
+    }
+    writeFileSync(dumpOperations, JSON.stringify(printedOperations));
 }
