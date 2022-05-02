@@ -123,15 +123,18 @@ Object.keys(resolved).forEach((k) => {
         ({kind}) => kind !== 'FragmentDefinition',
     );
     const rawSource: string = raw.literals[0];
-    const processedOptions = processPragmas(config.options, rawSource);
-    if (!processedOptions) {
-        return;
-    }
 
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
     const printed = print(withTypeNames);
-    printedOperations.push(printed);
+    if (hasNonFragments && !printedOperations.includes(printed)) {
+        printedOperations.push(printed);
+    }
+
+    const processedOptions = processPragmas(config.options, rawSource);
+    if (!processedOptions) {
+        return;
+    }
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */
@@ -181,5 +184,5 @@ if (config.dumpOperations) {
     if (!existsSync(parent)) {
         mkdir(parent, {recursive: true});
     }
-    writeFileSync(dumpOperations, JSON.stringify(printedOperations));
+    writeFileSync(dumpOperations, JSON.stringify(printedOperations.sort()));
 }

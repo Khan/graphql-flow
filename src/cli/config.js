@@ -36,7 +36,12 @@ type JSONConfig = {
 export const loadConfigFile = (configFile: string): CliConfig => {
     // eslint-disable-next-line flowtype-errors/uncovered
     const data: JSONConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    const toplevelKeys = ['excludes', 'schemaFilePath', 'options'];
+    const toplevelKeys = [
+        'excludes',
+        'schemaFilePath',
+        'options',
+        'dumpOperations',
+    ];
     Object.keys(data).forEach((k) => {
         if (!toplevelKeys.includes(k)) {
             throw new Error(
