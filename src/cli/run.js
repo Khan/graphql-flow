@@ -9,11 +9,12 @@ import {getSchemas, loadConfigFile} from './config';
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
 import {execSync} from 'child_process';
-import {existsSync, readFileSync} from 'fs';
+import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {type DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
+import {dirname} from 'path';
 
 /**
  * This CLI tool executes the following steps:
@@ -111,6 +112,7 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 /** Step (4) */
 
 let validationFailures: number = 0;
+const printedOperations: Array<string> = [];
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
@@ -121,14 +123,18 @@ Object.keys(resolved).forEach((k) => {
         ({kind}) => kind !== 'FragmentDefinition',
     );
     const rawSource: string = raw.literals[0];
-    const processedOptions = processPragmas(config.options, rawSource);
-    if (!processedOptions) {
-        return;
-    }
 
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
     const printed = print(withTypeNames);
+    if (hasNonFragments && !printedOperations.includes(printed)) {
+        printedOperations.push(printed);
+    }
+
+    const processedOptions = processPragmas(config.options, rawSource);
+    if (!processedOptions) {
+        return;
+    }
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */
@@ -170,4 +176,14 @@ if (validationFailures) {
     );
     // eslint-disable-next-line flowtype-errors/uncovered
     process.exit(1);
+}
+
+if (config.dumpOperations) {
+    const dumpOperations = config.dumpOperations;
+    const parent = dirname(dumpOperations);
+    mkdirSync(parent, {recursive: true});
+    writeFileSync(
+        dumpOperations,
+        JSON.stringify(printedOperations.sort(), null, 2),
+    );
 }
