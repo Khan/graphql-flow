@@ -106,10 +106,13 @@ export const generateTypeFiles = (
     document: DocumentNode,
     options: Options,
 ) => {
-    const generatedDir = path.join(
-        path.dirname(fileName),
-        options.generatedDirectory ?? '__generated__',
-    );
+    const generatedDir =
+          path.isAbsolute(options.generatedDirectory ?? "")
+          ? path.join(options.generatedDirectory, path.dirname(fileName))
+          : path.join(
+              path.dirname(fileName),
+              options.generatedDirectory ?? '__generated__',
+          );
     const indexFile = path.join(generatedDir, 'index.js');
 
     if (!fs.existsSync(generatedDir)) {
