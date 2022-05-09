@@ -113,7 +113,7 @@ export const generateTypeFiles = (
               // for more reasonable filenames.  We convert leading ..'s
               // to `__` so this doesn't escape the output directory.
               path
-                .relative(process.cwd(), path.dirname(fileName))
+                  .relative(process.cwd(), path.dirname(fileName))
                   .replace(/\.\.\//g, '__/'),
           )
         : path.join(
