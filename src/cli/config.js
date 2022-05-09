@@ -78,10 +78,9 @@ export const loadConfigFile = (configFile: string): CliConfig => {
     return {
         options: data.options ?? {},
         excludes: data.excludes?.map((string) => new RegExp(string)) ?? [],
-        schemaFilePath: path.join(
-            path.dirname(configFile),
-            data.schemaFilePath,
-        ),
+        schemaFilePath: path.isAbsolute(data.schemaFilePath)
+            ? data.schemaFilePath
+            : path.join(path.dirname(configFile), data.schemaFilePath),
         dumpOperations: data.dumpOperations,
     };
 };
