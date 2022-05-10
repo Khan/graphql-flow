@@ -51,7 +51,7 @@ type Options = {
     // * if `generatedDirectory` is "__generated__", the output will
     //   be in /foo/bar/baz/__generated__/index.js and sibling files
     // * if `generatedDirectory` is "/tmp/__generated__", the output
-    //   will be in /tmp/__generated__/bar/baz/idnex.js and sibling
+    //   will be in /tmp/__generated__/bar/baz/index.js and sibling
     //   files.
     generatedDirectory: string = '__generated__',
 
