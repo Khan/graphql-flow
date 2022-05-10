@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 0.2.5
+
+### Patch Changes
+
+-   0df32ac: Allow generatedDir to be an absolute path
+
 ## 0.2.4
 
 ### Patch Changes
