@@ -42,7 +42,17 @@ type Options = {
     readOnlyArray: boolean = true,
     scalars: {[key: string]: 'string' | 'boolean' | 'number'}
 
-    // Specify the name of the generated types directory
+    // Specify the name of the generated types directory.  If this
+    // is a relative path, then this is used to suffix the output
+    // directory; if it's an absolute path it's used to prefix the
+    // output directory.  For instance, if a gql directive is
+    // found in /foo/bar/baz/query.js and you run the cli (or
+    // jest) from directory /foo, then:
+    // * if `generatedDirectory` is "__generated__", the output will
+    //   be in /foo/bar/baz/__generated__/index.js and sibling files
+    // * if `generatedDirectory` is "/tmp/__generated__", the output
+    //   will be in /tmp/__generated__/bar/baz/idnex.js and sibling
+    //   files.
     generatedDirectory: string = '__generated__',
 
     // The default generated type contains both the types of the response
