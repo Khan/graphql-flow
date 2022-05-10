@@ -100,26 +100,30 @@ export const generateTypeFileContents = (
     return {files, indexContents};
 };
 
+const getGeneratedDir = (fileName: string, options: Options) => {
+    const generatedDirectory = options.generatedDirectory ?? '__generated__';
+    if (path.isAbsolute(generatedDirectory)) {
+        // fileName is absolute here, so we make it relative to cwd
+        // for more reasonable filenames.  We convert leading ..'s
+        // to `__` so this doesn't escape the output directory.
+        return path.join(
+            generatedDirectory,
+            path
+                .relative(process.cwd(), path.dirname(fileName))
+                .replace(/\.\.\//g, '__/'),
+        );
+    } else {
+        return path.join(path.dirname(fileName), generatedDirectory);
+    }
+};
+
 export const generateTypeFiles = (
     fileName: string,
     schema: Schema,
     document: DocumentNode,
     options: Options,
 ) => {
-    const generatedDir = path.isAbsolute(options.generatedDirectory ?? '')
-        ? path.join(
-              options.generatedDirectory ?? '', // The '' is to quiet flow
-              // fileName is absolute here, so we make it relative to cwd
-              // for more reasonable filenames.  We convert leading ..'s
-              // to `__` so this doesn't escape the output directory.
-              path
-                  .relative(process.cwd(), path.dirname(fileName))
-                  .replace(/\.\.\//g, '__/'),
-          )
-        : path.join(
-              path.dirname(fileName),
-              options.generatedDirectory ?? '__generated__',
-          );
+    const generatedDir = getGeneratedDir(fileName, options);
     const indexFile = path.join(generatedDir, 'index.js');
 
     if (!fs.existsSync(generatedDir)) {
