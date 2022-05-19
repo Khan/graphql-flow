@@ -18,15 +18,20 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: Khan/actions@shared-node-cache-v0
-      id: setup
       with:
         node-version: ${{ matrix.node-version }}
+
+    - name: Get All Changed Files
+      uses: jaredly/get-changed-files@absolute
+      id: changed
+      with:
+        format: 'json'
 
     - id: js-files
       name: Find .js changed files
       uses: Khan/actions@filter-files-v0
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.changed.outputs.added_modified }}
         extensions: '.js'
 
     - name: Run Flow
@@ -37,7 +42,7 @@ jobs:
       uses: Khan/actions@filter-files-v0
       name: Files that would trigger a full eslint run
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.changed.outputs.added_modified }}
         files: '.eslintrc.js,package.json,.eslintignore'
 
     - name: Eslint
@@ -52,7 +57,7 @@ jobs:
       uses: Khan/actions@filter-files-v0
       name: Files that would trigger a full jest run
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.changed.outputs.added_modified }}
         files: 'package.json,package-lock.json'
 
     - name: Jest
