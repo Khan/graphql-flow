@@ -4,7 +4,7 @@
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {getSchemas, loadConfigFile} from './config';
+import {loadDirConfigFiles, getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
@@ -58,6 +58,10 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
 }
 
 const config = loadConfigFile(configFile);
+const dirConfigMap = loadDirConfigFiles(process.cwd(), {
+    config,
+    path: configFile,
+});
 
 const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
     config.schemaFilePath,
@@ -116,7 +120,17 @@ const printedOperations: Array<string> = [];
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
-    if (config.excludes.some((rx) => rx.test(raw.loc.path))) {
+
+    let fileConfig = config;
+    const deepestConfigPath = Object.keys(dirConfigMap).reduce(
+        (a: string, b: string) => (a.length < b.length ? b : a),
+        '',
+    ); // get longest match in the case of nested config overrides
+    if (deepestConfigPath) {
+        fileConfig = dirConfigMap[deepestConfigPath];
+    }
+
+    if (fileConfig.excludes.some((rx) => rx.test(raw.loc.path))) {
         return; // skip
     }
     const hasNonFragments = document.definitions.some(
@@ -131,7 +145,7 @@ Object.keys(resolved).forEach((k) => {
         printedOperations.push(printed);
     }
 
-    const processedOptions = processPragmas(config.options, rawSource);
+    const processedOptions = processPragmas(fileConfig.options, rawSource);
     if (!processedOptions) {
         return;
     }
