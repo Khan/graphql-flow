@@ -29,6 +29,8 @@ import {dirname} from 'path';
 
 /** Step (1) */
 
+let x: string = 10;
+
 const findGraphqlTagReferences = (root: string): Array<string> => {
     const response = execSync(
         "git grep -I --word-regexp --name-only --fixed-strings 'graphql-tag' -- '*.js' '*.jsx'",
