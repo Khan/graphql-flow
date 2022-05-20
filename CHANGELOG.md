@@ -1,5 +1,12 @@
 # @khanacademy/graphql-flow
 
+## 0.3.0
+
+### Minor Changes
+
+-   Users will be able to add files with the name `graphql-flow.config.js` with a subset of the config fields (`options`, `excludes`) in order to have more granular control of the behavior of the generator.
+    Another field, `extends`, takes the path of another sub-config (or the root config) and uses that config as a base to add or replace option fields and add new excludes. If no `extends` is provided, the file completely overwrites any other config files (as far as `options` and `excludes`).
+
 ## 0.2.5
 
 ### Patch Changes
