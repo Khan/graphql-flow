@@ -15,6 +15,7 @@ import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
 import {dirname} from 'path';
+import {longestMatchingPath} from './utils';
 
 /**
  * This CLI tool executes the following steps:
@@ -58,7 +59,14 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
 }
 
 const config = loadConfigFile(configFile);
-const dirConfigMap = loadDirConfigFiles(process.cwd(), {
+
+// find file paths ending with "graphql-flow.config.json"
+const subConfigsQuery = () =>
+    execSync('git ls-files "*graphql-flow.config.json"', {
+        encoding: 'utf8',
+        cwd: process.cwd(),
+    });
+const subConfigMap = loadDirConfigFiles(subConfigsQuery(), {
     config,
     path: configFile,
 });
@@ -122,12 +130,12 @@ Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
 
     let fileConfig = config;
-    const deepestConfigPath = Object.keys(dirConfigMap).reduce(
-        (a: string, b: string) => (a.length < b.length ? b : a),
-        '',
-    ); // get longest match in the case of nested config overrides
-    if (deepestConfigPath) {
-        fileConfig = dirConfigMap[deepestConfigPath];
+    const closestConfigPath = longestMatchingPath(
+        raw.loc.path,
+        Object.keys(subConfigMap),
+    ); // get longest match in the case of nested subconfigs
+    if (closestConfigPath) {
+        fileConfig = subConfigMap[closestConfigPath];
     }
 
     if (fileConfig.excludes.some((rx) => rx.test(raw.loc.path))) {

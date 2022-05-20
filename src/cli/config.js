@@ -14,7 +14,6 @@ import {
     type IntrospectionQuery,
 } from 'graphql';
 import path from 'path';
-import {execSync} from 'child_process';
 
 export type CliConfig = {
     excludes: Array<RegExp>,
@@ -80,9 +79,10 @@ type SubConfig = {
 };
 
 export const loadSubConfigFile = (configFile: string): SubConfig => {
+    const jsonData = fs.readFileSync(configFile, 'utf8');
     // eslint-disable-next-line flowtype-errors/uncovered
-    const data: JSONSubConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    const toplevelKeys = ['options', 'extends'];
+    const data: JSONSubConfig = JSON.parse(jsonData);
+    const toplevelKeys = ['excludes', 'options', 'extends'];
     Object.keys(data).forEach((k) => {
         if (!toplevelKeys.includes(k)) {
             throw new Error(
@@ -101,18 +101,13 @@ export const loadSubConfigFile = (configFile: string): SubConfig => {
 };
 
 export const loadDirConfigFiles = (
-    root: string,
+    filesResponse: string,
     rootConfig: {path: string, config: CliConfig},
 ): {[dir: string]: SubConfig} => {
     const dirConfigMap: {[key: string]: SubConfig} = {};
-    // find file paths ending with "graphql-flow.config.json"
-    const response = execSync('git ls-files "*graphql-flow.config.json"', {
-        encoding: 'utf8',
-        cwd: root,
-    });
 
     // TODO: circular extends will cause infinite loop... consider instrumenting code to monitor for loops in the future?
-    const loadExtendedConfig = (configPath): SubConfig => {
+    const loadExtendedConfig = (configPath: string): SubConfig => {
         let dirConfig = loadSubConfigFile(configPath);
         if (dirConfig.extends) {
             const isRootConfig = dirConfig.extends === rootConfig.path;
@@ -124,11 +119,12 @@ export const loadDirConfigFiles = (
         return dirConfig;
     };
     const addConfig = (configPath) => {
-        if (dirConfigMap[configPath]) {
-            return dirConfigMap[configPath];
+        const {dir} = path.parse(configPath);
+        if (dirConfigMap[dir]) {
+            return dirConfigMap[dir];
         }
-        dirConfigMap[configPath] = loadExtendedConfig(configPath);
-        return dirConfigMap[configPath];
+        dirConfigMap[dir] = loadExtendedConfig(configPath);
+        return dirConfigMap[dir];
     };
     const extendConfig = (
         toExtend: SubConfig,
@@ -137,14 +133,11 @@ export const loadDirConfigFiles = (
         // $FlowFixMe[exponential-spread]
         options: {...toExtend.options, ...current.options},
         excludes: Array.from(
-            new Set([
-                ...(toExtend.excludes ?? []),
-                ...(current.excludes ?? []),
-            ]),
+            new Set([...toExtend.excludes, ...current.excludes]),
         ),
     });
 
-    response
+    filesResponse
         .trim()
         .split('\n')
         .forEach((configPath) => {
