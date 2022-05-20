@@ -406,6 +406,24 @@ declare module '@babel/types' {
         params: Array<BabelNodeFlowType>,
     ): BabelNodeTypeParameterInstantiation;
 
+    declare function enumDeclaration(
+        id: BabelNodeIdentifier,
+        body:
+            | BabelNodeEnumBooleanBody
+            | BabelNodeEnumNumberBody
+            | BabelNodeEnumStringBody
+            | BabelNodeEnumSymbolBody,
+    ): BabelNodeEnumDeclaration;
+    declare function enumStringBody(
+        members: Array<
+            BabelNodeEnumStringMember | BabelNodeEnumDefaultedMember,
+        >,
+    ): BabelNodeEnumStringBody;
+    declare function enumStringMember(
+        id: BabelNodeIdentifier,
+        init: BabelNodeStringLiteral,
+    ): BabelNodeEnumStringMember;
+
     /*
     NOTE(jared): There's something weird in the following couple hundred lines
     that makes flow ignore this whole file 🙃.

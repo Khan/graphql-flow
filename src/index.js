@@ -116,10 +116,12 @@ export const documentToFlowTypes = (
                     allObjectTypes: options?.exportAllObjectTypes
                         ? types
                         : null,
+                    experimentalEnums: options?.experimentalEnums,
                 });
                 const variables = generateVariablesType(schema, item, {
                     ...config,
                     path: [name],
+                    experimentalEnums: options?.experimentalEnums,
                 });
 
                 const typeName = `${name}Type`;

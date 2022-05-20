@@ -23,6 +23,7 @@ export type Options = {|
     generatedDirectory?: string,
     exportAllObjectTypes?: boolean,
     typeFileName?: string,
+    experimentalEnums?: boolean, // default false
 |};
 
 export type Schema = {
@@ -58,5 +59,7 @@ export type Config = {
     scalars: Scalars,
     errors: Array<string>,
     allObjectTypes: null | {[key: string]: BabelNode},
+
+    experimentalEnums?: boolean, // null is acceptable as falsy
 };
 export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};

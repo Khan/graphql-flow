@@ -3,9 +3,33 @@
  * Both input & output types can have enums & scalars.
  */
 import * as babelTypes from '@babel/types';
-import {type BabelNodeFlowType} from '@babel/types';
+import { type BabelNodeFlowType, BabelNodeIdentifier } from "@babel/types";
 import type {Config} from './types';
 import {maybeAddDescriptionComment} from './utils';
+import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
+import type {BabelNodeIdentifier} from '@babel/types';
+
+export const experimentalEnumTypeToFlow = (
+    config: Config,
+    enumConfig: IntrospectionEnumType,
+    description: string,
+): BabelNodeFlowType => {
+    const enumDeclaration = babelTypes.enumDeclaration(
+        babelTypes.identifier(enumConfig.name),
+        babelTypes.enumStringBody(
+            enumConfig.enumValues.map((v) =>
+                babelTypes.enumStringMember(
+                    babelTypes.identifier(enumConfig.name),
+                    babelTypes.stringLiteral(v.name)
+                ),
+            ),
+        ),
+    );
+    return maybeAddDescriptionComment(
+        description,
+        enumDeclaration.id
+    );
+};
 
 export const enumTypeToFlow = (
     config: Config,
@@ -25,14 +49,24 @@ export const enumTypeToFlow = (
         combinedDescription =
             enumConfig.description + '\n\n' + combinedDescription;
     }
-    return maybeAddDescriptionComment(
-        combinedDescription,
-        babelTypes.unionTypeAnnotation(
-            enumConfig.enumValues.map((n) =>
-                babelTypes.stringLiteralTypeAnnotation(n.name),
-            ),
-        ),
-    );
+
+    if (config.experimentalEnums) {
+        return experimentalEnumTypeToFlow(
+            config,
+            enumConfig,
+            combinedDescription,
+        );
+    }
+    return config.experimentalEnums
+        ? experimentalEnumTypeToFlow(config, enumConfig, combinedDescription)
+        : maybeAddDescriptionComment(
+              combinedDescription,
+              babelTypes.unionTypeAnnotation(
+                  enumConfig.enumValues.map((n) =>
+                      babelTypes.stringLiteralTypeAnnotation(n.name),
+                  ),
+              ),
+          );
 };
 
 export const builtinScalars: {[key: string]: string} = {

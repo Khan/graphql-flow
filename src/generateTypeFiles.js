@@ -21,6 +21,7 @@ export type ExternalOptions = {
     generatedDirectory?: string,
     exportAllObjectTypes?: boolean,
     typeFileName?: string,
+    experimentalEnums?: boolean,
 };
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
@@ -178,6 +179,7 @@ export const processPragmas = (
             generatedDirectory: options.generatedDirectory,
             exportAllObjectTypes: options.exportAllObjectTypes,
             typeFileName: options.typeFileName,
+            experimentalEnums: options.experimentalEnums,
         };
     } else {
         return null;

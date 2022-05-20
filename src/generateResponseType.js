@@ -115,11 +115,7 @@ export const generateFragmentType = (
     return generate(ast).code;
 };
 
-const _typeToFlow = (
-    config: Config,
-    type,
-    selection,
-): babelTypes.BabelNodeFlowType => {
+const _typeToFlow = (config: Config, type, selection): babelTypes.BabelNode => {
     if (type.kind === 'SCALAR') {
         return scalarTypeToFlow(config, type.name);
     }
@@ -190,7 +186,7 @@ export const typeToFlow = (
     config: Config,
     type: IntrospectionOutputTypeRef,
     selection: FieldNode,
-): babelTypes.BabelNodeFlowType => {
+): babelTypes.BabelNode => {
     // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
         return _typeToFlow(config, type.ofType, selection);
