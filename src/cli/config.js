@@ -192,6 +192,7 @@ const validateOptions = (
             'generatedDirectory',
             'exportAllObjectTypes',
             'typeFileName',
+            'experimentalEnums',
         ];
         Object.keys(options).forEach((k) => {
             if (!externalOptionsKeys.includes(k)) {

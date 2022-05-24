@@ -91,13 +91,19 @@ export const generateTypeFileContents = (
                 (name) =>
                     (fileContents += `\n\nexport type ${name} = ${extraTypes[name]};`),
             );
-            Object.keys(experimentalEnums).forEach(
+            const enumNames = Object.keys(experimentalEnums);
+            if (options.experimentalEnums && enumNames.length) {
                 // TODO(somewhatabstract, FEI-4172): Update to fixed eslint-plugin-flowtype
                 // and remove this disable.
-                (name) =>
-                    (fileContents += `\n\n/* eslint-disable no-undef */\nexport ${experimentalEnums[name]};\n/* eslint-enable no-undef */
-                    `).replace(/ +/, ''),
-            );
+                fileContents += `\n\n/* eslint-disable no-undef */`;
+                enumNames.forEach((name) =>
+                    (fileContents += `\nexport ${experimentalEnums[name]};\n`).replace(
+                        / +/,
+                        '',
+                    ),
+                );
+                fileContents += `/* eslint-enable no-undef */`;
+            }
 
             addToIndex(targetPath, typeName);
             files[targetPath] =
