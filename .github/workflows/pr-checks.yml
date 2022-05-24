@@ -17,16 +17,21 @@ jobs:
         node-version: [16.x]
     steps:
     - uses: actions/checkout@v2
-    - uses: ./.github/actions/setup
-      id: setup
+    - uses: Khan/actions@shared-node-cache-v0
       with:
         node-version: ${{ matrix.node-version }}
 
+    - name: Get All Changed Files
+      uses: jaredly/get-changed-files@absolute
+      id: changed
+      with:
+        format: 'json'
+
     - id: js-files
       name: Find .js changed files
-      uses: ./.github/actions/filter-files
+      uses: Khan/actions@filter-files-v0
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.changed.outputs.added_modified }}
         extensions: '.js'
 
     - name: Run Flow
@@ -34,14 +39,14 @@ jobs:
       run: yarn flow
 
     - id: eslint-reset
-      uses: ./.github/actions/filter-files
+      uses: Khan/actions@filter-files-v0
       name: Files that would trigger a full eslint run
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.changed.outputs.added_modified }}
         files: '.eslintrc.js,package.json,.eslintignore'
 
     - name: Eslint
-      uses: ./.github/actions/full-or-limited
+      uses: Khan/actions@full-or-limited-v0
       with:
         full-trigger: ${{ steps.eslint-reset.outputs.filtered }}
         full: yarn eslint
@@ -49,14 +54,14 @@ jobs:
         limited: yarn eslint {}
 
     - id: jest-reset
-      uses: ./.github/actions/filter-files
+      uses: Khan/actions@filter-files-v0
       name: Files that would trigger a full jest run
       with:
-        changed-files: ${{ steps.setup.outputs.changed_files }}
+        changed-files: ${{ steps.changed.outputs.added_modified }}
         files: 'package.json,package-lock.json'
 
     - name: Jest
-      uses: ./.github/actions/full-or-limited
+      uses: Khan/actions@full-or-limited-v0
       with:
         full-trigger: ${{ steps.jest-reset.outputs.filtered }}
         full: yarn jest
