@@ -3,11 +3,10 @@
  * Both input & output types can have enums & scalars.
  */
 import * as babelTypes from '@babel/types';
-import { type BabelNodeFlowType, BabelNodeIdentifier } from "@babel/types";
+import type {BabelNodeFlowType} from '@babel/types';
 import type {Config} from './types';
 import {maybeAddDescriptionComment} from './utils';
 import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
-import type {BabelNodeIdentifier} from '@babel/types';
 
 export const experimentalEnumTypeToFlow = (
     config: Config,
@@ -15,19 +14,22 @@ export const experimentalEnumTypeToFlow = (
     description: string,
 ): BabelNodeFlowType => {
     const enumDeclaration = babelTypes.enumDeclaration(
+        // pass id into generic type annotation
         babelTypes.identifier(enumConfig.name),
         babelTypes.enumStringBody(
             enumConfig.enumValues.map((v) =>
-                babelTypes.enumStringMember(
-                    babelTypes.identifier(enumConfig.name),
-                    babelTypes.stringLiteral(v.name)
-                ),
+                babelTypes.enumDefaultedMember(babelTypes.identifier(v.name)),
             ),
         ),
     );
+
+    if (config.experimentalEnumsMap) {
+        config.experimentalEnumsMap[enumConfig.name] = enumDeclaration;
+    }
+
     return maybeAddDescriptionComment(
         description,
-        enumDeclaration.id
+        babelTypes.genericTypeAnnotation(enumDeclaration.id),
     );
 };
 
@@ -50,14 +52,8 @@ export const enumTypeToFlow = (
             enumConfig.description + '\n\n' + combinedDescription;
     }
 
-    if (config.experimentalEnums) {
-        return experimentalEnumTypeToFlow(
-            config,
-            enumConfig,
-            combinedDescription,
-        );
-    }
-    return config.experimentalEnums
+    // mutate config.experimentalEnums to nullable object, add declaration there
+    return config.experimentalEnumsMap
         ? experimentalEnumTypeToFlow(config, enumConfig, combinedDescription)
         : maybeAddDescriptionComment(
               combinedDescription,

@@ -60,6 +60,6 @@ export type Config = {
     errors: Array<string>,
     allObjectTypes: null | {[key: string]: BabelNode},
 
-    experimentalEnums?: boolean, // null is acceptable as falsy
+    experimentalEnumsMap?: {[key: string]: BabelNode}, // index signature that is populated with declarations
 };
 export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};

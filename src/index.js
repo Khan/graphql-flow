@@ -15,6 +15,7 @@ import {
     generateResponseType,
 } from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
+import type {BabelNode} from '@babel/types';
 export {spyOnGraphqlTagToCollectQueries} from './jest-mock-graphql-tag';
 
 import type {Config, Options, Schema} from './types';
@@ -42,6 +43,7 @@ const optionsToConfig = (
         errors,
         allObjectTypes: null,
         path: [],
+        experimentalEnumsMap: options?.experimentalEnums ? {} : undefined,
         ...internalOptions,
     };
 
@@ -66,6 +68,7 @@ export const documentToFlowTypes = (
     code: string,
     isFragment?: boolean,
     extraTypes: {[key: string]: string},
+    experimentalEnums: {[key: string]: string},
 }> => {
     const errors: Array<string> = [];
     const config = optionsToConfig(
@@ -90,17 +93,19 @@ export const documentToFlowTypes = (
                             : null,
                     },
                 )};`;
-                const extraTypes: {[key: string]: string} = {};
-                Object.keys(types).forEach((k) => {
-                    // eslint-disable-next-line flowtype-errors/uncovered
-                    extraTypes[k] = generate(types[k]).code;
-                });
+
+                const extraTypes = processExtraTypes(types);
+                const experimentalEnums = processExtraTypes(
+                    config.experimentalEnumsMap || {},
+                );
+
                 return {
                     name,
                     typeName: name,
                     code,
                     isFragment: true,
                     extraTypes,
+                    experimentalEnums,
                 };
             }
             if (
@@ -116,12 +121,10 @@ export const documentToFlowTypes = (
                     allObjectTypes: options?.exportAllObjectTypes
                         ? types
                         : null,
-                    experimentalEnums: options?.experimentalEnums,
                 });
                 const variables = generateVariablesType(schema, item, {
                     ...config,
                     path: [name],
-                    experimentalEnums: options?.experimentalEnums,
                 });
 
                 const typeName = `${name}Type`;
@@ -129,12 +132,12 @@ export const documentToFlowTypes = (
                 // We'll see what's required to get webapp on board.
                 const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
 
-                const extraTypes: {[key: string]: string} = {};
-                Object.keys(types).forEach((k) => {
-                    // eslint-disable-next-line flowtype-errors/uncovered
-                    extraTypes[k] = generate(types[k]).code;
-                });
-                return {name, typeName, code, extraTypes};
+                const extraTypes = processExtraTypes(types);
+                const experimentalEnums = processExtraTypes(
+                    config.experimentalEnumsMap || {},
+                );
+
+                return {name, typeName, code, extraTypes, experimentalEnums};
             }
         })
         .filter(Boolean);
@@ -143,3 +146,14 @@ export const documentToFlowTypes = (
     }
     return result;
 };
+
+function processExtraTypes(types: {[key: string]: BabelNode}): {
+    [key: string]: string,
+} {
+    const extraTypes: {[key: string]: string} = {};
+    Object.keys(types).forEach((k: string) => {
+        // eslint-disable-next-line flowtype-errors/uncovered
+        extraTypes[k] = generate(types[k]).code;
+    });
+    return extraTypes;
+}

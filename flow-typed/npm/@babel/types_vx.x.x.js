@@ -419,10 +419,9 @@ declare module '@babel/types' {
             BabelNodeEnumStringMember | BabelNodeEnumDefaultedMember,
         >,
     ): BabelNodeEnumStringBody;
-    declare function enumStringMember(
+    declare function enumDefaultedMember(
         id: BabelNodeIdentifier,
-        init: BabelNodeStringLiteral,
-    ): BabelNodeEnumStringMember;
+    ): BabelNodeEnumDefaultedMember;
 
     /*
     NOTE(jared): There's something weird in the following couple hundred lines
@@ -680,9 +679,6 @@ declare module '@babel/types' {
         id: BabelNodeIdentifier,
         init: BabelNodeStringLiteral,
     ): BabelNodeEnumStringMember;
-    declare function enumDefaultedMember(
-        id: BabelNodeIdentifier,
-    ): BabelNodeEnumDefaultedMember;
     declare function jsxAttribute(
         name: BabelNodeJSXIdentifier | BabelNodeJSXNamespacedName,
         value?:
