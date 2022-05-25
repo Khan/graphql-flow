@@ -96,11 +96,9 @@ export const generateTypeFileContents = (
                 // TODO(somewhatabstract, FEI-4172): Update to fixed eslint-plugin-flowtype
                 // and remove this disable.
                 fileContents += `\n\n/* eslint-disable no-undef */`;
-                enumNames.forEach((name) =>
-                    (fileContents += `\nexport ${experimentalEnums[name]};\n`).replace(
-                        / +/,
-                        '',
-                    ),
+                enumNames.forEach(
+                    (name) =>
+                        (fileContents += `\nexport ${experimentalEnums[name]};\n`),
                 );
                 fileContents += `/* eslint-enable no-undef */`;
             }

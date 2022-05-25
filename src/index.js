@@ -94,8 +94,8 @@ export const documentToFlowTypes = (
                     },
                 )};`;
 
-                const extraTypes = processExtraTypes(types);
-                const experimentalEnums = processExtraTypes(
+                const extraTypes = codegenExtraTypes(types);
+                const experimentalEnums = codegenExtraTypes(
                     config.experimentalEnumsMap || {},
                 );
 
@@ -132,8 +132,8 @@ export const documentToFlowTypes = (
                 // We'll see what's required to get webapp on board.
                 const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
 
-                const extraTypes = processExtraTypes(types);
-                const experimentalEnums = processExtraTypes(
+                const extraTypes = codegenExtraTypes(types);
+                const experimentalEnums = codegenExtraTypes(
                     config.experimentalEnumsMap || {},
                 );
 
@@ -147,7 +147,7 @@ export const documentToFlowTypes = (
     return result;
 };
 
-function processExtraTypes(types: {[key: string]: BabelNode}): {
+function codegenExtraTypes(types: {[key: string]: BabelNode}): {
     [key: string]: string,
 } {
     const extraTypes: {[key: string]: string} = {};
