@@ -3,9 +3,35 @@
  * Both input & output types can have enums & scalars.
  */
 import * as babelTypes from '@babel/types';
-import {type BabelNodeFlowType} from '@babel/types';
+import type {BabelNodeFlowType} from '@babel/types';
 import type {Config} from './types';
 import {maybeAddDescriptionComment} from './utils';
+import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
+
+export const experimentalEnumTypeToFlow = (
+    config: Config,
+    enumConfig: IntrospectionEnumType,
+    description: string,
+): BabelNodeFlowType => {
+    const enumDeclaration = babelTypes.enumDeclaration(
+        // pass id into generic type annotation
+        babelTypes.identifier(enumConfig.name),
+        babelTypes.enumStringBody(
+            enumConfig.enumValues.map((v) =>
+                babelTypes.enumDefaultedMember(babelTypes.identifier(v.name)),
+            ),
+        ),
+    );
+
+    if (config.experimentalEnumsMap) {
+        config.experimentalEnumsMap[enumConfig.name] = enumDeclaration;
+    }
+
+    return maybeAddDescriptionComment(
+        description,
+        babelTypes.genericTypeAnnotation(enumDeclaration.id),
+    );
+};
 
 export const enumTypeToFlow = (
     config: Config,
@@ -25,14 +51,17 @@ export const enumTypeToFlow = (
         combinedDescription =
             enumConfig.description + '\n\n' + combinedDescription;
     }
-    return maybeAddDescriptionComment(
-        combinedDescription,
-        babelTypes.unionTypeAnnotation(
-            enumConfig.enumValues.map((n) =>
-                babelTypes.stringLiteralTypeAnnotation(n.name),
-            ),
-        ),
-    );
+
+    return config.experimentalEnumsMap
+        ? experimentalEnumTypeToFlow(config, enumConfig, combinedDescription)
+        : maybeAddDescriptionComment(
+              combinedDescription,
+              babelTypes.unionTypeAnnotation(
+                  enumConfig.enumValues.map((n) =>
+                      babelTypes.stringLiteralTypeAnnotation(n.name),
+                  ),
+              ),
+          );
 };
 
 export const builtinScalars: {[key: string]: string} = {
