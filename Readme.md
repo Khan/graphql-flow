@@ -104,6 +104,11 @@ type Options = {
     // A template for the name of generated files
     // default: [operationName].js
     typeFileName?: string,
+
+    // Generate flow enums to replace literal unions in generated types. Exports
+    // each set of enums from each file regardless of other options. Designated
+    // "experimental" because of bug in eslint that requires config comments.
+    experimentalEnums?: boolean,
 }
 ```
 
