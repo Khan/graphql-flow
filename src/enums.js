@@ -52,7 +52,6 @@ export const enumTypeToFlow = (
             enumConfig.description + '\n\n' + combinedDescription;
     }
 
-    // mutate config.experimentalEnums to nullable object, add declaration there
     return config.experimentalEnumsMap
         ? experimentalEnumTypeToFlow(config, enumConfig, combinedDescription)
         : maybeAddDescriptionComment(
