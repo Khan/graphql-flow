@@ -23,6 +23,26 @@ Write a config file, with the following options:
 }
 ```
 
+Optionally add subconfig files to subdirectories for granular control of behavior, with the following options:
+
+```json
+{
+    // Note that this file must be named, or end with, "graphql-flow.config.json"
+    // I.e., "my-service.graphql.config.json" would also work.
+    // These files will affect the directory in which they are located and all subdirectories, unless overridden by a deeper subconfig.
+
+    // Optionally add the path of another config file. Can be the root config (provided when running the script) or any other subconfig to merge options.
+    // If a chain of extends are provided, will resolve in order. Be sure not to extend in a circle-- currently, this will just cause a stack overflow error. 
+    // Cannot currently override `schemaFilePath`.
+    "extends": "./another/config/from/root.config.json",
+    // Can extend or override `excludes` and `options`.
+    "excludes": ["\\bsome-thing", "_test.jsx?$"],
+    "options": {
+        ...
+    }
+}
+```
+
 Then run from the CLI, like so:
 
 ```bash

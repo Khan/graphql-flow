@@ -4,7 +4,7 @@
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {getSchemas, loadConfigFile} from './config';
+import {loadDirConfigFiles, getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
@@ -15,6 +15,7 @@ import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
 import {dirname} from 'path';
+import {longestMatchingPath} from './utils';
 
 /**
  * This CLI tool executes the following steps:
@@ -58,6 +59,17 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
 }
 
 const config = loadConfigFile(configFile);
+
+// find file paths ending with "graphql-flow.config.json"
+const subConfigsQuery = () =>
+    execSync('git ls-files "*graphql-flow.config.json"', {
+        encoding: 'utf8',
+        cwd: process.cwd(),
+    });
+const subConfigMap = loadDirConfigFiles(subConfigsQuery(), {
+    config,
+    path: configFile,
+});
 
 const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
     config.schemaFilePath,
@@ -116,7 +128,17 @@ const printedOperations: Array<string> = [];
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
-    if (config.excludes.some((rx) => rx.test(raw.loc.path))) {
+
+    let fileConfig = config;
+    const closestConfigPath = longestMatchingPath(
+        raw.loc.path,
+        Object.keys(subConfigMap),
+    ); // get longest match in the case of nested subconfigs
+    if (closestConfigPath) {
+        fileConfig = subConfigMap[closestConfigPath];
+    }
+
+    if (fileConfig.excludes.some((rx) => rx.test(raw.loc.path))) {
         return; // skip
     }
     const hasNonFragments = document.definitions.some(
@@ -131,7 +153,7 @@ Object.keys(resolved).forEach((k) => {
         printedOperations.push(printed);
     }
 
-    const processedOptions = processPragmas(config.options, rawSource);
+    const processedOptions = processPragmas(fileConfig.options, rawSource);
     if (!processedOptions) {
         return;
     }
