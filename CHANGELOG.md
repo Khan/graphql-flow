@@ -1,5 +1,12 @@
 # @khanacademy/graphql-flow
 
+## 0.3.0
+
+### Minor Changes
+
+-   093fa5f: Enable `experimentalEnums` in a config or subconfig file in to enable the export of flow enum types, which replace the default string union literals. The type currently comes with eslint decorators to skirt a bug in eslint and flow.
+-   5078624: Users can add files with the name ending in `graphql-flow.config.js` with a subset of the config fields (`options`, `excludes`) in order to have more granular control of the behavior. Another field, `extends`, takes the path of another config file to use as a base and extends/overrides fields. If no `extends` is provided, the file completely overwrites any other config files (as far as `options` and `excludes`).
+
 ## 0.2.5
 
 ### Patch Changes
