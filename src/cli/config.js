@@ -4,7 +4,7 @@ import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
-import jsonSchema from './config.json';
+import jsonSchema from './schema.json';
 
 import fs from 'fs';
 import {
