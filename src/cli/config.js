@@ -4,6 +4,7 @@ import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
+import jsonSchema from './config.json';
 
 import fs from 'fs';
 import {
@@ -14,6 +15,7 @@ import {
     type IntrospectionQuery,
 } from 'graphql';
 import path from 'path';
+import {validate} from 'jsonschema';
 
 export type CliConfig = {
     excludes: Array<RegExp>,
@@ -33,25 +35,19 @@ type JSONConfig = {
     dumpOperations?: string,
 };
 
+export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
+    const result = validate(value, jsonSchema);
+    if (!result.valid) {
+        throw new Error(
+            result.errors.map((error) => error.toString()).join('\n'),
+        );
+    }
+};
+
 export const loadConfigFile = (configFile: string): CliConfig => {
     // eslint-disable-next-line flowtype-errors/uncovered
     const data: JSONConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    const toplevelKeys = [
-        'excludes',
-        'schemaFilePath',
-        'options',
-        'dumpOperations',
-    ];
-    Object.keys(data).forEach((k) => {
-        if (!toplevelKeys.includes(k)) {
-            throw new Error(
-                `Invalid attribute in config file ${configFile}: ${k}. Allowed attributes: ${toplevelKeys.join(
-                    ', ',
-                )}`,
-            );
-        }
-    });
-    validateOptions(configFile, data.options ?? {});
+    validateOrThrow(data, jsonSchema);
     return {
         options: data.options ?? {},
         excludes: data.excludes?.map((string) => new RegExp(string)) ?? [],
@@ -78,6 +74,9 @@ type SubConfig = {
     extends?: string,
 };
 
+const subSchema = {...jsonSchema, required: []};
+subSchema.properties = {...jsonSchema.properties, extends: {type: 'string'}};
+
 export const loadSubConfigFile = (configFile: string): SubConfig => {
     const jsonData = fs.readFileSync(configFile, 'utf8');
     // eslint-disable-next-line flowtype-errors/uncovered
@@ -92,7 +91,7 @@ export const loadSubConfigFile = (configFile: string): SubConfig => {
             );
         }
     });
-    validateOptions(configFile, data.options ?? {});
+    validateOrThrow(data, subSchema);
     return {
         excludes: data.excludes?.map((string) => new RegExp(string)) ?? [],
         options: data.options ?? {},
@@ -172,36 +171,5 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
         const schemaForTypeGeneration =
             schemaFromIntrospectionData(introspectionData);
         return [schemaForValidation, schemaForTypeGeneration];
-    }
-};
-
-const validateOptions = (
-    configFile: string,
-    options: ExternalOptions,
-): void => {
-    if (options) {
-        const externalOptionsKeys = [
-            'pragma',
-            'loosePragma',
-            'ignorePragma',
-            'scalars',
-            'strictNullability',
-            'regenerateCommand',
-            'readOnlyArray',
-            'splitTypes',
-            'generatedDirectory',
-            'exportAllObjectTypes',
-            'typeFileName',
-            'experimentalEnums',
-        ];
-        Object.keys(options).forEach((k) => {
-            if (!externalOptionsKeys.includes(k)) {
-                throw new Error(
-                    `Invalid option in config file ${configFile}: ${k}. Allowed options: ${externalOptionsKeys.join(
-                        ', ',
-                    )}`,
-                );
-            }
-        });
     }
 };
