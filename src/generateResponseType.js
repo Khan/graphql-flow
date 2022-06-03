@@ -9,7 +9,7 @@ import type {
     OperationDefinitionNode,
     FragmentDefinitionNode,
 } from 'graphql';
-import type {Config, Schema, Selections} from './types';
+import type {Context, Schema, Selections} from './types';
 import {
     liftLeadingPropertyComments,
     maybeAddDescriptionComment,
@@ -30,10 +30,10 @@ import {
 export const generateResponseType = (
     schema: Schema,
     query: OperationDefinitionNode,
-    config: Config,
+    ctx: Context,
 ): string => {
     const ast = querySelectionToObjectType(
-        config,
+        ctx,
         query.selectionSet.selections,
         query.operation === 'mutation'
             ? schema.typesByName.Mutation
@@ -45,7 +45,7 @@ export const generateResponseType = (
 };
 
 const sortedObjectTypeAnnotation = (
-    config: Config,
+    ctx: Context,
     properties: Array<
         BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
     >,
@@ -67,10 +67,10 @@ const sortedObjectTypeAnnotation = (
         undefined /* internalSlots */,
         true /* exact */,
     );
-    const name = config.path.join('_');
-    const isTopLevelType = config.path.length <= 1;
-    if (config.allObjectTypes != null && !isTopLevelType) {
-        config.allObjectTypes[name] = obj;
+    const name = ctx.path.join('_');
+    const isTopLevelType = ctx.path.length <= 1;
+    if (ctx.allObjectTypes != null && !isTopLevelType) {
+        ctx.allObjectTypes[name] = obj;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     } else {
         return obj;
@@ -80,16 +80,16 @@ const sortedObjectTypeAnnotation = (
 export const generateFragmentType = (
     schema: Schema,
     fragment: FragmentDefinitionNode,
-    config: Config,
+    ctx: Context,
 ): string => {
     const onType = fragment.typeCondition.name.value;
     let ast;
 
     if (schema.typesByName[onType]) {
         ast = sortedObjectTypeAnnotation(
-            config,
+            ctx,
             objectPropertiesToFlow(
-                config,
+                ctx,
                 schema.typesByName[onType],
                 onType,
                 fragment.selectionSet.selections,
@@ -97,14 +97,14 @@ export const generateFragmentType = (
         );
     } else if (schema.interfacesByName[onType]) {
         ast = unionOrInterfaceToFlow(
-            config,
-            config.schema.interfacesByName[onType],
+            ctx,
+            ctx.schema.interfacesByName[onType],
             fragment.selectionSet.selections,
         );
     } else if (schema.unionsByName[onType]) {
         ast = unionOrInterfaceToFlow(
-            config,
-            config.schema.unionsByName[onType],
+            ctx,
+            ctx.schema.unionsByName[onType],
             fragment.selectionSet.selections,
         );
     } else {
@@ -116,31 +116,31 @@ export const generateFragmentType = (
 };
 
 const _typeToFlow = (
-    config: Config,
+    ctx: Context,
     type,
     selection,
 ): babelTypes.BabelNodeFlowType => {
     if (type.kind === 'SCALAR') {
-        return scalarTypeToFlow(config, type.name);
+        return scalarTypeToFlow(ctx, type.name);
     }
     if (type.kind === 'LIST') {
         return babelTypes.genericTypeAnnotation(
-            config.readOnlyArray
+            ctx.readOnlyArray
                 ? babelTypes.identifier('$ReadOnlyArray')
                 : babelTypes.identifier('Array'),
             babelTypes.typeParameterInstantiation([
-                typeToFlow(config, type.ofType, selection),
+                typeToFlow(ctx, type.ofType, selection),
             ]),
         );
     }
     if (type.kind === 'UNION') {
-        const union = config.schema.unionsByName[type.name];
+        const union = ctx.schema.unionsByName[type.name];
         if (!selection.selectionSet) {
             console.log('no selection set', selection);
             return babelTypes.anyTypeAnnotation();
         }
         return unionOrInterfaceToFlow(
-            config,
+            ctx,
             union,
             selection.selectionSet.selections,
         );
@@ -152,13 +152,13 @@ const _typeToFlow = (
             return babelTypes.anyTypeAnnotation();
         }
         return unionOrInterfaceToFlow(
-            config,
-            config.schema.interfacesByName[type.name],
+            ctx,
+            ctx.schema.interfacesByName[type.name],
             selection.selectionSet.selections,
         );
     }
     if (type.kind === 'ENUM') {
-        return enumTypeToFlow(config, type.name);
+        return enumTypeToFlow(ctx, type.name);
     }
     if (type.kind !== 'OBJECT') {
         console.log('not object', type);
@@ -166,11 +166,11 @@ const _typeToFlow = (
     }
 
     const tname = type.name;
-    if (!config.schema.typesByName[tname]) {
+    if (!ctx.schema.typesByName[tname]) {
         console.log('unknown referenced type', tname);
         return babelTypes.anyTypeAnnotation();
     }
-    const childType = config.schema.typesByName[tname];
+    const childType = ctx.schema.typesByName[tname];
     if (!selection.selectionSet) {
         console.log('no selection set', selection);
         return babelTypes.anyTypeAnnotation();
@@ -178,7 +178,7 @@ const _typeToFlow = (
     return maybeAddDescriptionComment(
         childType.description,
         querySelectionToObjectType(
-            config,
+            ctx,
             selection.selectionSet.selections,
             childType,
             tname,
@@ -187,19 +187,19 @@ const _typeToFlow = (
 };
 
 export const typeToFlow = (
-    config: Config,
+    ctx: Context,
     type: IntrospectionOutputTypeRef,
     selection: FieldNode,
 ): babelTypes.BabelNodeFlowType => {
     // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
-        return _typeToFlow(config, type.ofType, selection);
+        return _typeToFlow(ctx, type.ofType, selection);
     }
     // If we don'babelTypes care about strict nullability checking, then pretend everything is non-null
-    if (!config.strictNullability) {
-        return _typeToFlow(config, type, selection);
+    if (!ctx.strictNullability) {
+        return _typeToFlow(ctx, type, selection);
     }
-    const inner = _typeToFlow(config, type, selection);
+    const inner = _typeToFlow(ctx, type, selection);
     const result = babelTypes.nullableTypeAnnotation(inner);
     return transferLeadingComments(inner, result);
 };
@@ -233,21 +233,21 @@ const ensureOnlyOneTypenameProperty = (properties) => {
 };
 
 const querySelectionToObjectType = (
-    config: Config,
+    ctx: Context,
     selections,
     type,
     typeName: string,
 ): BabelNodeFlowType => {
     return sortedObjectTypeAnnotation(
-        config,
+        ctx,
         ensureOnlyOneTypenameProperty(
-            objectPropertiesToFlow(config, type, typeName, selections),
+            objectPropertiesToFlow(ctx, type, typeName, selections),
         ),
     );
 };
 
 export const objectPropertiesToFlow = (
-    config: Config,
+    ctx: Context,
     type: IntrospectionObjectType & {
         fieldsByName: {[name: string]: IntrospectionField},
     },
@@ -264,15 +264,15 @@ export const objectPropertiesToFlow = (
                         return [];
                     }
                     return objectPropertiesToFlow(
-                        config,
-                        config.schema.typesByName[newTypeName],
+                        ctx,
+                        ctx.schema.typesByName[newTypeName],
                         newTypeName,
                         selection.selectionSet.selections,
                     );
                 }
                 case 'FragmentSpread':
-                    if (!config.fragments[selection.name.value]) {
-                        config.errors.push(
+                    if (!ctx.fragments[selection.name.value]) {
+                        ctx.errors.push(
                             `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
                         );
                         return [
@@ -286,10 +286,10 @@ export const objectPropertiesToFlow = (
                     }
 
                     return objectPropertiesToFlow(
-                        config,
+                        ctx,
                         type,
                         typeName,
-                        config.fragments[selection.name.value].selectionSet
+                        ctx.fragments[selection.name.value].selectionSet
                             .selections,
                     );
 
@@ -309,7 +309,7 @@ export const objectPropertiesToFlow = (
                         ];
                     }
                     if (!type.fieldsByName[name]) {
-                        config.errors.push(
+                        ctx.errors.push(
                             `Unknown field '${name}' for type '${typeName}'`,
                         );
                         return babelTypes.objectTypeProperty(
@@ -331,8 +331,8 @@ export const objectPropertiesToFlow = (
                                     babelTypes.identifier(alias),
                                     typeToFlow(
                                         {
-                                            ...config,
-                                            path: config.path.concat([alias]),
+                                            ...ctx,
+                                            path: ctx.path.concat([alias]),
                                         },
                                         typeField.type,
                                         selection,
@@ -343,7 +343,7 @@ export const objectPropertiesToFlow = (
                     ];
 
                 default:
-                    config.errors.push(
+                    ctx.errors.push(
                         // eslint-disable-next-line flowtype-errors/uncovered
                         `Unsupported selection kind '${selection.kind}'`,
                     );
@@ -354,7 +354,7 @@ export const objectPropertiesToFlow = (
 };
 
 export const unionOrInterfaceToFlow = (
-    config: Config,
+    ctx: Context,
     type:
         | IntrospectionUnionType
         | (IntrospectionInterfaceType & {
@@ -377,10 +377,8 @@ export const unionOrInterfaceToFlow = (
         })
         .map((possible) => {
             const configWithUpdatedPath = {
-                ...config,
-                path: allFields
-                    ? config.path
-                    : config.path.concat([possible.name]),
+                ...ctx,
+                path: allFields ? ctx.path : ctx.path.concat([possible.name]),
             };
             return {
                 typeName: possible.name,
@@ -421,11 +419,11 @@ export const unionOrInterfaceToFlow = (
                 ),
             );
         }
-        return sortedObjectTypeAnnotation(config, sharedAttributes);
+        return sortedObjectTypeAnnotation(ctx, sharedAttributes);
     }
     if (selectedAttributes.length === 1) {
         return sortedObjectTypeAnnotation(
-            config,
+            ctx,
             selectedAttributes[0].attributes,
         );
     }
@@ -462,14 +460,14 @@ export const unionOrInterfaceToFlow = (
     const result = babelTypes.unionTypeAnnotation(
         selectedAttributes.map(({typeName, attributes}) =>
             sortedObjectTypeAnnotation(
-                {...config, path: config.path.concat([typeName])},
+                {...ctx, path: ctx.path.concat([typeName])},
                 attributes,
             ),
         ),
     );
-    const name = config.path.join('_');
-    if (config.allObjectTypes && config.path.length > 1) {
-        config.allObjectTypes[name] = result;
+    const name = ctx.path.join('_');
+    if (ctx.allObjectTypes && ctx.path.length > 1) {
+        ctx.allObjectTypes[name] = result;
         return babelTypes.genericTypeAnnotation(babelTypes.identifier(name));
     }
     return result;

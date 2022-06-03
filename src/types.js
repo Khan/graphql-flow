@@ -49,7 +49,7 @@ export type Schema = {
     },
 };
 
-export type Config = {
+export type Context = {
     path: Array<string>,
     strictNullability: boolean,
     readOnlyArray: boolean,

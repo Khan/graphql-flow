@@ -18,14 +18,14 @@ import {generateVariablesType} from './generateVariablesType';
 import type {BabelNode} from '@babel/types';
 export {spyOnGraphqlTagToCollectQueries} from './jest-mock-graphql-tag';
 
-import type {Config, Options, Schema} from './types';
+import type {Context, Options, Schema} from './types';
 
 const optionsToConfig = (
     schema: Schema,
     definitions: $ReadOnlyArray<DefinitionNode>,
     options?: Options,
     errors: Array<string> = [],
-): Config => {
+): Context => {
     const internalOptions = {
         strictNullability: options?.strictNullability ?? true,
         readOnlyArray: options?.readOnlyArray ?? true,

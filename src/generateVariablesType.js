@@ -8,7 +8,7 @@ import * as babelTypes from '@babel/types';
 import type {OperationDefinitionNode, TypeNode} from 'graphql/language/ast';
 import type {IntrospectionInputTypeRef} from 'graphql/utilities/introspectionQuery';
 import {builtinScalars, enumTypeToFlow, scalarTypeToFlow} from './enums';
-import type {Config, Schema} from './types';
+import type {Context, Schema} from './types';
 import {
     liftLeadingPropertyComments,
     maybeAddDescriptionComment,
@@ -16,12 +16,12 @@ import {
 } from './utils';
 
 export const inputObjectToFlow = (
-    config: Config,
+    ctx: Context,
     name: string,
 ): BabelNodeFlowType => {
-    const inputObject = config.schema.inputObjectsByName[name];
+    const inputObject = ctx.schema.inputObjectsByName[name];
     if (!inputObject) {
-        config.errors.push(`Unknown input object ${name}`);
+        ctx.errors.push(`Unknown input object ${name}`);
         return babelTypes.stringLiteralTypeAnnotation(
             `Unknown input object ${name}`,
         );
@@ -35,7 +35,7 @@ export const inputObjectToFlow = (
                     vbl.description,
                     maybeOptionalObjectTypeProperty(
                         vbl.name,
-                        inputRefToFlow(config, vbl.type),
+                        inputRefToFlow(ctx, vbl.type),
                     ),
                 ),
             ),
@@ -61,75 +61,72 @@ export const maybeOptionalObjectTypeProperty = (
 };
 
 export const inputRefToFlow = (
-    config: Config,
+    ctx: Context,
     inputRef: IntrospectionInputTypeRef,
 ): BabelNodeFlowType => {
     if (inputRef.kind === 'NON_NULL') {
-        return _inputRefToFlow(config, inputRef.ofType);
+        return _inputRefToFlow(ctx, inputRef.ofType);
     }
-    const result = _inputRefToFlow(config, inputRef);
+    const result = _inputRefToFlow(ctx, inputRef);
     return transferLeadingComments(
         result,
         babelTypes.nullableTypeAnnotation(result),
     );
 };
 
-const _inputRefToFlow = (
-    config: Config,
-    inputRef: IntrospectionInputTypeRef,
-) => {
+const _inputRefToFlow = (ctx: Context, inputRef: IntrospectionInputTypeRef) => {
     if (inputRef.kind === 'SCALAR') {
-        return scalarTypeToFlow(config, inputRef.name);
+        return scalarTypeToFlow(ctx, inputRef.name);
     }
     if (inputRef.kind === 'ENUM') {
-        return enumTypeToFlow(config, inputRef.name);
+        return enumTypeToFlow(ctx, inputRef.name);
     }
     if (inputRef.kind === 'INPUT_OBJECT') {
-        return inputObjectToFlow(config, inputRef.name);
+        return inputObjectToFlow(ctx, inputRef.name);
     }
     if (inputRef.kind === 'LIST') {
         return babelTypes.genericTypeAnnotation(
             babelTypes.identifier('$ReadOnlyArray'),
             babelTypes.typeParameterInstantiation([
-                inputRefToFlow(config, inputRef.ofType),
+                inputRefToFlow(ctx, inputRef.ofType),
             ]),
         );
     }
     return babelTypes.stringLiteralTypeAnnotation(JSON.stringify(inputRef));
 };
 
-const variableToFlow = (config: Config, type: TypeNode) => {
+const variableToFlow = (ctx: Context, type: TypeNode) => {
     if (type.kind === 'NonNullType') {
-        return _variableToFlow(config, type.type);
+        return _variableToFlow(ctx, type.type);
     }
-    const result = _variableToFlow(config, type);
+    const result = _variableToFlow(ctx, type);
     return transferLeadingComments(
         result,
         babelTypes.nullableTypeAnnotation(result),
     );
 };
 
-const _variableToFlow = (config: Config, type: TypeNode) => {
+const _variableToFlow = (ctx: Context, type: TypeNode) => {
     if (type.kind === 'NamedType') {
         if (builtinScalars[type.name.value]) {
-            return scalarTypeToFlow(config, type.name.value);
+            return scalarTypeToFlow(ctx, type.name.value);
         }
-        if (config.schema.enumsByName[type.name.value]) {
-            return enumTypeToFlow(config, type.name.value);
+        if (ctx.schema.enumsByName[type.name.value]) {
+            return enumTypeToFlow(ctx, type.name.value);
         }
-        const customScalarType = config.scalars[type.name.value];
+        const customScalarType = ctx.scalars[type.name.value];
         if (customScalarType) {
             return babelTypes.genericTypeAnnotation(
                 babelTypes.identifier(customScalarType),
             );
         }
-        return inputObjectToFlow(config, type.name.value);
+        return inputObjectToFlow(ctx, type.name.value);
     }
     if (type.kind === 'ListType') {
         return babelTypes.genericTypeAnnotation(
             babelTypes.identifier('$ReadOnlyArray'),
             babelTypes.typeParameterInstantiation([
-                variableToFlow(config, type.type),
+                variableToFlow(ctx, type.type),
             ]),
         );
     }
@@ -141,13 +138,13 @@ const _variableToFlow = (config: Config, type: TypeNode) => {
 export const generateVariablesType = (
     schema: Schema,
     item: OperationDefinitionNode,
-    config: Config,
+    ctx: Context,
 ): string => {
     const variableObject = babelTypes.objectTypeAnnotation(
         (item.variableDefinitions || []).map((vbl) => {
             return maybeOptionalObjectTypeProperty(
                 vbl.variable.name.value,
-                variableToFlow(config, vbl.type),
+                variableToFlow(ctx, vbl.type),
             );
         }),
         undefined /* indexers */,
