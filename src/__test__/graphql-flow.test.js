@@ -19,6 +19,7 @@ expect.addSnapshotSerializer({
 /* eslint-enable flowtype-errors/uncovered */
 
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
+const baseConfig: GenerateConfig = {schemaFilePath: 'example-schema.graphql'};
 
 const rawQueryToFlowTypes = (
     query: string,
@@ -29,7 +30,7 @@ const rawQueryToFlowTypes = (
     const gql: (string) => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
-        schemaFilePath: 'ok.json',
+        ...baseConfig,
         scalars: {PositiveNumber: 'number'},
         ...options,
     })
@@ -72,7 +73,7 @@ describe('graphql-flow generation', () => {
                 human(id: $id) { id }
             }
         `,
-            {splitTypes: true, schemaFilePath: 'ok.json'},
+            {...baseConfig, splitTypes: true},
         );
 
         expect(result).toMatchInlineSnapshot(`
@@ -291,7 +292,7 @@ describe('graphql-flow generation', () => {
                 }
             }
         `,
-            {readOnlyArray: false, schemaFilePath: 'ok.json'},
+            {...baseConfig, readOnlyArray: false},
         );
 
         expect(result).toMatchInlineSnapshot(`
@@ -459,7 +460,7 @@ describe('graphql-flow generation', () => {
                 }
             }
         `,
-            {exportAllObjectTypes: true, schemaFilePath: 'ok.json'},
+            {...baseConfig, exportAllObjectTypes: true},
         );
 
         expect(result).toMatchInlineSnapshot(`
@@ -506,7 +507,7 @@ describe('graphql-flow generation', () => {
                         name
                     }
                 }`,
-                {readOnlyArray: false, schemaFilePath: 'ok.json'},
+                {...baseConfig, readOnlyArray: false},
             );
 
             expect(result).toMatchInlineSnapshot(`
@@ -547,7 +548,7 @@ describe('graphql-flow generation', () => {
                         }
                     }
                 }`,
-                {readOnlyArray: false, schemaFilePath: 'ok.json'},
+                {...baseConfig, readOnlyArray: false},
             );
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
@@ -579,7 +580,7 @@ describe('graphql-flow generation', () => {
                         }
                     }
                 }`,
-                {readOnlyArray: false, schemaFilePath: 'ok.json'},
+                {...baseConfig, readOnlyArray: false},
             );
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
@@ -606,7 +607,7 @@ describe('graphql-flow generation', () => {
                         id
                     }
                 }`,
-                {readOnlyArray: false, schemaFilePath: 'ok.json'},
+                {...baseConfig, readOnlyArray: false},
             );
 
             expect(result).toMatchInlineSnapshot(`

@@ -6,7 +6,7 @@ import {processPragmas} from '../generateTypeFiles';
 const pragma = '# @autogen\n';
 const loosePragma = '# @autogen-loose\n';
 
-const options: GenerateConfig = {schemaFilePath: 'ok.json'};
+const options: GenerateConfig = {schemaFilePath: 'example-schema.graphql'};
 
 describe('processPragmas', () => {
     it('should work with no pragmas', () => {

@@ -1,11 +1,15 @@
 // @flow
 // Test the generate the type file contents
 
+import type {GenerateConfig} from '../cli/config';
+
 import {getSchemas} from '../cli/config';
 import {generateTypeFileContents, indexPrelude} from '../generateTypeFiles';
 import gql from 'graphql-tag';
 
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
+
+const baseConfig: GenerateConfig = {schemaFilePath: 'example-schema.graphql'};
 
 describe('generateTypeFileContents', () => {
     it('split types should export response & variables types', () => {
@@ -19,7 +23,7 @@ describe('generateTypeFileContents', () => {
                     }
                 }
             `,
-            {splitTypes: true, schemaFilePath: 'ok.json'},
+            {...baseConfig, splitTypes: true},
             '__generated__',
             indexPrelude('yarn queries'),
         );
@@ -71,9 +75,9 @@ describe('generateTypeFileContents', () => {
                 }
             `,
             {
+                ...baseConfig,
                 splitTypes: true,
                 typeFileName: 'prefix-[operationName]-suffix.js',
-                schemaFilePath: 'ok.json',
             },
             '__generated__',
             indexPrelude('yarn queries'),
@@ -115,8 +119,8 @@ describe('generateTypeFileContents', () => {
                     }
                 `,
                 {
+                    ...baseConfig,
                     experimentalEnums: true,
-                    schemaFilePath: 'ok.json',
                 },
                 '__generated__',
                 indexPrelude('yarn queries'),
