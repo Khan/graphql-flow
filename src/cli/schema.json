@@ -1,5 +1,5 @@
 {
-	"$schema": "http://json-schema.org/draft-07/schema",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -16,48 +16,48 @@
             }
         },
 
-		"options": {
-			"type": "object",
-			"properties": {
-				"pragma": {
-					"type": "string"
-				},
-				"loosePragma": {
-					"type": "string"
-				},
-				"ignorePragma": {
-					"type": "string"
-				},
-				"scalars": {
-					"type": "object",
-					"additionalProperties": {"enum": ["string", "number", "boolean"]}
-				},
-				"strictNullability": {
-					"type": "boolean"
-				},
-				"regenerateCommand": {
-					"type": "string"
-				},
-				"readOnlyArray": {
-					"type": "boolean"
-				},
-				"splitTypes": {
-					"type": "boolean"
-				},
-				"generatedDirectory": {
-					"type": "string"
-				},
-				"exportAllObjectTypes": {
-					"type": "boolean"
-				},
-				"typeFileName": {
-					"type": "string"
-				},
-				"experimentalEnums": {
-					"type": "boolean"
-				}
-			}
-		}
+        "options": {
+            "type": "object",
+            "properties": {
+                "pragma": {
+                    "type": "string"
+                },
+                "loosePragma": {
+                    "type": "string"
+                },
+                "ignorePragma": {
+                    "type": "string"
+                },
+                "scalars": {
+                    "type": "object",
+                    "additionalProperties": {"enum": ["string", "number", "boolean"]}
+                },
+                "strictNullability": {
+                    "type": "boolean"
+                },
+                "regenerateCommand": {
+                    "type": "string"
+                },
+                "readOnlyArray": {
+                    "type": "boolean"
+                },
+                "splitTypes": {
+                    "type": "boolean"
+                },
+                "generatedDirectory": {
+                    "type": "string"
+                },
+                "exportAllObjectTypes": {
+                    "type": "boolean"
+                },
+                "typeFileName": {
+                    "type": "string"
+                },
+                "experimentalEnums": {
+                    "type": "boolean"
+                }
+            }
+        }
     },
-	"required": ["schemaFilePath"]
+    "required": ["schemaFilePath"]
 }
