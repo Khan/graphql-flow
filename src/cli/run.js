@@ -4,7 +4,7 @@
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {getSchemas, loadConfigFile} from './config';
+import {findApplicableConfig, getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
@@ -16,6 +16,7 @@ import {validate} from 'graphql/validation';
 import path from 'path';
 import {dirname} from 'path';
 import {longestMatchingPath} from './utils';
+import type {GenerateConfig} from './config';
 
 /**
  * This CLI tool executes the following steps:
@@ -132,28 +133,6 @@ const loadSchemas = (schemaFilePath: string) => {
 let validationFailures: number = 0;
 const printedOperations: Array<string> = [];
 
-const findApplicableConfig = (path: string) => {
-    if (Array.isArray(config.generate)) {
-        return config.generate.find((config) => {
-            if (
-                config.exclude?.some((exclude) =>
-                    new RegExp(exclude).test(path),
-                )
-            ) {
-                return false;
-            }
-            if (!config.match) {
-                return true;
-            }
-            return config.match.some((matcher) =>
-                new RegExp(matcher).test(path),
-            );
-        });
-    } else {
-        return config.generate;
-    }
-};
-
 Object.keys(resolved).forEach((filePathAndLine) => {
     const {document, raw} = resolved[filePathAndLine];
 
@@ -165,6 +144,7 @@ Object.keys(resolved).forEach((filePathAndLine) => {
     const applicableConfig = findApplicableConfig(
         // strip off the trailing line number, e.g. `:23`
         filePathAndLine.split(':')[0],
+        config.generate,
     );
     if (!applicableConfig) {
         return;

@@ -47,6 +47,24 @@ export type Config = {
     generate: GenerateConfig | Array<GenerateConfig>,
 };
 
+export const findApplicableConfig = (
+    path: string,
+    configs: Array<GenerateConfig> | GenerateConfig,
+): ?GenerateConfig => {
+    if (!Array.isArray(configs)) {
+        configs = [configs];
+    }
+    return configs.find((config) => {
+        if (config.exclude?.some((exclude) => new RegExp(exclude).test(path))) {
+            return false;
+        }
+        if (!config.match) {
+            return true;
+        }
+        return config.match.some((matcher) => new RegExp(matcher).test(path));
+    });
+};
+
 export const validateConfigFile = (config: Config) => {
     // eslint-disable-next-line flowtype-errors/uncovered
     const schema = JSON.parse(

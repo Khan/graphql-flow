@@ -1,5 +1,34 @@
 // @flow
-import {validateConfigFile} from '../config';
+import {findApplicableConfig, validateConfigFile} from '../config';
+
+describe('findApplicableConfig', () => {
+    it('should work with one', () => {
+        const config = {
+            schemaFilePath: 'ok.graphql',
+        };
+        expect(findApplicableConfig('/hello', config)).toBe(config);
+    });
+
+    it('should reject with one', () => {
+        const config = {
+            schemaFilePath: 'ok.graphql',
+            exclude: [/hello$/],
+        };
+        expect(findApplicableConfig('/hello', config)).toBeUndefined();
+    });
+
+    it('should match & exclude', () => {
+        const configs = [
+            {schemaFilePath: 'one', match: [/\.jsx$/], exclude: [/^test/]},
+            {schemaFilePath: 'two', exclude: [/^hello/]},
+            {schemaFilePath: 'three'},
+        ];
+        expect(findApplicableConfig('hello.js', configs)).toBe(configs[2]);
+        expect(findApplicableConfig('goodbye.js', configs)).toBe(configs[1]);
+        expect(findApplicableConfig('hello.jsx', configs)).toBe(configs[0]);
+        expect(findApplicableConfig('test.jsx', configs)).toBe(configs[1]);
+    });
+});
 
 describe('json schema validation should work', () => {
     it('should accept a minimal config file', () => {
@@ -24,8 +53,8 @@ describe('json schema validation should work', () => {
                     /_test.js$/,
                     /extract-query-name.test.js/,
                     /.fixture.js$/,
-                    /\\b__flowtests__\\b/,
-                    /\\bcourse-editor\\b/,
+                    /\b__flowtests__\b/,
+                    /\bcourse-editor\b/,
                 ],
                 dumpOperations:
                     './react-native/.graphql-safelist/extracted_graphql_queries.json',
