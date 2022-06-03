@@ -4,8 +4,7 @@
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {loadDirConfigFiles, getSchemas, loadConfigFile} from './config';
-import fs from 'fs';
+import {getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
@@ -20,7 +19,7 @@ import {longestMatchingPath} from './utils';
 
 /**
  * This CLI tool executes the following steps:
- * 1) process options
+ * 1) parse & validate config file
  * 2) crawl files to find all operations and fragments, with
  *   tagged template literals and expressions.
  * 3) resolve the found operations, passing the literals and
@@ -45,18 +44,13 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
         .map((relative) => path.join(root, relative));
 };
 
-const [_, __, configFile, ...cliFiles] = process.argv;
-
-// eslint-disable-next-line flowtype-errors/uncovered
-const jsonSchema = JSON.parse(
-    fs.readFileSync(__dirname + '/config.json', 'utf8'),
-);
+const [_, __, configFilePath, ...cliFiles] = process.argv;
 
 if (
-    configFile === '-h' ||
-    configFile === '--help' ||
-    configFile === 'help' ||
-    !configFile
+    configFilePath === '-h' ||
+    configFilePath === '--help' ||
+    configFilePath === 'help' ||
+    !configFilePath
 ) {
     console.log(`graphql-flow
 
@@ -64,26 +58,11 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
     process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
-const config = loadConfigFile(configFile);
-
-// find file paths ending with "graphql-flow.config.json"
-const subConfigsQuery = () =>
-    execSync('git ls-files "*graphql-flow.config.json"', {
-        encoding: 'utf8',
-        cwd: process.cwd(),
-    });
-const subConfigMap = loadDirConfigFiles(subConfigsQuery(), {
-    config,
-    path: configFile,
-});
-
-const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
-    config.schemaFilePath,
-);
+const config = loadConfigFile(configFilePath);
 
 const inputFiles = cliFiles.length
     ? cliFiles
-    : findGraphqlTagReferences(process.cwd());
+    : findGraphqlTagReferences(config.crawl.root);
 
 /** Step (2) */
 
@@ -129,24 +108,21 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 /** Step (4) */
 
+const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
+    config.generate.schemaFilePath,
+);
+
 let validationFailures: number = 0;
 const printedOperations: Array<string> = [];
 
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
-
-    let fileConfig = config;
-    const closestConfigPath = longestMatchingPath(
-        raw.loc.path,
-        Object.keys(subConfigMap),
-    ); // get longest match in the case of nested subconfigs
-    if (closestConfigPath) {
-        fileConfig = subConfigMap[closestConfigPath];
-    }
-
-    if (fileConfig.excludes.some((rx) => rx.test(raw.loc.path))) {
+    if (
+        config.crawl.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))
+    ) {
         return; // skip
     }
+
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
     );
@@ -159,7 +135,11 @@ Object.keys(resolved).forEach((k) => {
         printedOperations.push(printed);
     }
 
-    const processedOptions = processPragmas(fileConfig.options, rawSource);
+    const processedOptions = processPragmas(
+        config.crawl,
+        config.generate,
+        rawSource,
+    );
     if (!processedOptions) {
         return;
     }
@@ -206,8 +186,8 @@ if (validationFailures) {
     process.exit(1);
 }
 
-if (config.dumpOperations) {
-    const dumpOperations = config.dumpOperations;
+if (config.crawl.dumpOperations) {
+    const dumpOperations = config.crawl.dumpOperations;
     const parent = dirname(dumpOperations);
     mkdirSync(parent, {recursive: true});
     writeFileSync(

@@ -1,5 +1,6 @@
 // @flow
 
+import type {GenerateConfig} from './cli/config';
 import type {BabelNode} from '@babel/types';
 import type {
     FragmentDefinitionNode,
@@ -13,18 +14,6 @@ import type {
 } from 'graphql';
 
 export type Selections = $ReadOnlyArray<SelectionNode>;
-
-export type Options = {|
-    regenerateCommand?: string,
-    strictNullability?: boolean, // default true
-    readOnlyArray?: boolean, // default true
-    scalars?: Scalars,
-    splitTypes?: boolean,
-    generatedDirectory?: string,
-    exportAllObjectTypes?: boolean,
-    typeFileName?: string,
-    experimentalEnums?: boolean, // default false
-|};
 
 export type Schema = {
     interfacesByName: {
@@ -51,6 +40,7 @@ export type Schema = {
 
 export type Context = {
     path: Array<string>,
+
     strictNullability: boolean,
     readOnlyArray: boolean,
     fragments: {[key: string]: FragmentDefinitionNode},
