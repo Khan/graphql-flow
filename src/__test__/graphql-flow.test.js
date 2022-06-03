@@ -4,8 +4,6 @@
  * Tests for our graphql flow generation!
  */
 
-import type {DocumentNode} from 'graphql';
-
 import {getSchemas} from '../cli/config';
 import {documentToFlowTypes} from '..';
 import gql from 'graphql-tag';
