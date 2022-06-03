@@ -20,7 +20,10 @@
                 "excludes": {
                     "type": "array",
                     "items": {
-                        "type": "object"
+                        "oneOf": [
+                            { "type": "object" },
+                            { "type": "string" }
+                        ]
                     }
                 },
                 "dumpOperations": {
@@ -46,22 +49,22 @@
                     "type": "string"
                 },
                 "readOnlyArray": {
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "splitTypes": {
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "generatedDirectory": {
                     "type": "string"
                 },
                 "exportAllObjectTypes": {
-                    "type": "string"
+                    "type": "boolean"
                 },
                 "typeFileName": {
                     "type": "string"
                 },
                 "experimentalEnums": {
-                    "type": "string"
+                    "type": "boolean"
                 }
             },
             "required": [

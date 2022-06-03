@@ -1,6 +1,7 @@
 [ignore]
 ; The 'resolve' package bundles test files that it really shouldn't
 .*/resolve/test/resolver/malformed_package_json/
+dist
 [include]
 
 [libs]

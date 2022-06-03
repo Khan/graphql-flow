@@ -58,11 +58,21 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
     process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
-const config = loadConfigFile(configFilePath);
+const makeAbsPath = (maybeRelativePath: string, basePath: string) => {
+    return maybeRelativePath.startsWith('/')
+        ? maybeRelativePath
+        : path.join(basePath, maybeRelativePath);
+};
+
+const absConfigPath = makeAbsPath(configFilePath, process.cwd());
+
+const config = loadConfigFile(absConfigPath);
 
 const inputFiles = cliFiles.length
     ? cliFiles
-    : findGraphqlTagReferences(config.crawl.root);
+    : findGraphqlTagReferences(
+          makeAbsPath(config.crawl.root, path.dirname(absConfigPath)),
+      );
 
 /** Step (2) */
 
@@ -109,7 +119,7 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 /** Step (4) */
 
 const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
-    config.generate.schemaFilePath,
+    makeAbsPath(config.generate.schemaFilePath, path.dirname(absConfigPath)),
 );
 
 let validationFailures: number = 0;

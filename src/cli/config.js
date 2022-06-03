@@ -37,7 +37,7 @@ export type CrawlConfig = {
     pragma?: string,
     loosePragma?: string,
     ignorePragma?: string,
-    excludes?: Array<RegExp>,
+    excludes?: Array<RegExp | string>,
     dumpOperations?: string,
 };
 
@@ -61,9 +61,9 @@ export const validateConfigFile = (config: Config) => {
     }
 };
 
-export const loadConfigFile = (configFile: string): Config => {
+export const loadConfigFile = (configFilePath: string): Config => {
     // $FlowIgnore // eslint-disable-next-line flowtype-errors/uncovered
-    const config: Config = require(configFile);
+    const config: Config = require(configFilePath);
     validateConfigFile(config);
     return config;
 };
