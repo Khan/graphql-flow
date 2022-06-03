@@ -1,5 +1,5 @@
 // @flow
-import type {Schema} from '../types';
+import type {Schema, Scalars} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
 import {validate} from 'jsonschema';
@@ -14,7 +14,6 @@ import {
     type IntrospectionQuery,
 } from 'graphql';
 import path from 'path';
-import type {Scalars} from '../../dist/types';
 
 export type GenerateConfig = {|
     schemaFilePath: string,
@@ -63,8 +62,8 @@ export const validateConfigFile = (config: Config) => {
 };
 
 export const loadConfigFile = (configFile: string): Config => {
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const config: Config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    // $FlowIgnore // eslint-disable-next-line flowtype-errors/uncovered
+    const config: Config = require(configFile);
     validateConfigFile(config);
     return config;
 };
