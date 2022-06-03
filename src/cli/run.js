@@ -118,25 +118,54 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 /** Step (4) */
 
-const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
-    makeAbsPath(config.generate.schemaFilePath, path.dirname(absConfigPath)),
-);
+const schemaCache = {};
+const loadSchemas = (schemaFilePath: string) => {
+    if (!schemaCache[schemaFilePath]) {
+        schemaCache[schemaFilePath] = getSchemas(
+            makeAbsPath(schemaFilePath, path.dirname(absConfigPath)),
+        );
+    }
+
+    return schemaCache[schemaFilePath];
+};
 
 let validationFailures: number = 0;
 const printedOperations: Array<string> = [];
 
-Object.keys(resolved).forEach((k) => {
-    const {document, raw} = resolved[k];
-    if (
-        config.crawl.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))
-    ) {
-        return; // skip
+const findApplicableConfig = (path: string) => {
+    if (Array.isArray(config.generate)) {
+        return config.generate.find((config) => {
+            if (
+                config.exclude?.some((exclude) =>
+                    new RegExp(exclude).test(path),
+                )
+            ) {
+                return false;
+            }
+            if (!config.match) {
+                return true;
+            }
+            return config.match.some((matcher) =>
+                new RegExp(matcher).test(path),
+            );
+        });
+    } else {
+        return config.generate;
     }
+};
+
+Object.keys(resolved).forEach((filePath) => {
+    const {document, raw} = resolved[filePath];
 
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
     );
     const rawSource: string = raw.literals[0];
+
+    const applicableConfig = findApplicableConfig(filePath);
+    if (!applicableConfig) {
+        return;
+    }
 
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
@@ -147,12 +176,16 @@ Object.keys(resolved).forEach((k) => {
 
     const processedOptions = processPragmas(
         config.crawl,
-        config.generate,
+        applicableConfig,
         rawSource,
     );
     if (!processedOptions) {
         return;
     }
+
+    const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
+        applicableConfig.schemaFilePath,
+    );
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */

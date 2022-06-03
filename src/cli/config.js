@@ -17,6 +17,8 @@ import path from 'path';
 
 export type GenerateConfig = {|
     schemaFilePath: string,
+    match?: Array<string | RegExp>,
+    exclude?: Array<RegExp | string>,
 
     scalars?: Scalars,
     strictNullability?: boolean,
@@ -37,13 +39,12 @@ export type CrawlConfig = {
     pragma?: string,
     loosePragma?: string,
     ignorePragma?: string,
-    excludes?: Array<RegExp | string>,
     dumpOperations?: string,
 };
 
 export type Config = {
     crawl: CrawlConfig,
-    generate: GenerateConfig,
+    generate: GenerateConfig | Array<GenerateConfig>,
 };
 
 export const validateConfigFile = (config: Config) => {
