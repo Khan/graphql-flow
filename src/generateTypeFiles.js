@@ -1,28 +1,11 @@
 // @flow
 // Import this in your jest setup, to mock out graphql-tag!
 import type {DocumentNode} from 'graphql';
-import type {Options, Schema, Scalars} from './types';
+import type {Schema, Scalars} from './types';
 import fs from 'fs';
 import path from 'path';
 import {documentToFlowTypes} from '.';
-
-export type ExternalOptions = {
-    pragma?: string,
-    loosePragma?: string,
-    ignorePragma?: string,
-    scalars?: Scalars,
-    strictNullability?: boolean,
-    /**
-     * The command that users should run to regenerate the types files.
-     */
-    regenerateCommand?: string,
-    readOnlyArray?: boolean,
-    splitTypes?: boolean,
-    generatedDirectory?: string,
-    exportAllObjectTypes?: boolean,
-    typeFileName?: string,
-    experimentalEnums?: boolean,
-};
+import type {CrawlConfig, GenerateConfig} from './cli/config';
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
 //
@@ -38,7 +21,7 @@ export const generateTypeFileContents = (
     fileName: string,
     schema: Schema,
     document: DocumentNode,
-    options: Options,
+    options: GenerateConfig,
     generatedDir: string,
     indexContents: string,
 ): {indexContents: string, files: {[key: string]: string}} => {
@@ -115,7 +98,7 @@ export const generateTypeFileContents = (
     return {files, indexContents};
 };
 
-const getGeneratedDir = (fileName: string, options: Options) => {
+const getGeneratedDir = (fileName: string, options: GenerateConfig) => {
     const generatedDirectory = options.generatedDirectory ?? '__generated__';
     if (path.isAbsolute(generatedDirectory)) {
         // fileName is absolute here, so we make it relative to cwd
@@ -136,7 +119,7 @@ export const generateTypeFiles = (
     fileName: string,
     schema: Schema,
     document: DocumentNode,
-    options: Options,
+    options: GenerateConfig,
 ) => {
     const generatedDir = getGeneratedDir(fileName, options);
     const indexFile = path.join(generatedDir, 'index.js');
@@ -166,34 +149,31 @@ export const generateTypeFiles = (
 };
 
 export const processPragmas = (
-    options: ExternalOptions,
+    crawlConfig: CrawlConfig,
+    options: GenerateConfig,
     rawSource: string,
-): null | Options => {
-    if (options.ignorePragma && rawSource.includes(options.ignorePragma)) {
+): null | GenerateConfig => {
+    if (
+        crawlConfig.ignorePragma &&
+        rawSource.includes(crawlConfig.ignorePragma)
+    ) {
         return null;
     }
 
-    const autogen = options.loosePragma
-        ? rawSource.includes(options.loosePragma)
+    const autogen = crawlConfig.loosePragma
+        ? rawSource.includes(crawlConfig.loosePragma)
         : false;
-    const autogenStrict = options.pragma
-        ? rawSource.includes(options.pragma)
+    const autogenStrict = crawlConfig.pragma
+        ? rawSource.includes(crawlConfig.pragma)
         : false;
-    const noPragmas = !options.loosePragma && !options.pragma;
+    const noPragmas = !crawlConfig.loosePragma && !crawlConfig.pragma;
 
     if (autogen || autogenStrict || noPragmas) {
         return {
-            regenerateCommand: options.regenerateCommand,
+            ...options,
             strictNullability: noPragmas
                 ? options.strictNullability
                 : autogenStrict || !autogen,
-            readOnlyArray: options.readOnlyArray,
-            scalars: options.scalars,
-            splitTypes: options.splitTypes,
-            generatedDirectory: options.generatedDirectory,
-            exportAllObjectTypes: options.exportAllObjectTypes,
-            typeFileName: options.typeFileName,
-            experimentalEnums: options.experimentalEnums,
         };
     } else {
         return null;

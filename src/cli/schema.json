@@ -1,0 +1,73 @@
+{
+	"$schema":"http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+		"crawl": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+				"root": {"type": "string"},
+                "pragma": {
+                    "type": "string"
+                },
+                "loosePragma": {
+                    "type": "string"
+                },
+                "ignorePragma": {
+                    "type": "string"
+                },
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "object"
+					}
+				},
+                "dumpOperations": {
+                    "type": "string"
+                }
+			},
+			"required": [ "root" ]
+		},
+		"generate": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+				"schemaFilePath": {
+					"type": "string"
+				},
+                "scalars": {
+                    "type": "object"
+                },
+                "strictNullability": {
+                    "type": "boolean"
+                },
+                "regenerateCommand": {
+                    "type": "string"
+                },
+                "readOnlyArray": {
+                    "type": "string"
+                },
+                "splitTypes": {
+                    "type": "string"
+                },
+                "generatedDirectory": {
+                    "type": "string"
+                },
+                "exportAllObjectTypes": {
+                    "type": "string"
+                },
+                "typeFileName": {
+                    "type": "string"
+                },
+                "experimentalEnums": {
+                    "type": "string"
+                }
+            },
+			"required": [
+				"schemaFilePath"
+			]
+        }
+    },
+	"required": [ "crawl", "generate" ]
+}

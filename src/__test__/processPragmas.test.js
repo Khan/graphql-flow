@@ -1,12 +1,17 @@
 // @flow
+import type {GenerateConfig} from '../cli/config';
+
 import {processPragmas} from '../generateTypeFiles';
 
 const pragma = '# @autogen\n';
 const loosePragma = '# @autogen-loose\n';
 
+const options: GenerateConfig = {schemaFilePath: 'ok.json'};
+
 describe('processPragmas', () => {
     it('should work with no pragmas', () => {
-        expect(processPragmas({}, `query X { Y }`)).toEqual({
+        expect(processPragmas({root: '.'}, options, `query X { Y }`)).toEqual({
+            ...options,
             strictNullability: undefined,
             readOnlyArray: undefined,
             scalars: undefined,
@@ -14,19 +19,23 @@ describe('processPragmas', () => {
     });
 
     it('should reject query without required pragma', () => {
-        expect(processPragmas({pragma}, `query X { Y }`)).toEqual(null);
+        expect(
+            processPragmas({root: '.', pragma}, options, `query X { Y }`),
+        ).toEqual(null);
     });
 
     it('should accept query with required pragma', () => {
         expect(
             processPragmas(
-                {pragma},
+                {root: '.', pragma},
+                options,
                 `query X {
                     # @autogen
                     Y
                 }`,
             ),
         ).toEqual({
+            ...options,
             strictNullability: true,
             readOnlyArray: undefined,
             scalars: undefined,
@@ -36,13 +45,15 @@ describe('processPragmas', () => {
     it('should accept query with loose pragma', () => {
         expect(
             processPragmas(
-                {pragma, loosePragma},
+                {root: '.', pragma, loosePragma},
+                options,
                 `query X {
                     # @autogen-loose
                     Y
                 }`,
             ),
         ).toEqual({
+            ...options,
             strictNullability: false,
             readOnlyArray: undefined,
             scalars: undefined,
@@ -52,7 +63,8 @@ describe('processPragmas', () => {
     it('should reject query with ignore pragma', () => {
         expect(
             processPragmas(
-                {ignorePragma: '# @ignore\n'},
+                {root: '.', ignorePragma: '# @ignore\n'},
+                options,
                 `query X {
                     # @ignore
                     Y

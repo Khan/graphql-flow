@@ -6,21 +6,50 @@ This is a tool for generating flow types from graphql queries in javascript fron
 
 Write a config file, with the following options:
 
-```json
-{
-    // Response to the "introspection query" (see below), or a .graphql schema file.
-    // The file extension indicates the format, .json or .graphql (default .json).
-    // This path is resolved relative to the config file location.
-    "schemaFilePath": "../some/schema-file.json",
-    // List of regexes
-    "excludes": ["\\bsome-thing", "_test.jsx?$"],
-    // Options for type generation (see below)
-    "options": {
-        "scalars": {
-            "JSONString": "string"
-        }
-    }
+// Ok, let's do a .js, so they can do env vbl stuffs.
+// then we don't have to care about overrides and junk
+// it's just a list of configs, right?
+// Or a single config, if that's the case.
+
+```js
+const path = require('path')
+
+const root = path.join(__dirname, '../../../');
+
+const options = {
+    "readOnlyArray": false,
+    "regenerateCommand": "make gqlflow",
+    "scalars": {
+        "JSONString": "string",
+        "KALocale": "string",
+        "NaiveDateTime": "string"
+    },
+    "splitTypes": true,
+    "generatedDirectory": "__graphql-types__",
+    "exportAllObjectTypes": true,
 }
+
+module.exports = () => ({
+    crawl: {
+        root,
+        pragma,
+        excludes: [
+            /_test.js$/,
+            /\\bcourse-editor-package\\b/,
+            /.fixture.js$/,
+            /\\b__flowtests__\\b/,
+            /\\bcourse-editor\\b/
+        ],
+    },
+    generate: [{
+        "schemaFilePath": "../../../../gengraphql/composed_schema.graphql",
+        match: [ /course-editor-package/ ],
+        ...options,
+    }, {
+        "schemaFilePath": "../../../../gengraphql/composed_schema.graphql",
+        ...options,
+    }],
+})
 ```
 
 Optionally add subconfig files to subdirectories for granular control of behavior, with the following options:

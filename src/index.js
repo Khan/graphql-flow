@@ -16,14 +16,14 @@ import {
 } from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
 import type {BabelNode} from '@babel/types';
-export {spyOnGraphqlTagToCollectQueries} from './jest-mock-graphql-tag';
 
-import type {Context, Options, Schema} from './types';
+import type {Context, Schema} from './types';
+import type {GenerateConfig} from './cli/config';
 
 const optionsToConfig = (
     schema: Schema,
     definitions: $ReadOnlyArray<DefinitionNode>,
-    options?: Options,
+    options?: GenerateConfig,
     errors: Array<string> = [],
 ): Context => {
     const internalOptions = {
@@ -61,7 +61,7 @@ export class FlowGenerationError extends Error {
 export const documentToFlowTypes = (
     document: DocumentNode,
     schema: Schema,
-    options?: Options,
+    options?: GenerateConfig,
 ): $ReadOnlyArray<{
     name: string,
     typeName: string,

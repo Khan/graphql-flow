@@ -8,8 +8,7 @@ import type {DocumentNode} from 'graphql';
 
 import {getSchemas} from '../cli/config';
 import {documentToFlowTypes} from '..';
-
-import type {Options} from '../types';
+import type {GenerateConfig} from '../cli/config';
 
 // This allows us to "snapshot" a string cleanly.
 /* eslint-disable flowtype-errors/uncovered */
@@ -21,12 +20,16 @@ expect.addSnapshotSerializer({
 
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
 
-const rawQueryToFlowTypes = (query: string, options?: Options): string => {
+const rawQueryToFlowTypes = (
+    query: string,
+    options?: GenerateConfig,
+): string => {
     // We need the "requireActual" because we mock graphql-tag in jest-setup.js
     // eslint-disable-next-line flowtype-errors/uncovered
     const gql: (string) => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
+        schemaFilePath: 'ok.json',
         scalars: {PositiveNumber: 'number'},
         ...options,
     })
@@ -69,7 +72,7 @@ describe('graphql-flow generation', () => {
                 human(id: $id) { id }
             }
         `,
-            {splitTypes: true},
+            {splitTypes: true, schemaFilePath: 'ok.json'},
         );
 
         expect(result).toMatchInlineSnapshot(`
@@ -288,7 +291,7 @@ describe('graphql-flow generation', () => {
                 }
             }
         `,
-            {readOnlyArray: false},
+            {readOnlyArray: false, schemaFilePath: 'ok.json'},
         );
 
         expect(result).toMatchInlineSnapshot(`
@@ -456,7 +459,7 @@ describe('graphql-flow generation', () => {
                 }
             }
         `,
-            {exportAllObjectTypes: true},
+            {exportAllObjectTypes: true, schemaFilePath: 'ok.json'},
         );
 
         expect(result).toMatchInlineSnapshot(`
@@ -503,7 +506,7 @@ describe('graphql-flow generation', () => {
                         name
                     }
                 }`,
-                {readOnlyArray: false},
+                {readOnlyArray: false, schemaFilePath: 'ok.json'},
             );
 
             expect(result).toMatchInlineSnapshot(`
@@ -544,7 +547,7 @@ describe('graphql-flow generation', () => {
                         }
                     }
                 }`,
-                {readOnlyArray: false},
+                {readOnlyArray: false, schemaFilePath: 'ok.json'},
             );
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
@@ -576,7 +579,7 @@ describe('graphql-flow generation', () => {
                         }
                     }
                 }`,
-                {readOnlyArray: false},
+                {readOnlyArray: false, schemaFilePath: 'ok.json'},
             );
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
@@ -603,7 +606,7 @@ describe('graphql-flow generation', () => {
                         id
                     }
                 }`,
-                {readOnlyArray: false},
+                {readOnlyArray: false, schemaFilePath: 'ok.json'},
             );
 
             expect(result).toMatchInlineSnapshot(`
