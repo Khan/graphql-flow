@@ -4,12 +4,12 @@
  */
 import * as babelTypes from '@babel/types';
 import type {BabelNodeFlowType} from '@babel/types';
-import type {Config} from './types';
+import type {Context} from './types';
 import {maybeAddDescriptionComment} from './utils';
 import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
 
 export const experimentalEnumTypeToFlow = (
-    config: Config,
+    ctx: Context,
     enumConfig: IntrospectionEnumType,
     description: string,
 ): BabelNodeFlowType => {
@@ -23,8 +23,8 @@ export const experimentalEnumTypeToFlow = (
         ),
     );
 
-    if (config.experimentalEnumsMap) {
-        config.experimentalEnumsMap[enumConfig.name] = enumDeclaration;
+    if (ctx.experimentalEnumsMap) {
+        ctx.experimentalEnumsMap[enumConfig.name] = enumDeclaration;
     }
 
     return maybeAddDescriptionComment(
@@ -34,10 +34,10 @@ export const experimentalEnumTypeToFlow = (
 };
 
 export const enumTypeToFlow = (
-    config: Config,
+    ctx: Context,
     name: string,
 ): BabelNodeFlowType => {
-    const enumConfig = config.schema.enumsByName[name];
+    const enumConfig = ctx.schema.enumsByName[name];
     let combinedDescription = enumConfig.enumValues
         .map(
             (n) =>
@@ -52,8 +52,8 @@ export const enumTypeToFlow = (
             enumConfig.description + '\n\n' + combinedDescription;
     }
 
-    return config.experimentalEnumsMap
-        ? experimentalEnumTypeToFlow(config, enumConfig, combinedDescription)
+    return ctx.experimentalEnumsMap
+        ? experimentalEnumTypeToFlow(ctx, enumConfig, combinedDescription)
         : maybeAddDescriptionComment(
               combinedDescription,
               babelTypes.unionTypeAnnotation(
@@ -75,7 +75,7 @@ export const builtinScalars: {[key: string]: string} = {
 };
 
 export const scalarTypeToFlow = (
-    config: Config,
+    ctx: Context,
     name: string,
 ): BabelNodeFlowType => {
     if (builtinScalars[name]) {
@@ -83,13 +83,13 @@ export const scalarTypeToFlow = (
             babelTypes.identifier(builtinScalars[name]),
         );
     }
-    const underlyingType = config.scalars[name];
+    const underlyingType = ctx.scalars[name];
     if (underlyingType != null) {
         return babelTypes.genericTypeAnnotation(
             babelTypes.identifier(underlyingType),
         );
     }
-    config.errors.push(
+    ctx.errors.push(
         `Unexpected scalar '${name}'! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
     );
     return babelTypes.genericTypeAnnotation(
