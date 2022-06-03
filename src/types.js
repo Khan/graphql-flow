@@ -43,13 +43,13 @@ export type Context = {
 
     strictNullability: boolean,
     readOnlyArray: boolean,
-    schema: Schema,
-    scalars: Scalars,
-
     fragments: {[key: string]: FragmentDefinitionNode},
 
+    schema: Schema,
+    scalars: Scalars,
     errors: Array<string>,
     allObjectTypes: null | {[key: string]: BabelNode},
+
     experimentalEnumsMap?: {[key: string]: BabelNode}, // index signature that is populated with declarations
 };
 export type Scalars = {[key: string]: 'string' | 'number' | 'boolean'};
