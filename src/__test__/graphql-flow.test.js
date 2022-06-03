@@ -8,6 +8,7 @@ import type {DocumentNode} from 'graphql';
 
 import {getSchemas} from '../cli/config';
 import {documentToFlowTypes} from '..';
+import gql from 'graphql-tag';
 
 import type {Options} from '../types';
 
@@ -22,9 +23,6 @@ expect.addSnapshotSerializer({
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
 
 const rawQueryToFlowTypes = (query: string, options?: Options): string => {
-    // We need the "requireActual" because we mock graphql-tag in jest-setup.js
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const gql: (string) => DocumentNode = jest.requireActual('graphql-tag');
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
         scalars: {PositiveNumber: 'number'},
