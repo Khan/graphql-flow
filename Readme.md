@@ -5,7 +5,6 @@ This is a tool for generating flow types from graphql queries in javascript fron
 ## Using as a CLI tool
 
 Write a config file, following the schema defined in [src/cli/schema.json](src/cli/schema.json).
-If .js, it needs to export (module.exports = ) an object that adheres to that schema.
 
 Then run from the CLI, like so:
 
