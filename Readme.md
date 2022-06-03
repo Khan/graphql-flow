@@ -2,10 +2,15 @@
 
 This is a tool for generating flow types from graphql queries in javascript frontends.
 
-## Using as a CLI tool
+## Usage
 
 Write a config file, following the schema defined in [src/cli/schema.json](src/cli/schema.json).
 If .js, it needs to export (module.exports = ) an object that adheres to that schema.
+
+If you need different options (or even different schemas) for different files, you can do so by providing
+multiple `generate` configuration objects. The first configuration object for which no `exclude` regex's
+match, and at least one `match` regex matches, will be used, for the operations in a given file.
+If a configuration object has no excludes and no matches, it will match all files.
 
 Then run from the CLI, like so:
 

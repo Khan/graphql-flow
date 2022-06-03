@@ -154,15 +154,18 @@ const findApplicableConfig = (path: string) => {
     }
 };
 
-Object.keys(resolved).forEach((filePath) => {
-    const {document, raw} = resolved[filePath];
+Object.keys(resolved).forEach((filePathAndLine) => {
+    const {document, raw} = resolved[filePathAndLine];
 
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
     );
     const rawSource: string = raw.literals[0];
 
-    const applicableConfig = findApplicableConfig(filePath);
+    const applicableConfig = findApplicableConfig(
+        // strip off the trailing line number, e.g. `:23`
+        filePathAndLine.split(':')[0],
+    );
     if (!applicableConfig) {
         return;
     }
@@ -183,7 +186,7 @@ Object.keys(resolved).forEach((filePath) => {
         return;
     }
 
-    const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
+    const [schemaForValidation, schemaForTypeGeneration] = loadSchemas(
         applicableConfig.schemaFilePath,
     );
 

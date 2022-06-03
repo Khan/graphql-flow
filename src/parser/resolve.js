@@ -4,7 +4,7 @@ import type {DocumentNode} from 'graphql/language/ast';
 import type {FileResult, Files, Import, Template, Document} from './parse';
 
 export type Resolved = {
-    [key: string]: {
+    [filePathAndLine: string]: {
         document: DocumentNode,
         raw: Template,
     },
