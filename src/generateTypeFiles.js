@@ -1,5 +1,4 @@
 // @flow
-// Import this in your jest setup, to mock out graphql-tag!
 import type {DocumentNode} from 'graphql';
 import type {Options, Schema, Scalars} from './types';
 import fs from 'fs';

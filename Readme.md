@@ -53,7 +53,7 @@ Files will be discovered relative to the current working directory.
 
 To specify what file should be checked, pass them in as subsequent cli arguments.
 
-## Options (for the cli 'options' config item, or when running from jest):
+## Options (for the cli 'options' config item):
 
 ```ts
 type Options = {
@@ -66,8 +66,8 @@ type Options = {
     // is a relative path, then this is used to suffix the output
     // directory; if it's an absolute path it's used to prefix the
     // output directory.  For instance, if a gql directive is
-    // found in /foo/bar/baz/query.js and you run the cli (or
-    // jest) from directory /foo, then:
+    // found in /foo/bar/baz/query.js and you run the cli from
+    // directory /foo, then:
     // * if `generatedDirectory` is "__generated__", the output will
     //   be in /foo/bar/baz/__generated__/index.js and sibling files
     // * if `generatedDirectory` is "/tmp/__generated__", the output
@@ -111,80 +111,6 @@ type Options = {
     experimentalEnums?: boolean,
 }
 ```
-
-## Using from jest
-
-You can also use jest to do the heavy lifting, running all of your code and collecting queries
-by mocking out the `graphql-tag` function itself. This requires that all graphql operations are
-defined at the top level (no queries defined in functions or components, for example), but does
-support complicated things like returning a fragment from a function (which is probably
-not a great idea code-style-wise anyway).
-
-### jest-setup.js
-
-Add the following snippet to your jest-setup.js
-
-```js
-if (process.env.GRAPHQL_FLOW) {
-    jest.mock('graphql-tag', () => {
-        const introspectionData = jest.requireActual(
-            './server-introspection-response.json',
-        );
-
-        return jest.requireActual('../tools/graphql-flow/jest-mock-graphql-tag.js')(
-            introspectionData,
-            // See "Options" type above
-            {
-                pragma: '# @autogen\n',
-                loosePragma: '# @autogen-loose\n',
-            }
-        );
-    });
-}
-```
-
-That will mock out the `graphql-tag` function, so that everywhere you call 'gql`some-query`', we'll pick it up and
-generate a type for it! As written, the mocking only happens if the `GRAPHQL_FLOW` env variable is set, so that it won't run every time.
-
-By default, all queries are processed. To have them 'opt-in', use the `pragma` and `loosePragma` options. Queries with `loosePragma` in the source will have types generated that ignore nullability.
-
-### Ensure all files with queries get processed by jest
-
-Then you'll want to make a pseudo-'test' that makes sure to 'require' all of the files that define queries, so that
-jest will process them and our mock will see them. 
-```js
-// generate-types.test.js
-import {findGraphqlTagReferences} from '../tools/graphql-flow/find-files-with-gql';
-import path from 'path';
-
-if (process.env.GRAPHQL_FLOW) {
-    findGraphqlTagReferences(path.join(__dirname, '..')).forEach(name => {
-        require(name);
-    });
-
-    it('should have found queries', () => {
-        const gql = require('graphql-tag')
-        expect(gql.collectedQueries.length).toBeGreaterThan(0)
-    })
-} else {
-    it(`not generating graphql types because the env flag isn't set`, () => {
-        // not doing anything because the env flag isn't set.
-    })
-}
-```
-
-### Run that test to generate the types!
-
-You can add a script to package.json, like so:
-```json
-    "scripts": {
-        "generate-types": "env GRAPHQL_FLOW=1 jest generate-types.test.js"
-    }
-```
-
-And then `yarn generate-types` or `npm run generate-types` gets your types generated!
-
-🚀
 
 ## Introspecting your backend's graphql schema
 Here's how to get your backend's schema in the way that this tool expects, using the builtin 'graphql introspection query':

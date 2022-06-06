@@ -16,7 +16,6 @@ import {
 } from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
 import type {BabelNode} from '@babel/types';
-export {spyOnGraphqlTagToCollectQueries} from './jest-mock-graphql-tag';
 
 import type {Context, Options, Schema} from './types';
 
