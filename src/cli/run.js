@@ -128,10 +128,23 @@ const printedOperations: Array<string> = [];
 Object.keys(resolved).forEach((filePathAndLine) => {
     const {document, raw} = resolved[filePathAndLine];
 
+    if (
+        config.crawl.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))
+    ) {
+        return; // skip
+    }
+
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
     );
     const rawSource: string = raw.literals[0];
+
+    // eslint-disable-next-line flowtype-errors/uncovered
+    const withTypeNames: DocumentNode = addTypenameToDocument(document);
+    const printed = print(withTypeNames);
+    if (hasNonFragments && !printedOperations.includes(printed)) {
+        printedOperations.push(printed);
+    }
 
     const pragmaResult = processPragmas(
         config.generate,
@@ -145,13 +158,6 @@ Object.keys(resolved).forEach((filePathAndLine) => {
         ...config.generate,
         strictNullability: pragmaResult.strict,
     };
-
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const withTypeNames: DocumentNode = addTypenameToDocument(document);
-    const printed = print(withTypeNames);
-    if (hasNonFragments && !printedOperations.includes(printed)) {
-        printedOperations.push(printed);
-    }
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */

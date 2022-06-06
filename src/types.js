@@ -16,8 +16,6 @@ export type Selections = $ReadOnlyArray<SelectionNode>;
 
 export type GenerateConfig = {|
     schemaFilePath: string,
-    match?: Array<string | RegExp>,
-    exclude?: Array<RegExp | string>,
 
     scalars?: Scalars,
     strictNullability?: boolean,
@@ -39,6 +37,7 @@ export type CrawlConfig = {
     loosePragma?: string,
     ignorePragma?: string,
     dumpOperations?: string,
+    excludes?: Array<RegExp | string>,
 };
 
 export type Config = {
