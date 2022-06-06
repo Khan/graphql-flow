@@ -1,4 +1,6 @@
-import {loadDirConfigFiles} from '../config';
+// @flow
+import {loadDirConfigFiles, validateOrThrow} from '../config';
+import jsonSchema from '../schema.json';
 
 import fs from 'fs';
 jest.mock('fs');
@@ -14,7 +16,7 @@ const mockRootConfig = {
             splitTypes: true,
             readOnlyArray: false,
         },
-        excludes: ['this one', 'that one'],
+        excludes: [/this one/, /that one/],
         schemaFilePath: 'this/is/a/path.graphql',
         dumpOperations: '',
     },
@@ -38,6 +40,7 @@ describe('loading subconfigs', () => {
     it('should properly extend', () => {
         // eslint-disable-next-line flowtype-errors/uncovered
         fs.readFileSync
+            // $FlowIgnore
             .mockReturnValueOnce(JSON.stringify(firstFileFixture))
             .mockReturnValueOnce(JSON.stringify(secondFileFixture));
 
@@ -60,6 +63,7 @@ describe('loading subconfigs', () => {
     it('should properly overwrite', () => {
         // eslint-disable-next-line flowtype-errors/uncovered
         fs.readFileSync
+            // $FlowIgnore
             .mockReturnValueOnce(
                 JSON.stringify({
                     options: {},
@@ -90,5 +94,52 @@ describe('loading subconfigs', () => {
         expect(deeperConfig.options.splitTypes).toBe(false);
         expect(subConfig.options.readOnlyArray).toBe(undefined);
         expect(subConfig.excludes.length).toBe(1);
+    });
+});
+
+describe('jsonschema validation', () => {
+    it('should accept valid schema', () => {
+        validateOrThrow(
+            {
+                excludes: [
+                    '_test.js$',
+                    '\\bcourse-editor-package\\b',
+                    '.fixture.js$',
+                    '\\b__flowtests__\\b',
+                    '\\bcourse-editor\\b',
+                ],
+                schemaFilePath: './composed_schema.graphql',
+                options: {
+                    readOnlyArray: false,
+                    regenerateCommand: 'make gqlflow',
+                    scalars: {
+                        JSONString: 'string',
+                        KALocale: 'string',
+                        NaiveDateTime: 'string',
+                    },
+                    splitTypes: true,
+                    generatedDirectory: '__graphql-types__',
+                    exportAllObjectTypes: true,
+                },
+            },
+            jsonSchema,
+        );
+    });
+
+    it('should reject invalid schema', () => {
+        expect(() =>
+            validateOrThrow(
+                {
+                    schemaFilePath: 10,
+                    options: {
+                        extraOption: 'hello',
+                    },
+                },
+
+                jsonSchema,
+            ),
+        ).toThrowErrorMatchingInlineSnapshot(
+            `"instance.schemaFilePath is not of a type(s) string"`,
+        );
     });
 });

@@ -5,6 +5,7 @@ import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
 import {loadDirConfigFiles, getSchemas, loadConfigFile} from './config';
+import fs from 'fs';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
@@ -45,6 +46,11 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
 };
 
 const [_, __, configFile, ...cliFiles] = process.argv;
+
+// eslint-disable-next-line flowtype-errors/uncovered
+const jsonSchema = JSON.parse(
+    fs.readFileSync(__dirname + '/config.json', 'utf8'),
+);
 
 if (
     configFile === '-h' ||
