@@ -71,7 +71,6 @@ export type Schema = {
 
 export type Context = {
     path: Array<string>,
-
     strictNullability: boolean,
     readOnlyArray: boolean,
     fragments: {[key: string]: FragmentDefinitionNode},
