@@ -8,7 +8,7 @@ import {getSchemas} from '../cli/config';
 import {documentToFlowTypes} from '..';
 import gql from 'graphql-tag';
 
-import type {Options} from '../types';
+import type {GenerateConfig} from '../types';
 
 // This allows us to "snapshot" a string cleanly.
 /* eslint-disable flowtype-errors/uncovered */
@@ -20,9 +20,13 @@ expect.addSnapshotSerializer({
 
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
 
-const rawQueryToFlowTypes = (query: string, options?: Options): string => {
+const rawQueryToFlowTypes = (
+    query: string,
+    options?: $Partial<GenerateConfig>,
+): string => {
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
+        schemaFilePath: '',
         scalars: {PositiveNumber: 'number'},
         ...options,
     })

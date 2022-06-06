@@ -1,5 +1,4 @@
 // @flow
-import type {ExternalOptions} from '../generateTypeFiles';
 import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
@@ -14,18 +13,8 @@ import {
     graphqlSync,
     type IntrospectionQuery,
 } from 'graphql';
+import type {Config} from '../types';
 import {validate} from 'jsonschema'; // eslint-disable-line flowtype-errors/uncovered
-
-/**
- * This is the json-compatible form of the config
- * object.
- */
-type Config = {
-    excludes?: Array<string>,
-    schemaFilePath: string,
-    options?: ExternalOptions,
-    dumpOperations?: string,
-};
 
 export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
     /* eslint-disable flowtype-errors/uncovered */

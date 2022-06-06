@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // @flow
 /* eslint-disable no-console */
+import type {GenerateConfig} from '../types';
+
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
@@ -60,7 +62,7 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
 const config = loadConfigFile(configFile);
 
 const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
-    config.schemaFilePath,
+    config.generate.schemaFilePath,
 );
 
 const inputFiles = cliFiles.length
@@ -117,7 +119,9 @@ const printedOperations: Array<string> = [];
 Object.keys(resolved).forEach((k) => {
     const {document, raw} = resolved[k];
 
-    if (config.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))) {
+    if (
+        config.generate.exclude?.some((rx) => new RegExp(rx).test(raw.loc.path))
+    ) {
         return; // skip
     }
     const hasNonFragments = document.definitions.some(
@@ -132,10 +136,18 @@ Object.keys(resolved).forEach((k) => {
         printedOperations.push(printed);
     }
 
-    const processedOptions = processPragmas(config.options ?? {}, rawSource);
-    if (!processedOptions) {
+    const pragmaResult = processPragmas(
+        config.generate,
+        config.crawl,
+        rawSource,
+    );
+    if (!pragmaResult.generate) {
         return;
     }
+    const generateConfig: GenerateConfig = {
+        ...config.generate,
+        strictNullability: pragmaResult.strict,
+    };
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */
@@ -159,7 +171,7 @@ Object.keys(resolved).forEach((k) => {
             raw.loc.path,
             schemaForTypeGeneration,
             withTypeNames,
-            processedOptions,
+            generateConfig,
         );
         // eslint-disable-next-line flowtype-errors/uncovered
     } catch (err) {
@@ -179,8 +191,8 @@ if (validationFailures) {
     process.exit(1);
 }
 
-if (config.dumpOperations) {
-    const dumpOperations = config.dumpOperations;
+if (config.crawl.dumpOperations) {
+    const dumpOperations = config.crawl.dumpOperations;
     const parent = dirname(dumpOperations);
     mkdirSync(parent, {recursive: true});
     writeFileSync(

@@ -1,12 +1,20 @@
 // @flow
+import type {CrawlConfig, GenerateConfig} from '../types';
+
 import {processPragmas} from '../generateTypeFiles';
 
 const pragma = '# @autogen\n';
 const loosePragma = '# @autogen-loose\n';
 
+const baseGenerate: GenerateConfig = {schemaFilePath: ''};
+const baseCrawl: CrawlConfig = {root: ''};
+
 describe('processPragmas', () => {
     it('should work with no pragmas', () => {
-        expect(processPragmas({}, `query X { Y }`)).toEqual({
+        expect(
+            processPragmas(baseGenerate, baseCrawl, `query X { Y }`),
+        ).toEqual({
+            ...baseGenerate,
             strictNullability: undefined,
             readOnlyArray: undefined,
             scalars: undefined,
@@ -14,13 +22,20 @@ describe('processPragmas', () => {
     });
 
     it('should reject query without required pragma', () => {
-        expect(processPragmas({pragma}, `query X { Y }`)).toEqual(null);
+        expect(
+            processPragmas(
+                baseGenerate,
+                {...baseCrawl, pragma},
+                `query X { Y }`,
+            ),
+        ).toEqual(null);
     });
 
     it('should accept query with required pragma', () => {
         expect(
             processPragmas(
-                {pragma},
+                baseGenerate,
+                {...baseCrawl, pragma},
                 `query X {
                     # @autogen
                     Y
@@ -36,7 +51,8 @@ describe('processPragmas', () => {
     it('should accept query with loose pragma', () => {
         expect(
             processPragmas(
-                {pragma, loosePragma},
+                baseGenerate,
+                {...baseCrawl, pragma, loosePragma},
                 `query X {
                     # @autogen-loose
                     Y
@@ -52,7 +68,8 @@ describe('processPragmas', () => {
     it('should reject query with ignore pragma', () => {
         expect(
             processPragmas(
-                {ignorePragma: '# @ignore\n'},
+                baseGenerate,
+                {...baseCrawl, ignorePragma: '# @ignore\n'},
                 `query X {
                     # @ignore
                     Y
