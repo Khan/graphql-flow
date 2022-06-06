@@ -14,10 +14,8 @@ describe('processPragmas', () => {
         expect(
             processPragmas(baseGenerate, baseCrawl, `query X { Y }`),
         ).toEqual({
-            ...baseGenerate,
-            strictNullability: undefined,
-            readOnlyArray: undefined,
-            scalars: undefined,
+            generate: true,
+            strict: undefined,
         });
     });
 
@@ -28,7 +26,7 @@ describe('processPragmas', () => {
                 {...baseCrawl, pragma},
                 `query X { Y }`,
             ),
-        ).toEqual(null);
+        ).toEqual({generate: false});
     });
 
     it('should accept query with required pragma', () => {
@@ -42,9 +40,8 @@ describe('processPragmas', () => {
                 }`,
             ),
         ).toEqual({
-            strictNullability: true,
-            readOnlyArray: undefined,
-            scalars: undefined,
+            strict: true,
+            generate: true,
         });
     });
 
@@ -59,9 +56,8 @@ describe('processPragmas', () => {
                 }`,
             ),
         ).toEqual({
-            strictNullability: false,
-            readOnlyArray: undefined,
-            scalars: undefined,
+            strict: false,
+            generate: true,
         });
     });
 
@@ -75,6 +71,6 @@ describe('processPragmas', () => {
                     Y
                 }`,
             ),
-        ).toEqual(null);
+        ).toEqual({generate: false});
     });
 });

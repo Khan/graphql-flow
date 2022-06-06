@@ -156,7 +156,8 @@ Object.keys(resolved).forEach((filePathAndLine) => {
     }
     const generateConfig: GenerateConfig = {
         ...config.generate,
-        strictNullability: pragmaResult.strict,
+        strictNullability:
+            pragmaResult.strict ?? config.generate.strictNullability,
     };
 
     if (hasNonFragments) {
