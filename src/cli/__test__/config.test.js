@@ -8,7 +8,7 @@ describe('jsonschema validation', () => {
     it('should accept valid schema', () => {
         const config: Config = {
             crawl: {
-                root: '',
+                root: '/here/we/crawl',
                 excludes: [
                     '_test.js$',
                     '\\bcourse-editor-package\\b',
