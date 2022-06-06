@@ -4,7 +4,7 @@ import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
-import jsonSchema from './schema.json';
+import configSchema from './schema.json';
 
 import fs from 'fs';
 import {
@@ -47,7 +47,7 @@ export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
 export const loadConfigFile = (configFile: string): CliConfig => {
     // eslint-disable-next-line flowtype-errors/uncovered
     const data: JSONConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    validateOrThrow(data, jsonSchema);
+    validateOrThrow(data, configSchema);
     return {
         options: data.options ?? {},
         excludes: data.excludes?.map((string) => new RegExp(string)) ?? [],
@@ -74,8 +74,9 @@ type SubConfig = {
     extends?: string,
 };
 
-const subSchema = {...jsonSchema, required: []};
-subSchema.properties = {...jsonSchema.properties, extends: {type: 'string'}};
+const subSchema = {...configSchema, required: []};
+subSchema.properties = {...configSchema.properties, extends: {type: 'string'}};
+delete subSchema.properties.schemaFilePath;
 
 export const loadSubConfigFile = (configFile: string): SubConfig => {
     const jsonData = fs.readFileSync(configFile, 'utf8');
