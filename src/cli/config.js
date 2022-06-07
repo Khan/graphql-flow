@@ -28,8 +28,8 @@ export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
 };
 
 export const loadConfigFile = (configFile: string): Config => {
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const data: Config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    // $FlowIgnore // eslint-disable-next-line flowtype-errors/uncovered
+    const data: Config = require(configFile);
     // eslint-disable-next-line flowtype-errors/uncovered
     validateOrThrow(data, configSchema);
     return data;

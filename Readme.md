@@ -14,6 +14,10 @@ $ graphql-flow path/to/config.json
 
 Files will be discovered relative to the `crawl.root`.
 
+### Multiple generate configs
+
+
+
 ## Introspecting your backend's graphql schema
 Here's how to get your backend's schema in the way that this tool expects, using the builtin 'graphql introspection query':
 

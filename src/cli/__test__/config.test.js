@@ -67,6 +67,43 @@ describe('jsonschema validation', () => {
         );
     });
 
+    it('should accept a schema with multiple generate configs', () => {
+        const generate = {
+            match: [/\.fixture\.js$/],
+            exclude: [
+                '_test\\.js$',
+                '\\bcourse-editor-package\\b',
+                '\\.fixture\\.js$',
+                '\\b__flowtests__\\b',
+                '\\bcourse-editor\\b',
+            ],
+            readOnlyArray: false,
+            regenerateCommand: 'make gqlflow',
+            scalars: {
+                JSONString: 'string',
+                KALocale: 'string',
+                NaiveDateTime: 'string',
+            },
+            splitTypes: true,
+            generatedDirectory: '__graphql-types__',
+            exportAllObjectTypes: true,
+            schemaFilePath: './composed_schema.graphql',
+        };
+        const config: Config = {
+            crawl: {
+                root: '/here/we/crawl',
+            },
+            generate: [
+                {...generate, match: [/^static/], exportAllObjectTypes: false},
+                generate,
+            ],
+        };
+        validateOrThrow(
+            config,
+            configSchema, // eslint-disable-line flowtype-errors/uncovered
+        );
+    });
+
     it('should reject invalid schema', () => {
         expect(() =>
             validateOrThrow(

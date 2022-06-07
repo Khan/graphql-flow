@@ -2,28 +2,8 @@
     "$schema":"http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": false,
-    "properties": {
-        "crawl": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "root": {"type": "string"},
-                "pragma": {
-                    "type": "string"
-                },
-                "loosePragma": {
-                    "type": "string"
-                },
-                "ignorePragma": {
-                    "type": "string"
-                },
-                "dumpOperations": {
-                    "type": "string"
-                }
-            },
-            "required": [ "root" ]
-        },
-        "generate": {
+    "definitions": {
+        "GenerateConfig": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -80,6 +60,32 @@
                 "schemaFilePath"
             ]
         }
+    },
+    "properties": {
+        "crawl": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "root": {"type": "string"},
+                "pragma": {
+                    "type": "string"
+                },
+                "loosePragma": {
+                    "type": "string"
+                },
+                "ignorePragma": {
+                    "type": "string"
+                },
+                "dumpOperations": {
+                    "type": "string"
+                }
+            },
+            "required": [ "root" ]
+        },
+        "generate": {"oneOf": [
+            {"$ref": "#/definitions/GenerateConfig"},
+            {"type": "array", "items": {"$ref": "#/definitions/GenerateConfig"}}
+        ]}
     },
     "required": [ "crawl", "generate" ]
 }
