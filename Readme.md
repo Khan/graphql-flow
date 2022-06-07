@@ -25,6 +25,7 @@ For example:
 // dev/graphql-flow/config.js
 
 const options = {
+    schemaFilePath: "../../gengraphql/composed-schema.graphql",
     regenerateCommand: "make gqlflow",
     generatedDirectory: "__graphql-types__",
     exclude: [
@@ -43,12 +44,13 @@ module.exports = {
             ...options,
             schemaFilePath: "../../gengraphql/course-editor-schema.graphql",
             match: [/\bcourse-editor-package\b/, /\bcourse-editor\b/],
-            experimentalEnums: true,
         },
         {
             ...options,
-            schemaFilePath: "../../gengraphql/composed-schema.graphql",
+            match: [/\bdiscussion-package\b/]
+            experimentalEnums: true,
         },
+        options,
     ],
 };
 ```
