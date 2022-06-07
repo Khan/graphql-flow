@@ -13,7 +13,7 @@ import {
     graphqlSync,
     type IntrospectionQuery,
 } from 'graphql';
-import type {Config} from '../types';
+import type {Config, GenerateConfig} from '../types';
 import {validate} from 'jsonschema'; // eslint-disable-line flowtype-errors/uncovered
 
 export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
@@ -28,8 +28,8 @@ export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
 };
 
 export const loadConfigFile = (configFile: string): Config => {
-    // eslint-disable-next-line flowtype-errors/uncovered
-    const data: Config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    // $FlowIgnore // eslint-disable-next-line flowtype-errors/uncovered
+    const data: Config = require(configFile);
     // eslint-disable-next-line flowtype-errors/uncovered
     validateOrThrow(data, configSchema);
     return data;
@@ -59,4 +59,27 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
             schemaFromIntrospectionData(introspectionData);
         return [schemaForValidation, schemaForTypeGeneration];
     }
+};
+
+/**
+ * Find the first item of the `config.generate` array where both:
+ * - no item of `exclude` matches
+ * - at least one item of `match` matches
+ */
+export const findApplicableConfig = (
+    path: string,
+    configs: Array<GenerateConfig> | GenerateConfig,
+): ?GenerateConfig => {
+    if (!Array.isArray(configs)) {
+        configs = [configs];
+    }
+    return configs.find((config) => {
+        if (config.exclude?.some((exclude) => new RegExp(exclude).test(path))) {
+            return false;
+        }
+        if (!config.match) {
+            return true;
+        }
+        return config.match.some((matcher) => new RegExp(matcher).test(path));
+    });
 };

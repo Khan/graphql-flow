@@ -4,7 +4,7 @@
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
-import {getSchemas, loadConfigFile} from './config';
+import {findApplicableConfig, getSchemas, loadConfigFile} from './config';
 
 import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line flowtype-errors/uncovered
 
@@ -68,10 +68,6 @@ const absConfigPath = makeAbsPath(configFilePath, process.cwd());
 
 const config = loadConfigFile(absConfigPath);
 
-const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
-    makeAbsPath(config.generate.schemaFilePath, path.dirname(absConfigPath)),
-);
-
 const inputFiles = cliFiles.length
     ? cliFiles
     : findGraphqlTagReferences(
@@ -122,22 +118,36 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 /** Step (4) */
 
+const schemaCache = {};
+const getCachedSchemas = (schemaFilePath: string) => {
+    if (!schemaCache[schemaFilePath]) {
+        schemaCache[schemaFilePath] = getSchemas(
+            makeAbsPath(schemaFilePath, path.dirname(absConfigPath)),
+        );
+    }
+
+    return schemaCache[schemaFilePath];
+};
+
 let validationFailures: number = 0;
 const printedOperations: Array<string> = [];
 
 Object.keys(resolved).forEach((filePathAndLine) => {
     const {document, raw} = resolved[filePathAndLine];
 
-    if (
-        config.crawl.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))
-    ) {
-        return; // skip
-    }
-
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
     );
     const rawSource: string = raw.literals[0];
+
+    const generateConfig = findApplicableConfig(
+        // strip off the trailing line number, e.g. `:23`
+        filePathAndLine.split(':')[0],
+        config.generate,
+    );
+    if (!generateConfig) {
+        return; // no generate config matches, bail
+    }
 
     // eslint-disable-next-line flowtype-errors/uncovered
     const withTypeNames: DocumentNode = addTypenameToDocument(document);
@@ -147,18 +157,20 @@ Object.keys(resolved).forEach((filePathAndLine) => {
     }
 
     const pragmaResult = processPragmas(
-        config.generate,
+        generateConfig,
         config.crawl,
         rawSource,
     );
     if (!pragmaResult.generate) {
         return;
     }
-    const generateConfig: GenerateConfig = {
-        ...config.generate,
-        strictNullability:
-            pragmaResult.strict ?? config.generate.strictNullability,
-    };
+    if (pragmaResult.strict != null) {
+        generateConfig.strictNullability = pragmaResult.strict;
+    }
+
+    const [schemaForValidation, schemaForTypeGeneration] = getCachedSchemas(
+        generateConfig.schemaFilePath,
+    );
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */
