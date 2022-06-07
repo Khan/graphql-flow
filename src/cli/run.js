@@ -59,7 +59,7 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
 }
 
 const makeAbsPath = (maybeRelativePath: string, basePath: string) => {
-    return maybeRelativePath.startsWith('/')
+    return path.isAbsolute(maybeRelativePath)
         ? maybeRelativePath
         : path.join(basePath, maybeRelativePath);
 };
