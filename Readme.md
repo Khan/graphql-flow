@@ -31,7 +31,7 @@ const options = {
     exclude: [
         /_test.js$/,
         /.fixture.js$/,
-        /\\b__flowtests__\\b/,
+        /\b__flowtests__\b/,
     ],
 };
 
