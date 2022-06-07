@@ -15,10 +15,11 @@ import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
 import {dirname} from 'path';
+import type {GenerateConfig} from '../types';
 
 /**
  * This CLI tool executes the following steps:
- * 1) process options
+ * 1) parse & validate config file
  * 2) crawl files to find all operations and fragments, with
  *   tagged template literals and expressions.
  * 3) resolve the found operations, passing the literals and
@@ -43,13 +44,13 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
         .map((relative) => path.join(root, relative));
 };
 
-const [_, __, configFile, ...cliFiles] = process.argv;
+const [_, __, configFilePath, ...cliFiles] = process.argv;
 
 if (
-    configFile === '-h' ||
-    configFile === '--help' ||
-    configFile === 'help' ||
-    !configFile
+    configFilePath === '-h' ||
+    configFilePath === '--help' ||
+    configFilePath === 'help' ||
+    !configFilePath
 ) {
     console.log(`graphql-flow
 
@@ -57,15 +58,25 @@ Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
     process.exit(1); // eslint-disable-line flowtype-errors/uncovered
 }
 
-const config = loadConfigFile(configFile);
+const makeAbsPath = (maybeRelativePath: string, basePath: string) => {
+    return path.isAbsolute(maybeRelativePath)
+        ? maybeRelativePath
+        : path.join(basePath, maybeRelativePath);
+};
+
+const absConfigPath = makeAbsPath(configFilePath, process.cwd());
+
+const config = loadConfigFile(absConfigPath);
 
 const [schemaForValidation, schemaForTypeGeneration] = getSchemas(
-    config.schemaFilePath,
+    makeAbsPath(config.generate.schemaFilePath, path.dirname(absConfigPath)),
 );
 
 const inputFiles = cliFiles.length
     ? cliFiles
-    : findGraphqlTagReferences(process.cwd());
+    : findGraphqlTagReferences(
+          makeAbsPath(config.crawl.root, path.dirname(absConfigPath)),
+      );
 
 /** Step (2) */
 
@@ -114,12 +125,15 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 let validationFailures: number = 0;
 const printedOperations: Array<string> = [];
 
-Object.keys(resolved).forEach((k) => {
-    const {document, raw} = resolved[k];
+Object.keys(resolved).forEach((filePathAndLine) => {
+    const {document, raw} = resolved[filePathAndLine];
 
-    if (config.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))) {
+    if (
+        config.crawl.excludes?.some((rx) => new RegExp(rx).test(raw.loc.path))
+    ) {
         return; // skip
     }
+
     const hasNonFragments = document.definitions.some(
         ({kind}) => kind !== 'FragmentDefinition',
     );
@@ -132,10 +146,19 @@ Object.keys(resolved).forEach((k) => {
         printedOperations.push(printed);
     }
 
-    const processedOptions = processPragmas(config.options ?? {}, rawSource);
-    if (!processedOptions) {
+    const pragmaResult = processPragmas(
+        config.generate,
+        config.crawl,
+        rawSource,
+    );
+    if (!pragmaResult.generate) {
         return;
     }
+    const generateConfig: GenerateConfig = {
+        ...config.generate,
+        strictNullability:
+            pragmaResult.strict ?? config.generate.strictNullability,
+    };
 
     if (hasNonFragments) {
         /* eslint-disable flowtype-errors/uncovered */
@@ -159,7 +182,7 @@ Object.keys(resolved).forEach((k) => {
             raw.loc.path,
             schemaForTypeGeneration,
             withTypeNames,
-            processedOptions,
+            generateConfig,
         );
         // eslint-disable-next-line flowtype-errors/uncovered
     } catch (err) {
@@ -179,8 +202,8 @@ if (validationFailures) {
     process.exit(1);
 }
 
-if (config.dumpOperations) {
-    const dumpOperations = config.dumpOperations;
+if (config.crawl.dumpOperations) {
+    const dumpOperations = config.crawl.dumpOperations;
     const parent = dirname(dumpOperations);
     mkdirSync(parent, {recursive: true});
     writeFileSync(

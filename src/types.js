@@ -14,17 +14,36 @@ import type {
 
 export type Selections = $ReadOnlyArray<SelectionNode>;
 
-export type Options = {|
-    regenerateCommand?: string,
-    strictNullability?: boolean, // default true
-    readOnlyArray?: boolean, // default true
+export type GenerateConfig = {|
+    schemaFilePath: string,
+
     scalars?: Scalars,
+    strictNullability?: boolean,
+    /**
+     * The command that users should run to regenerate the types files.
+     */
+    regenerateCommand?: string,
+    readOnlyArray?: boolean,
     splitTypes?: boolean,
     generatedDirectory?: string,
     exportAllObjectTypes?: boolean,
     typeFileName?: string,
-    experimentalEnums?: boolean, // default false
+    experimentalEnums?: boolean,
 |};
+
+export type CrawlConfig = {
+    root: string,
+    pragma?: string,
+    loosePragma?: string,
+    ignorePragma?: string,
+    dumpOperations?: string,
+    excludes?: Array<RegExp | string>,
+};
+
+export type Config = {
+    crawl: CrawlConfig,
+    generate: GenerateConfig,
+};
 
 export type Schema = {
     interfacesByName: {

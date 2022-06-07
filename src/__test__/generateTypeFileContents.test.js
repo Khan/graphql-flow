@@ -19,7 +19,7 @@ describe('generateTypeFileContents', () => {
                     }
                 }
             `,
-            {splitTypes: true},
+            {splitTypes: true, schemaFilePath: ''},
             '__generated__',
             indexPrelude('yarn queries'),
         );
@@ -73,6 +73,7 @@ describe('generateTypeFileContents', () => {
             {
                 splitTypes: true,
                 typeFileName: 'prefix-[operationName]-suffix.js',
+                schemaFilePath: '',
             },
             '__generated__',
             indexPrelude('yarn queries'),
@@ -115,6 +116,7 @@ describe('generateTypeFileContents', () => {
                 `,
                 {
                     experimentalEnums: true,
+                    schemaFilePath: '',
                 },
                 '__generated__',
                 indexPrelude('yarn queries'),
