@@ -1,5 +1,27 @@
 # @khanacademy/graphql-flow
 
+## 1.0.0
+
+### Major Changes
+
+-   1e1de13: BREAKING: Change config file format, split into 'crawl' and 'generate' sections
+    See schema.json for new organization.
+-   284be55: [breaking] remove support for running graphql-flow via jest
+
+    Now the cli tool is the only way to invoke graphql-flow.
+
+-   9f7f2d1: Breaking: removed support for multiple config files (to be replaced with override support in the central config file)
+
+### Minor Changes
+
+-   a99fc38: Support multiple 'generate' configs, allowing projects to have different settings for different directories or files
+
+    `config.generate` can now be an object or an array of objects, with `match` and `exclude` arrays (either a RegExp or a string that will be passed to `new RegExp()`) to fine-tune which files they apply to.
+
+### Patch Changes
+
+-   bcc06d0: Use jsonschema for validating the config file
+
 ## 0.3.0
 
 ### Minor Changes
