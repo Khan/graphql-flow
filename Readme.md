@@ -19,6 +19,11 @@ Files will be discovered relative to the `crawl.root`.
 To customize type generation for certain directories or files, you can provide multiple
 `generate` configs as an array, using `match` and `exclude` to customize behavior.
 
+For a given file containing operations, the first `generate` config that matches that path
+(and doesn't exclude it) will be used to generate types for those operations. If a `generate`
+config doesn't have a `match` attribute, it will match all files (but might exclude some via the
+`exclude` attribute).
+
 For example:
 
 ```js
