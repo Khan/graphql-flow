@@ -17,15 +17,6 @@
                 "ignorePragma": {
                     "type": "string"
                 },
-                "excludes": {
-                    "type": "array",
-                    "items": {
-                        "oneOf": [
-                            { "type": "object" },
-                            { "type": "string" }
-                        ]
-                    }
-                },
                 "dumpOperations": {
                     "type": "string"
                 }
@@ -38,6 +29,24 @@
             "properties": {
                 "schemaFilePath": {
                     "type": "string"
+                },
+                "match": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "type": "object" },
+                            { "type": "string" }
+                        ]
+                    }
+                },
+                "exclude": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "type": "object" },
+                            { "type": "string" }
+                        ]
+                    }
                 },
                 "scalars": {
                     "type": "object"
