@@ -19,6 +19,7 @@ export type GenerateConfig = {|
     match?: Array<RegExp | string>,
     exclude?: Array<RegExp | string>,
 
+    typeScript?: boolean,
     scalars?: Scalars,
     strictNullability?: boolean,
     /**
@@ -79,6 +80,7 @@ export type Context = {
     scalars: Scalars,
     errors: Array<string>,
     allObjectTypes: null | {[key: string]: BabelNode},
+    typeScript: boolean,
 
     experimentalEnumsMap?: {[key: string]: BabelNode}, // index signature that is populated with declarations
 };

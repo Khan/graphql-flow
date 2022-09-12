@@ -29,6 +29,7 @@ const optionsToConfig = (
         strictNullability: options?.strictNullability ?? true,
         readOnlyArray: options?.readOnlyArray ?? true,
         scalars: options?.scalars ?? {},
+        typeScript: options?.typeScript ?? false,
     };
     const fragments = {};
     definitions.forEach((def) => {

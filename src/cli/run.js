@@ -32,7 +32,7 @@ import type {GenerateConfig} from '../types';
 
 const findGraphqlTagReferences = (root: string): Array<string> => {
     const response = execSync(
-        "git grep -I --word-regexp --name-only --fixed-strings 'graphql-tag' -- '*.js' '*.jsx'",
+        "git grep -I --word-regexp --name-only --fixed-strings 'graphql-tag' -- '*.js' '*.jsx' '*.ts' '*.tsx'",
         {
             encoding: 'utf8',
             cwd: root,
