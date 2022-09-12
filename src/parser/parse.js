@@ -134,7 +134,9 @@ export const processFile = (filePath: string, contents: string): FileResult => {
     const ast: BabelNodeFile = parse(contents, {
         sourceType: 'module',
         allowImportExportEverywhere: true,
-        plugins: [['flow', {enums: true}], 'jsx'],
+        plugins: filePath.match(/\.tsx?$/)
+            ? ['typescript', 'jsx']
+            : [['flow', {enums: true}], 'jsx'],
     });
     /* eslint-enable flowtype-errors/uncovered */
     const gqlTagNames = [];

@@ -1454,6 +1454,16 @@
   resolved "https://registry.yarnpkg.com/@khanacademy/eslint-config/-/eslint-config-0.1.0.tgz#e2b2c935be685f76075ee83136752b184c1ac733"
   integrity sha512-fskDM6GuRgZWmHHt2oUspcbsYNh6HNSB211372P98m3YRwkZNOeRCTFB7Byd3owfSm1z2jDYtUozgQv9zCWiVA==
 
+"@khanacademy/flow-to-ts@^0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@khanacademy/flow-to-ts/-/flow-to-ts-0.5.2.tgz#d72f6136e4e6cb5bb52c89b4dc29993428eea90e"
+  integrity sha512-6i8Q0pE9xuc58QVXLof3M3W88BVcVALZfE5yj5uHDcpmfC0ijjYaciKzMKhPfgZezXudmlgCt52mTcX0IHt4Fg==
+  dependencies:
+    commander "^2.19.0"
+    glob "^7.1.6"
+    prettier "2.2.1"
+    trim-right "^1.0.1"
+
 "@manypkg/find-root@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@manypkg/find-root/-/find-root-1.1.0.tgz#a62d8ed1cd7e7d4c11d9d52a8397460b5d4ad29f"
@@ -2374,6 +2384,11 @@ combined-stream@^1.0.8:
   integrity sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==
   dependencies:
     delayed-stream "~1.0.0"
+
+commander@^2.19.0:
+  version "2.20.3"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.20.3.tgz#fd485e84c03eb4881c20722ba48035e8531aeb33"
+  integrity sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==
 
 commander@^4.0.1:
   version "4.1.1"
@@ -5079,6 +5094,11 @@ prettier-linter-helpers@^1.0.0:
   integrity sha512-GbK2cP9nraSSUF9N2XwUwqfzlAFlMNYYl+ShE/V+H8a9uNl/oUqB1w2EL54Jh0OlyRSd8RfWYJ3coVS4TROP2w==
   dependencies:
     fast-diff "^1.1.2"
+
+prettier@2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.2.1.tgz#795a1a78dd52f073da0cd42b21f9c91381923ff5"
+  integrity sha512-PqyhM2yCjg/oKkFPtTGUojv7gnZAoG80ttl45O6x2Ug/rMJw4wcc9k6aaf2hibP7BGVCCM33gZoGjyvt9mm16Q==
 
 prettier@^1.19.1:
   version "1.19.1"
