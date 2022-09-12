@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 1.1.0
+
+### Minor Changes
+
+-   c7367a1: Basic TypeScript support!
+
 ## 1.0.0
 
 ### Major Changes
