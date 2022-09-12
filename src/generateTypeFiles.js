@@ -4,6 +4,7 @@ import type {GenerateConfig, CrawlConfig, Schema} from './types';
 import fs from 'fs';
 import path from 'path';
 import {documentToFlowTypes} from '.';
+import {convert} from '@khanacademy/flow-to-ts/dist/convert.bundle';
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
 //
@@ -27,6 +28,10 @@ export const generateTypeFileContents = (
 
     /// Write export for __generated__/index.js if it doesn't exist
     const addToIndex = (filePath, typeName) => {
+        if (options.typeScript) {
+            // Typescript doesn't like file extensions
+            filePath = filePath.replace(/\.js$/, '');
+        }
         const newLine = `export type {${typeName}} from './${path.basename(
             filePath,
         )}';`;
@@ -120,7 +125,10 @@ export const generateTypeFiles = (
     options: GenerateConfig,
 ) => {
     const generatedDir = getGeneratedDir(fileName, options);
-    const indexFile = path.join(generatedDir, 'index.js');
+    const indexFile = path.join(
+        generatedDir,
+        'index' + (options.typeScript ? '.ts' : '.js'),
+    );
 
     if (!fs.existsSync(generatedDir)) {
         fs.mkdirSync(generatedDir, {recursive: true});
@@ -140,7 +148,12 @@ export const generateTypeFiles = (
 
     fs.writeFileSync(indexFile, indexContents);
     Object.keys(files).forEach((key) => {
-        fs.writeFileSync(key, files[key]);
+        let fname = key;
+        if (options.typeScript) {
+            files[key] = convert(files[key]);
+            fname = key.replace(/\.js$/, '.ts');
+        }
+        fs.writeFileSync(fname, files[key]);
     });
 
     fs.writeFileSync(indexFile, indexContents);
