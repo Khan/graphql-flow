@@ -28,10 +28,9 @@ export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
 };
 
 export const loadConfigFile = (configFile: string): Config => {
-    // $FlowIgnore // eslint-disable-next-line flowtype-errors/uncovered
-    const data: Config = require(configFile);
-    // eslint-disable-next-line flowtype-errors/uncovered
-    validateOrThrow(data, configSchema);
+    // $FlowIgnore
+    const data: Config = require(configFile); // eslint-disable-line flowtype-errors/uncovered
+    validateOrThrow(data, configSchema); // eslint-disable-line flowtype-errors/uncovered
     return data;
 };
 

@@ -4,6 +4,7 @@ import type {GenerateConfig, CrawlConfig, Schema} from './types';
 import fs from 'fs';
 import path from 'path';
 import {documentToFlowTypes} from '.';
+// eslint-disable-next-line flowtype-errors/uncovered
 import {convert} from '@khanacademy/flow-to-ts/dist/convert.bundle';
 
 export const indexPrelude = (regenerateCommand?: string): string => `// @flow
@@ -150,6 +151,7 @@ export const generateTypeFiles = (
     Object.keys(files).forEach((key) => {
         let fname = key;
         if (options.typeScript) {
+            // eslint-disable-next-line flowtype-errors/uncovered
             files[key] = convert(files[key]);
             fname = key.replace(/\.js$/, '.ts');
         }

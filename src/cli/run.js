@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // @flow
 /* eslint-disable no-console */
+import type {Schema} from '../types';
+import type {GraphQLSchema} from 'graphql/type/schema';
+
 import {generateTypeFiles, processPragmas} from '../generateTypeFiles';
 import {processFiles} from '../parser/parse';
 import {resolveDocuments} from '../parser/resolve';
@@ -15,7 +18,6 @@ import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
 import {dirname} from 'path';
-import type {GenerateConfig} from '../types';
 
 /**
  * This CLI tool executes the following steps:
@@ -127,7 +129,7 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 /** Step (4) */
 
-const schemaCache = {};
+const schemaCache: {[key: string]: [GraphQLSchema, Schema]} = {};
 const getCachedSchemas = (schemaFilePath: string) => {
     if (!schemaCache[schemaFilePath]) {
         schemaCache[schemaFilePath] = getSchemas(
