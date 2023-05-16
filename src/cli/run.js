@@ -81,7 +81,16 @@ const files = processFiles(inputFiles, (f) => {
         return readFileSync(f, 'utf8');
     }
     if (existsSync(f + '.js')) {
-        return readFileSync(f + '.js', 'utf8');
+        return {text: readFileSync(f + '.js', 'utf8'), resolvedPath: f + '.js'};
+    }
+    if (existsSync(f + '.ts')) {
+        return {text: readFileSync(f + '.ts', 'utf8'), resolvedPath: f + '.ts'};
+    }
+    if (existsSync(f + '.tsx')) {
+        return {
+            text: readFileSync(f + '.tsx', 'utf8'),
+            resolvedPath: f + '.tsx',
+        };
     }
     throw new Error(`Unable to find ${f}`);
 });

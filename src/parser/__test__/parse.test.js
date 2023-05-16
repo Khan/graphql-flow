@@ -5,7 +5,9 @@ import {resolveDocuments} from '../resolve';
 
 import {print} from 'graphql/language/printer';
 
-const fixtureFiles: {[key: string]: string} = {
+const fixtureFiles: {
+    [key: string]: string | {text: string, resolvedPath: string},
+} = {
     '/firstFile.js': `
         // Note that you can import graphql-tag as
         // something other than gql.
