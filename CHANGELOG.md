@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 1.1.1
+
+### Patch Changes
+
+-   a581359: Fix processing of typescript imports that don't use an extension
+
 ## 1.1.0
 
 ### Minor Changes
