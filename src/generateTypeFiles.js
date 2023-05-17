@@ -152,7 +152,10 @@ export const generateTypeFiles = (
         let fname = key;
         if (options.typeScript) {
             // eslint-disable-next-line flowtype-errors/uncovered
-            files[key] = convert(files[key]);
+            files[key] = convert(files[key]).replace(
+                `variables: {}`,
+                `variables: Record<never, never>`,
+            );
             fname = key.replace(/\.js$/, '.ts');
         }
         fs.writeFileSync(fname, files[key]);
