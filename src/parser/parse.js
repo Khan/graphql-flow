@@ -121,7 +121,10 @@ const listExternalReferences = (file: FileResult): Array<string> => {
     return Object.keys(paths);
 };
 
-export const processFile = (filePath: string, contents: string): FileResult => {
+export const processFile = (
+    filePath: string,
+    contents: string | {text: string, resolvedPath: string},
+): FileResult => {
     const dir = path.dirname(filePath);
     const result: FileResult = {
         path: filePath,
@@ -130,13 +133,17 @@ export const processFile = (filePath: string, contents: string): FileResult => {
         locals: {},
         errors: [],
     };
+    const resolved =
+        typeof contents === 'string' ? filePath : contents.resolvedPath;
+    const text = typeof contents === 'string' ? contents : contents.text;
+    const plugins = resolved.match(/\.tsx?$/)
+        ? ['typescript', filePath.endsWith('x') ? 'jsx' : null].filter(Boolean)
+        : [['flow', {enums: true}], 'jsx'];
     /* eslint-disable flowtype-errors/uncovered */
-    const ast: BabelNodeFile = parse(contents, {
+    const ast: BabelNodeFile = parse(text, {
         sourceType: 'module',
         allowImportExportEverywhere: true,
-        plugins: filePath.match(/\.tsx?$/)
-            ? ['typescript', 'jsx']
-            : [['flow', {enums: true}], 'jsx'],
+        plugins: plugins,
     });
     /* eslint-enable flowtype-errors/uncovered */
     const gqlTagNames = [];
@@ -384,7 +391,9 @@ const getLocals = (
 
 export const processFiles = (
     filePaths: Array<string>,
-    getFileSource: (path: string) => string,
+    getFileSource: (
+        path: string,
+    ) => string | {text: string, resolvedPath: string},
 ): Files => {
     const files: Files = {};
     const toProcess = filePaths.slice();
