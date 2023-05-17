@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 1.1.2
+
+### Patch Changes
+
+-   9867001: Fix empty variables object
+
 ## 1.1.1
 
 ### Patch Changes
