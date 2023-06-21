@@ -30,6 +30,7 @@ const optionsToConfig = (
         readOnlyArray: options?.readOnlyArray ?? true,
         scalars: options?.scalars ?? {},
         typeScript: options?.typeScript ?? false,
+        omitFileExtensions: options?.omitFileExtensions ?? false,
     };
     const fragments = {};
     definitions.forEach((def) => {

@@ -29,23 +29,17 @@ export const generateTypeFileContents = (
 
     /// Write export for __generated__/index.js if it doesn't exist
     const addToIndex = (filePath, typeName) => {
-        if (options.typeScript) {
+        if (options.typeScript || options.omitFileExtensions) {
             // Typescript doesn't like file extensions
             filePath = filePath.replace(/\.js$/, '');
         }
         const newLine = `export type {${typeName}} from './${path.basename(
             filePath,
         )}';`;
-        if (indexContents.indexOf('./' + path.basename(filePath)) === -1) {
+        // We match the entire new line to avoid issues that can arise from
+        // prefix matches.
+        if (indexContents.indexOf(newLine) === -1) {
             indexContents += newLine + '\n';
-        } else {
-            const lines = indexContents.split('\n').map((line) => {
-                if (line.includes('./' + path.basename(filePath))) {
-                    return newLine;
-                }
-                return line;
-            });
-            indexContents = lines.join('\n');
         }
     };
 

@@ -11,6 +11,8 @@ import traverse from '@babel/traverse'; // eslint-disable-line flowtype-errors/u
 
 import path from 'path';
 
+import {getPathWithExtension} from './utils';
+
 /**
  * This file is responsible for finding all gql`-annotated
  * template strings in a set of provided files, and for resolving
@@ -88,7 +90,8 @@ const listExternalReferences = (file: FileResult): Array<string> => {
     const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === 'import') {
             if (followImports) {
-                paths[v.path] = true;
+                const absPath = getPathWithExtension(v.path);
+                paths[absPath] = true;
             }
         } else {
             v.source.expressions.forEach((expr) => add(expr, true));
