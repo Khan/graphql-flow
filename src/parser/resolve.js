@@ -1,6 +1,6 @@
 // @flow
-import fs from 'fs';
 import gql from 'graphql-tag';
+import {getPathWithExtension} from './utils';
 import type {DocumentNode} from 'graphql/language/ast';
 import type {FileResult, Files, Import, Template, Document} from './parse';
 
@@ -29,29 +29,6 @@ export const resolveDocuments = (
         });
     });
     return {resolved, errors};
-};
-
-export const getPathWithExtension = (pathWithoutExtension: string): string => {
-    if (
-        /\.(less|css|png|gif|jpg|jpeg|js|jsx|ts|tsx|mjs)$/.test(
-            pathWithoutExtension,
-        )
-    ) {
-        return pathWithoutExtension;
-    }
-    if (fs.existsSync(pathWithoutExtension + '.js')) {
-        return pathWithoutExtension + '.js';
-    }
-    if (fs.existsSync(pathWithoutExtension + '.jsx')) {
-        return pathWithoutExtension + '.jsx';
-    }
-    if (fs.existsSync(pathWithoutExtension + '.tsx')) {
-        return pathWithoutExtension + '.tsx';
-    }
-    if (fs.existsSync(pathWithoutExtension + '.ts')) {
-        return pathWithoutExtension + '.ts';
-    }
-    throw new Error("Can't find file at " + pathWithoutExtension);
 };
 
 const resolveImport = (
