@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 1.2.0
+
+### Minor Changes
+
+-   e1e9fde: Add --omitFileExtensions option
+
 ## 1.1.2
 
 ### Patch Changes
