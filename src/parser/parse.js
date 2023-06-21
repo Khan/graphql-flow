@@ -9,6 +9,7 @@ import type {
 import {parse} from '@babel/parser'; // eslint-disable-line flowtype-errors/uncovered
 import traverse from '@babel/traverse'; // eslint-disable-line flowtype-errors/uncovered
 
+import fs from 'fs';
 import path from 'path';
 
 /**
@@ -75,6 +76,29 @@ export type FileResult = {|
 
 export type Files = {[path: string]: FileResult};
 
+export const getPathWithExtension = (pathWithoutExtension: string): string => {
+    if (
+        /\.(less|css|png|gif|jpg|jpeg|js|jsx|ts|tsx|mjs)$/.test(
+            pathWithoutExtension,
+        )
+    ) {
+        return pathWithoutExtension;
+    }
+    if (fs.existsSync(pathWithoutExtension + '.js')) {
+        return pathWithoutExtension + '.js';
+    }
+    if (fs.existsSync(pathWithoutExtension + '.jsx')) {
+        return pathWithoutExtension + '.jsx';
+    }
+    if (fs.existsSync(pathWithoutExtension + '.tsx')) {
+        return pathWithoutExtension + '.tsx';
+    }
+    if (fs.existsSync(pathWithoutExtension + '.ts')) {
+        return pathWithoutExtension + '.ts';
+    }
+    throw new Error("Can't find file at " + pathWithoutExtension);
+};
+
 /**
  * Finds all referenced imports that might possibly be relevant
  * graphql fragments.
@@ -88,7 +112,8 @@ const listExternalReferences = (file: FileResult): Array<string> => {
     const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === 'import') {
             if (followImports) {
-                paths[v.path] = true;
+                const absPath = getPathWithExtension(v.path);
+                paths[absPath] = true;
             }
         } else {
             v.source.expressions.forEach((expr) => add(expr, true));

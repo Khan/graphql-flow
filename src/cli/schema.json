@@ -57,6 +57,9 @@
                 },
                 "experimentalEnums": {
                     "type": "boolean"
+                },
+                "omitFileExtensions": {
+                    "type": "boolean"
                 }
             },
             "required": [

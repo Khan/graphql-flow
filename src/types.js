@@ -32,6 +32,7 @@ export type GenerateConfig = {|
     exportAllObjectTypes?: boolean,
     typeFileName?: string,
     experimentalEnums?: boolean,
+    omitFileExtensions?: boolean,
 |};
 
 export type CrawlConfig = {

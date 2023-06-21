@@ -1,4 +1,5 @@
 // @flow
+import fs from 'fs';
 import gql from 'graphql-tag';
 import type {DocumentNode} from 'graphql/language/ast';
 import type {FileResult, Files, Import, Template, Document} from './parse';
@@ -30,31 +31,55 @@ export const resolveDocuments = (
     return {resolved, errors};
 };
 
+export const getPathWithExtension = (pathWithoutExtension: string): string => {
+    if (
+        /\.(less|css|png|gif|jpg|jpeg|js|jsx|ts|tsx|mjs)$/.test(
+            pathWithoutExtension,
+        )
+    ) {
+        return pathWithoutExtension;
+    }
+    if (fs.existsSync(pathWithoutExtension + '.js')) {
+        return pathWithoutExtension + '.js';
+    }
+    if (fs.existsSync(pathWithoutExtension + '.jsx')) {
+        return pathWithoutExtension + '.jsx';
+    }
+    if (fs.existsSync(pathWithoutExtension + '.tsx')) {
+        return pathWithoutExtension + '.tsx';
+    }
+    if (fs.existsSync(pathWithoutExtension + '.ts')) {
+        return pathWithoutExtension + '.ts';
+    }
+    throw new Error("Can't find file at " + pathWithoutExtension);
+};
+
 const resolveImport = (
     expr: Import,
     files: Files,
     errors: FileResult['errors'],
     seen: {[key: string]: true},
 ): ?Document => {
-    if (seen[expr.path]) {
+    const absPath: string = getPathWithExtension(expr.path);
+    if (seen[absPath]) {
         errors.push({
             loc: expr.loc,
-            message: `Circular import ${Object.keys(seen).join(' -> ')} -> ${
-                expr.path
-            }`,
+            message: `Circular import ${Object.keys(seen).join(
+                ' -> ',
+            )} -> ${absPath}`,
         });
         return null;
     }
-    seen[expr.path] = true;
-    const res = files[expr.path];
+    seen[absPath] = true;
+    const res = files[absPath];
     if (!res) {
-        errors.push({loc: expr.loc, message: `No file ${expr.path}`});
+        errors.push({loc: expr.loc, message: `No file ${absPath}`});
         return null;
     }
     if (!res.exports[expr.name]) {
         errors.push({
             loc: expr.loc,
-            message: `${expr.path} has no valid gql export ${expr.name}`,
+            message: `${absPath} has no valid gql export ${expr.name}`,
         });
         return null;
     }
