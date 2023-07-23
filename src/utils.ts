@@ -1,8 +1,8 @@
 import * as babelTypes from '@babel/types';
-import {ObjectTypeProperty} from '@babel/types';
+import {TSPropertySignature} from '@babel/types';
 
-export const liftLeadingPropertyComments = (property: ObjectTypeProperty): ObjectTypeProperty => {
-    return transferLeadingComments(property.value, property);
+export const liftLeadingPropertyComments = (property: TSPropertySignature): TSPropertySignature => {
+    return transferLeadingComments(property.typeAnnotation!, property);
 };
 
 export const maybeAddDescriptionComment = <T extends babelTypes.Node>(description: string | null | undefined, node: T): T => {
@@ -38,3 +38,36 @@ export const transferLeadingComments = <T extends babelTypes.Node>(source: babel
     }
     return dest;
 };
+
+export function nullableType(type: babelTypes.TSType): babelTypes.TSType {
+    return babelTypes.tsUnionType([type, babelTypes.tsNullKeyword(), babelTypes.tsUndefinedKeyword()]);
+}
+
+export function isnNullableType(type: babelTypes.TSType): boolean {
+    let hasNull = false;
+    let hasUndefined = false;
+    if (type.type === 'TSUnionType') {
+        for (const t of type.types) {
+            if (t.type === 'TSNullKeyword') {
+                hasNull = true;
+            } else if (t.type === 'TSUndefinedKeyword') {
+                hasUndefined = true;
+            }
+        }
+    }
+    return hasNull && hasUndefined;
+}
+
+export function objectTypeFromProperties(properties: babelTypes.TSPropertySignature[]): babelTypes.TSTypeLiteral {
+    let exitingProperties: Record<string, boolean> = {};
+    let filteredProperties = properties.filter((p) => {
+        if (p.key.type === 'Identifier') {
+            if (exitingProperties[p.key.name]) {
+                return false;
+            }
+            exitingProperties[p.key.name] = true;
+        }
+        return true;
+    });
+    return babelTypes.tsTypeLiteral(filteredProperties);
+}

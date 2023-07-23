@@ -2,7 +2,7 @@
  * Both input & output types can have enums & scalars.
  */
 import * as babelTypes from '@babel/types';
-import type {FlowType} from '@babel/types';
+import type {TSType} from '@babel/types';
 import type {Context} from './types';
 import {maybeAddDescriptionComment} from './utils';
 import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
@@ -11,13 +11,14 @@ export const experimentalEnumTypeToFlow = (
     ctx: Context,
     enumConfig: IntrospectionEnumType,
     description: string,
-): FlowType => {
-    const enumDeclaration = babelTypes.enumDeclaration(
+): TSType => {
+    const enumDeclaration = babelTypes.tsEnumDeclaration(
         // pass id into generic type annotation
         babelTypes.identifier(enumConfig.name),
-        babelTypes.enumStringBody(
-            enumConfig.enumValues.map((v) =>
-                babelTypes.enumDefaultedMember(babelTypes.identifier(v.name)),
+        enumConfig.enumValues.map((v) =>
+            babelTypes.tsEnumMember(
+                babelTypes.identifier(v.name),
+                babelTypes.stringLiteral(v.name),
             ),
         ),
     );
@@ -28,11 +29,11 @@ export const experimentalEnumTypeToFlow = (
 
     return maybeAddDescriptionComment(
         description,
-        babelTypes.genericTypeAnnotation(enumDeclaration.id),
+        babelTypes.tsTypeReference(enumDeclaration.id),
     );
 };
 
-export const enumTypeToFlow = (ctx: Context, name: string): FlowType => {
+export const enumTypeToFlow = (ctx: Context, name: string): TSType => {
     const enumConfig = ctx.schema.enumsByName[name];
     let combinedDescription = enumConfig.enumValues
         .map(
@@ -52,9 +53,11 @@ export const enumTypeToFlow = (ctx: Context, name: string): FlowType => {
         ? experimentalEnumTypeToFlow(ctx, enumConfig, combinedDescription)
         : maybeAddDescriptionComment(
               combinedDescription,
-              babelTypes.unionTypeAnnotation(
+              babelTypes.tsUnionType(
                   enumConfig.enumValues.map((n) =>
-                      babelTypes.stringLiteralTypeAnnotation(n.name),
+                      babelTypes.tsLiteralType(
+                          babelTypes.stringLiteral(n.name),
+                      ),
                   ),
               ),
           );
@@ -72,22 +75,22 @@ export const builtinScalars: {
     Float: 'number',
 };
 
-export const scalarTypeToFlow = (ctx: Context, name: string): FlowType => {
+export const scalarTypeToFlow = (ctx: Context, name: string): TSType => {
     if (builtinScalars[name]) {
-        return babelTypes.genericTypeAnnotation(
+        return babelTypes.tsTypeReference(
             babelTypes.identifier(builtinScalars[name]),
         );
     }
     const underlyingType = ctx.scalars[name];
     if (underlyingType != null) {
-        return babelTypes.genericTypeAnnotation(
+        return babelTypes.tsTypeReference(
             babelTypes.identifier(underlyingType),
         );
     }
     ctx.errors.push(
         `Unexpected scalar '${name}'! Please add it to the "scalars" argument at the callsite of 'generateFlowTypes()'.`,
     );
-    return babelTypes.genericTypeAnnotation(
+    return babelTypes.tsTypeReference(
         babelTypes.identifier(`UNKNOWN_SCALAR["${name}"]`),
     );
 };
