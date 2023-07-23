@@ -14,8 +14,8 @@ export type Selections = ReadonlyArray<SelectionNode>;
 
 export type GenerateConfig = {
     schemaFilePath: string
-    match?: Array<RegExp | string>
-    exclude?: Array<RegExp | string>
+    match?: ReadonlyArray<RegExp | string>
+    exclude?: ReadonlyArray<RegExp | string>
     typeScript?: boolean
     scalars?: Scalars
     strictNullability?: boolean

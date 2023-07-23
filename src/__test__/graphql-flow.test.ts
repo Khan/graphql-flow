@@ -18,7 +18,10 @@ expect.addSnapshotSerializer({
 
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
 
-const rawQueryToFlowTypes = (query: string, options?: Partial<GenerateConfig>): string => {
+const rawQueryToFlowTypes = (
+    query: string,
+    options?: Partial<GenerateConfig>,
+): string => {
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
         schemaFilePath: '',
@@ -26,11 +29,7 @@ const rawQueryToFlowTypes = (query: string, options?: Partial<GenerateConfig>): 
         ...options,
     })
         .map(
-            ({
-                typeName,
-                code,
-                extraTypes,
-            }: any) =>
+            ({typeName, code, extraTypes}: any) =>
                 `// ${typeName}.js\n${code}` +
                 Object.keys(extraTypes)
                     .sort()
@@ -50,14 +49,14 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {|
-              candies: number
-            |},
-                response: {|
-              candies: ?string
-            |}
-            |};
+            export type SomeQueryType = {
+                variables: {
+              candies: number;
+            },
+                response: {
+              candies: string | null | undefined;
+            }
+            };
         `);
     });
 
@@ -73,18 +72,18 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {|
-              id: string
-            |},
-                response: {|
-
+            export type SomeQueryType = {
+                variables: {
+              id: string;
+            },
+                response: {
+              human:
               /** A human character*/
-              human: ?{|
-                id: string
-              |}
-            |}
-            |};
+              {
+                id: string;
+              } | null | undefined;
+            }
+            };
         `);
     });
 
@@ -104,23 +103,23 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {||},
-                response: {|
-
+            export type SomeQueryType = {
+                variables: {},
+                response: {
+              human:
               /** A human character*/
-              human: ?{|
-                friends: ?$ReadOnlyArray<?{|
-                  name: ?string
-                |}>,
-                homePlanet: ?string,
-                id: string,
+              {
+                friends: ReadonlyArray<{
+                  name: string | null | undefined;
+                } | null | undefined> | null | undefined;
+                homePlanet: string | null | undefined;
+                id: string;
 
                 /** The person's name*/
-                name: ?string,
-              |}
-            |}
-            |};
+                name: string | null | undefined;
+              } | null | undefined;
+            }
+            };
         `);
     });
 
@@ -135,16 +134,16 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {||},
-                response: {|
-
+            export type SomeQueryType = {
+                variables: {},
+                response: {
+              human:
               /** A human character*/
-              human: ?{|
-                notDead: ?boolean
-              |}
-            |}
-            |};
+              {
+                notDead: boolean | null | undefined;
+              } | null | undefined;
+            }
+            };
         `);
     });
 
@@ -165,23 +164,23 @@ describe('graphql-flow generation', () => {
         `);
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {||},
-                response: {|
-              friend: ?({|
-                __typename: "Animal"
-              |} | {|
-                __typename: "Droid",
+            export type SomeQueryType = {
+                variables: {},
+                response: {
+              friend: ({
+                __typename: "Animal";
+              } | {
+                __typename: "Droid";
 
                 /** The robot's primary function*/
-                primaryFunction: string,
-              |} | {|
-                __typename: "Human",
-                hands: ?number,
-                id: string,
-              |})
-            |}
-            |};
+                primaryFunction: string;
+              } | {
+                __typename: "Human";
+                hands: number | null | undefined;
+                id: string;
+              }) | null | undefined;
+            }
+            };
         `);
     });
 
@@ -216,63 +215,63 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {||},
-                response: {|
-
+            export type SomeQueryType = {
+                variables: {},
+                response: {
+              human:
               /** A human character*/
-              human: ?{|
-                alive: ?boolean,
-                friends: ?$ReadOnlyArray<?({|
-                  __typename: "Droid",
-                  appearsIn: ?$ReadOnlyArray<
+              {
+                alive: boolean | null | undefined;
+                friends: ReadonlyArray<({
+                  __typename: "Droid";
+                  appearsIn: ReadonlyArray<
                   /** - NEW_HOPE
                   - EMPIRE
                   - JEDI*/
-                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-                  friends: ?$ReadOnlyArray<?{|
-                    id: string
-                  |}>,
-                  id: string,
-                  name: ?string,
-                |} | {|
-                  __typename: "Human",
-                  appearsIn: ?$ReadOnlyArray<
+                  ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined> | null | undefined;
+                  friends: ReadonlyArray<{
+                    id: string;
+                  } | null | undefined> | null | undefined;
+                  id: string;
+                  name: string | null | undefined;
+                } | {
+                  __typename: "Human";
+                  appearsIn: ReadonlyArray<
                   /** - NEW_HOPE
                   - EMPIRE
                   - JEDI*/
-                  ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-                  friends: ?$ReadOnlyArray<?{|
-                    id: string
-                  |}>,
-                  hands: ?number,
-                  id: string,
-                  name: ?string,
-                |})>,
-                hands: ?number,
-                homePlanet: ?string,
-                id: string,
+                  ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined> | null | undefined;
+                  friends: ReadonlyArray<{
+                    id: string;
+                  } | null | undefined> | null | undefined;
+                  hands: number | null | undefined;
+                  id: string;
+                  name: string | null | undefined;
+                }) | null | undefined> | null | undefined;
+                hands: number | null | undefined;
+                homePlanet: string | null | undefined;
+                id: string;
 
                 /** The person's name*/
-                name: ?string,
-              |}
-            |}
-            |};
+                name: string | null | undefined;
+              } | null | undefined;
+            }
+            };
 
             // Profile.js
-            export type Profile = {|
-              __typename: "Droid" | "Human",
-              appearsIn: ?$ReadOnlyArray<
+            export type Profile = {
+              __typename: "Droid" | "Human";
+              appearsIn: ReadonlyArray<
               /** - NEW_HOPE
               - EMPIRE
               - JEDI*/
-              ?("NEW_HOPE" | "EMPIRE" | "JEDI")>,
-              friends: ?$ReadOnlyArray<?{|
-                id: string
-              |}>,
-              id: string,
-              name: ?string,
-            |};
+              ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined> | null | undefined;
+              friends: ReadonlyArray<{
+                id: string;
+              } | null | undefined> | null | undefined;
+              id: string;
+              name: string | null | undefined;
+            };
         `);
     });
 
@@ -292,18 +291,18 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {||},
-                response: {|
-
+            export type SomeQueryType = {
+                variables: {},
+                response: {
+              human:
               /** A human character*/
-              human: ?{|
-                friends: ?Array<?{|
-                  name: ?string
-                |}>
-              |}
-            |}
-            |};
+              {
+                friends: Array<{
+                  name: string | null | undefined;
+                } | null | undefined> | null | undefined;
+              } | null | undefined;
+            }
+            };
         `);
     });
 
@@ -355,29 +354,29 @@ describe('graphql-flow generation', () => {
             );
             expect(result).toMatchInlineSnapshot(`
                 // HelloType.js
-                export type HelloType = {|
-                    variables: {||},
-                    response: {|
-                  hero: ?({|
-                    __typename: "Droid",
+                export type HelloType = {
+                    variables: {},
+                    response: {
+                  hero: ({
+                    __typename: "Droid";
 
                     /** The robot's primary function*/
-                    primaryFunction: string,
-                  |} | {|
-                    __typename: "Human"
-                  |})
-                |}
-                |};
+                    primaryFunction: string;
+                  } | {
+                    __typename: "Human";
+                  }) | null | undefined;
+                }
+                };
 
                 // onChar.js
-                export type onChar = {|
-                  __typename: "Droid",
+                export type onChar = {
+                  __typename: "Droid";
 
                   /** The robot's primary function*/
-                  primaryFunction: string,
-                |} | {|
-                  __typename: "Human"
-                |};
+                  primaryFunction: string;
+                } | {
+                  __typename: "Human";
+                };
             `);
         });
 
@@ -405,33 +404,33 @@ describe('graphql-flow generation', () => {
             // `DepsType.response.droid`
             expect(result).toMatchInlineSnapshot(`
                 // DepsType.js
-                export type DepsType = {|
-                    variables: {||},
-                    response: {|
-
+                export type DepsType = {
+                    variables: {},
+                    response: {
+                  droid:
                   /** A robot character*/
-                  droid: ?{|
-                    __typename: "Droid",
-                    name: ?string,
+                  {
+                    __typename: "Droid";
+                    name: string | null | undefined;
 
                     /** The robot's primary function*/
-                    primaryFunction: string,
-                  |}
-                |}
-                |};
+                    primaryFunction: string;
+                  } | null | undefined;
+                }
+                };
 
                 // Hello.js
-                export type Hello = {|
-                  __typename: "Droid",
-                  name: ?string,
+                export type Hello = {
+                  __typename: "Droid";
+                  name: string | null | undefined;
 
                   /** The robot's primary function*/
-                  primaryFunction: string,
-                |} | {|
-                  __typename: "Human",
-                  homePlanet: ?string,
-                  name: ?string,
-                |};
+                  primaryFunction: string;
+                } | {
+                  __typename: "Human";
+                  homePlanet: string | null | undefined;
+                  name: string | null | undefined;
+                };
             `);
         });
     });
@@ -460,32 +459,32 @@ describe('graphql-flow generation', () => {
 
         expect(result).toMatchInlineSnapshot(`
             // SomeQueryType.js
-            export type SomeQueryType = {|
-                variables: {||},
-                response: {|
-
+            export type SomeQueryType = {
+                variables: {},
+                response: {
+              human:
               /** A human character*/
-              human: ?SomeQuery_human
-            |}
-            |};
-            export type SomeQuery_human = {|
-              alive: ?boolean,
-              friends: ?$ReadOnlyArray<?SomeQuery_human_friends>,
-              hands: ?number,
-              homePlanet: ?string,
-              id: string,
+              SomeQuery_human | null | undefined;
+            }
+            };
+            export type SomeQuery_human = {
+              alive: boolean | null | undefined;
+              friends: ReadonlyArray<SomeQuery_human_friends | null | undefined> | null | undefined;
+              hands: number | null | undefined;
+              homePlanet: string | null | undefined;
+              id: string;
 
               /** The person's name*/
-              name: ?string,
-            |};
+              name: string | null | undefined;
+            };
             export type SomeQuery_human_friends = SomeQuery_human_friends_Droid | SomeQuery_human_friends_Human;
-            export type SomeQuery_human_friends_Droid = {|
-              __typename: "Droid"
-            |};
-            export type SomeQuery_human_friends_Human = {|
-              __typename: "Human",
-              hands: ?number,
-            |};
+            export type SomeQuery_human_friends_Droid = {
+              __typename: "Droid";
+            };
+            export type SomeQuery_human_friends_Human = {
+              __typename: "Human";
+              hands: number | null | undefined;
+            };
         `);
     });
 
@@ -507,28 +506,28 @@ describe('graphql-flow generation', () => {
 
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
-                export type SomeQueryType = {|
-                    variables: {|
-                  id: string,
-
+                export type SomeQueryType = {
+                    variables: {
+                  id: string;
+                  episode?:
                   /** - NEW_HOPE
                   - EMPIRE
                   - JEDI*/
-                  episode?: ?("NEW_HOPE" | "EMPIRE" | "JEDI"),
-                |},
-                    response: {|
-                  hero: ?{|
-                    name: ?string
-                  |},
-
+                  ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined;
+                },
+                    response: {
+                  hero: {
+                    name: string | null | undefined;
+                  } | null | undefined;
+                  human:
                   /** A human character*/
-                  human: ?{|
-                    friends: ?Array<?{|
-                      name: ?string
-                    |}>
-                  |},
-                |}
-                |};
+                  {
+                    friends: Array<{
+                      name: string | null | undefined;
+                    } | null | undefined> | null | undefined;
+                  } | null | undefined;
+                }
+                };
             `);
         });
 
@@ -547,20 +546,20 @@ describe('graphql-flow generation', () => {
             );
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
-                export type SomeQueryType = {|
-                    variables: {||},
-                    response: {|
-                  hero: ?({|
-                    id: string,
-                    name: ?string,
-                  |} | {|
-                    id: string,
+                export type SomeQueryType = {
+                    variables: {},
+                    response: {
+                  hero: ({
+                    id: string;
+                    name: string | null | undefined;
+                  } | {
+                    id: string;
 
                     /** The person's name*/
-                    name: ?string,
-                  |})
-                |}
-                |};
+                    name: string | null | undefined;
+                  }) | null | undefined;
+                }
+                };
             `);
         });
 
@@ -579,19 +578,19 @@ describe('graphql-flow generation', () => {
             );
             expect(result).toMatchInlineSnapshot(`
                 // SomeQueryType.js
-                export type SomeQueryType = {|
-                    variables: {||},
-                    response: {|
-
+                export type SomeQueryType = {
+                    variables: {},
+                    response: {
+                  human:
                   /** A human character*/
-                  human: ?{|
-                    id: string,
+                  {
+                    id: string;
 
                     /** The person's name*/
-                    name: ?string,
-                  |}
-                |}
-                |};
+                    name: string | null | undefined;
+                  } | null | undefined;
+                }
+                };
             `);
         });
 
@@ -607,31 +606,30 @@ describe('graphql-flow generation', () => {
 
             expect(result).toMatchInlineSnapshot(`
                 // addCharacterType.js
-                export type addCharacterType = {|
-                    variables: {|
-
+                export type addCharacterType = {
+                    variables: {
+                  character:
                   /** A character to add*/
-                  character: {|
-
+                  {
                     /** The new character's name*/
-                    name: string,
+                    name: string;
 
                     /** The character's friends*/
-                    friends?: ?$ReadOnlyArray<string>,
-                    appearsIn?: ?$ReadOnlyArray<
+                    friends?: ReadonlyArray<string> | null | undefined;
+                    appearsIn?: ReadonlyArray<
                     /** - NEW_HOPE
                     - EMPIRE
                     - JEDI*/
-                    "NEW_HOPE" | "EMPIRE" | "JEDI">,
-                    candies: number,
-                  |}
-                |},
-                    response: {|
-                  addCharacter: ?{|
-                    id: string
-                  |}
-                |}
-                |};
+                    "NEW_HOPE" | "EMPIRE" | "JEDI"> | null | undefined;
+                    candies: number;
+                  };
+                },
+                    response: {
+                  addCharacter: {
+                    id: string;
+                  } | null | undefined;
+                }
+                };
             `);
         });
     });

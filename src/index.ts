@@ -133,7 +133,7 @@ export const documentToFlowTypes = (document: DocumentNode, schema: Schema, opti
                 const typeName = `${name}Type`;
                 // TODO(jared): Maybe make this template configurable?
                 // We'll see what's required to get webapp on board.
-                const code = `export type ${typeName} = {|\n    variables: ${variables},\n    response: ${response}\n|};`;
+                const code = `export type ${typeName} = {\n    variables: ${variables},\n    response: ${response}\n};`;
 
                 const extraTypes = codegenExtraTypes(types);
                 const experimentalEnums = codegenExtraTypes(
