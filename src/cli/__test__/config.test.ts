@@ -1,7 +1,7 @@
 import type {Config} from '../../types';
 
 import {findApplicableConfig, validateOrThrow} from '../config';
-import configSchema from '../schema.json'; // eslint-disable-line flowtype-errors/uncovered
+import configSchema from '../../../schema.json';
 
 describe('findApplicableConfig', () => {
     it('should work with one that matches', () => {
