@@ -1,18 +1,11 @@
-// @flow
-
 import * as babelTypes from '@babel/types';
-import {BabelNodeObjectTypeProperty} from '@babel/types';
+import {ObjectTypeProperty} from '@babel/types';
 
-export const liftLeadingPropertyComments = (
-    property: BabelNodeObjectTypeProperty,
-): BabelNodeObjectTypeProperty => {
+export const liftLeadingPropertyComments = (property: ObjectTypeProperty): ObjectTypeProperty => {
     return transferLeadingComments(property.value, property);
 };
 
-export const maybeAddDescriptionComment = <T: babelTypes.BabelNode>(
-    description: ?string,
-    node: T,
-): T => {
+export const maybeAddDescriptionComment = <T extends babelTypes.Node>(description: string | null | undefined, node: T): T => {
     if (description) {
         addCommentAsLineComments(description, node);
     }
@@ -21,7 +14,7 @@ export const maybeAddDescriptionComment = <T: babelTypes.BabelNode>(
 
 export function addCommentAsLineComments(
     description: string,
-    res: babelTypes.BabelNode,
+    res: babelTypes.Node,
 ) {
     if (res.leadingComments?.length) {
         res.leadingComments[0].value += '\n\n---\n\n' + description;
@@ -35,10 +28,7 @@ export function addCommentAsLineComments(
     }
 }
 
-export const transferLeadingComments = <T: babelTypes.BabelNode>(
-    source: babelTypes.BabelNode,
-    dest: T,
-): T => {
+export const transferLeadingComments = <T extends babelTypes.Node>(source: babelTypes.Node, dest: T): T => {
     if (source.leadingComments?.length) {
         dest.leadingComments = [
             ...(dest.leadingComments || []),

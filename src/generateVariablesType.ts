@@ -1,4 +1,3 @@
-// @flow
 import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import type {
     BabelNodeFlowType,
@@ -15,10 +14,7 @@ import {
     transferLeadingComments,
 } from './utils';
 
-export const inputObjectToFlow = (
-    ctx: Context,
-    name: string,
-): BabelNodeFlowType => {
+export const inputObjectToFlow = (ctx: Context, name: string): BabelNodeFlowType => {
     const inputObject = ctx.schema.inputObjectsByName[name];
     if (!inputObject) {
         ctx.errors.push(`Unknown input object ${name}`);
@@ -47,10 +43,7 @@ export const inputObjectToFlow = (
     );
 };
 
-export const maybeOptionalObjectTypeProperty = (
-    name: string,
-    type: babelTypes.BabelNodeFlowType,
-): BabelNodeObjectTypeProperty => {
+export const maybeOptionalObjectTypeProperty = (name: string, type: babelTypes.BabelNodeFlowType): BabelNodeObjectTypeProperty => {
     const prop = liftLeadingPropertyComments(
         babelTypes.objectTypeProperty(babelTypes.identifier(name), type),
     );
@@ -60,10 +53,7 @@ export const maybeOptionalObjectTypeProperty = (
     return prop;
 };
 
-export const inputRefToFlow = (
-    ctx: Context,
-    inputRef: IntrospectionInputTypeRef,
-): BabelNodeFlowType => {
+export const inputRefToFlow = (ctx: Context, inputRef: IntrospectionInputTypeRef): BabelNodeFlowType => {
     if (inputRef.kind === 'NON_NULL') {
         return _inputRefToFlow(ctx, inputRef.ofType);
     }
@@ -135,11 +125,7 @@ const _variableToFlow = (ctx: Context, type: TypeNode) => {
     );
 };
 
-export const generateVariablesType = (
-    schema: Schema,
-    item: OperationDefinitionNode,
-    ctx: Context,
-): string => {
+export const generateVariablesType = (schema: Schema, item: OperationDefinitionNode, ctx: Context): string => {
     const variableObject = babelTypes.objectTypeAnnotation(
         (item.variableDefinitions || []).map((vbl) => {
             return maybeOptionalObjectTypeProperty(

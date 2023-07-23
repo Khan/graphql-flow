@@ -1,6 +1,6 @@
+import {isTruthy} from '@khanacademy/wonder-stuff-core';
 /* eslint-disable no-console */
 /* flow-uncovered-file */
-// @flow
 /**
  * This tool generates flowtype definitions from graphql queries.
  *
@@ -15,13 +15,13 @@ import {
     generateResponseType,
 } from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
-import type {BabelNode} from '@babel/types';
+import type {Node} from '@babel/types';
 
 import type {Context, Schema, GenerateConfig} from './types';
 
 const optionsToConfig = (
     schema: Schema,
-    definitions: $ReadOnlyArray<DefinitionNode>,
+    definitions: ReadonlyArray<DefinitionNode>,
     options?: GenerateConfig,
     errors: Array<string> = [],
 ): Context => {
@@ -31,8 +31,8 @@ const optionsToConfig = (
         scalars: options?.scalars ?? {},
         typeScript: options?.typeScript ?? false,
         omitFileExtensions: options?.omitFileExtensions ?? false,
-    };
-    const fragments = {};
+    } as const;
+    const fragments: Record<string, any> = {};
     definitions.forEach((def) => {
         if (def.kind === 'FragmentDefinition') {
             fragments[def.name.value] = def;
@@ -46,8 +46,10 @@ const optionsToConfig = (
         path: [],
         experimentalEnumsMap: options?.experimentalEnums ? {} : undefined,
         ...internalOptions,
-    };
+    } as const;
 
+    // @ts-expect-error: TS2322 - The type 'readonly []' is 'readonly' and cannot be
+    // assigned to the mutable type 'string[]'.
     return config;
 };
 
@@ -59,17 +61,17 @@ export class FlowGenerationError extends Error {
     }
 }
 
-export const documentToFlowTypes = (
-    document: DocumentNode,
-    schema: Schema,
-    options?: GenerateConfig,
-): $ReadOnlyArray<{
-    name: string,
-    typeName: string,
-    code: string,
-    isFragment?: boolean,
-    extraTypes: {[key: string]: string},
-    experimentalEnums: {[key: string]: string},
+export const documentToFlowTypes = (document: DocumentNode, schema: Schema, options?: GenerateConfig): ReadonlyArray<{
+    name: string
+    typeName: string
+    code: string
+    isFragment?: boolean
+    extraTypes: {
+        [key: string]: string
+    }
+    experimentalEnums: {
+        [key: string]: string
+    }
 }> => {
     const errors: Array<string> = [];
     const config = optionsToConfig(
@@ -82,7 +84,7 @@ export const documentToFlowTypes = (
         .map((item) => {
             if (item.kind === 'FragmentDefinition') {
                 const name = item.name.value;
-                const types = {};
+                const types: Record<string, any> = {};
                 const code = `export type ${name} = ${generateFragmentType(
                     schema,
                     item,
@@ -114,7 +116,7 @@ export const documentToFlowTypes = (
                 (item.operation === 'query' || item.operation === 'mutation') &&
                 item.name
             ) {
-                const types = {};
+                const types: Record<string, any> = {};
                 const name = item.name.value;
                 const response = generateResponseType(schema, item, {
                     ...config,
@@ -141,17 +143,23 @@ export const documentToFlowTypes = (
                 return {name, typeName, code, extraTypes, experimentalEnums};
             }
         })
-        .filter(Boolean);
+        .filter(isTruthy);
     if (errors.length) {
         throw new FlowGenerationError(errors);
     }
     return result;
 };
 
-function codegenExtraTypes(types: {[key: string]: BabelNode}): {
-    [key: string]: string,
+function codegenExtraTypes(
+    types: {
+        [key: string]: Node
+    },
+): {
+    [key: string]: string
 } {
-    const extraTypes: {[key: string]: string} = {};
+    const extraTypes: {
+        [key: string]: string
+    } = {};
     Object.keys(types).forEach((k: string) => {
         // eslint-disable-next-line flowtype-errors/uncovered
         extraTypes[k] = generate(types[k]).code;

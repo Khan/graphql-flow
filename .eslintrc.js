@@ -5,6 +5,5 @@ module.exports = {
     plugins: ['flowtype-errors'],
     rules: {
         'prettier/prettier': ['error', {singleQuote: true}],
-        'flowtype-errors/uncovered': 2,
     },
 };

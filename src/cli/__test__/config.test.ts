@@ -1,14 +1,13 @@
-// @flow
 import type {Config} from '../../types';
 
 import {findApplicableConfig, validateOrThrow} from '../config';
-import configSchema from '../schema.json'; // eslint-disable-line flowtype-errors/uncovered
+import configSchema from '../../../schema.json';
 
 describe('findApplicableConfig', () => {
     it('should work with one that matches', () => {
         const config = {
             schemaFilePath: 'ok.graphql',
-        };
+        } as const;
         expect(findApplicableConfig('/hello', config)).toBe(config);
     });
 
@@ -16,7 +15,7 @@ describe('findApplicableConfig', () => {
         const config = {
             schemaFilePath: 'ok.graphql',
             exclude: [/hello$/],
-        };
+        } as const;
         expect(findApplicableConfig('/hello', config)).toBeUndefined();
     });
 
@@ -88,7 +87,7 @@ describe('jsonschema validation', () => {
             generatedDirectory: '__graphql-types__',
             exportAllObjectTypes: true,
             schemaFilePath: './composed_schema.graphql',
-        };
+        } as const;
         const config: Config = {
             crawl: {
                 root: '/here/we/crawl',

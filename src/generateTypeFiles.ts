@@ -1,4 +1,3 @@
-// @flow
 import type {DocumentNode} from 'graphql';
 import type {GenerateConfig, CrawlConfig, Schema} from './types';
 import fs from 'fs';
@@ -24,11 +23,16 @@ export const generateTypeFileContents = (
     options: GenerateConfig,
     generatedDir: string,
     indexContents: string,
-): {indexContents: string, files: {[key: string]: string}} => {
-    const files = {};
+): {
+    indexContents: string
+    files: {
+        [key: string]: string
+    }
+} => {
+    const files: Record<string, any> = {};
 
     /// Write export for __generated__/index.js if it doesn't exist
-    const addToIndex = (filePath, typeName) => {
+    const addToIndex = (filePath: string, typeName: unknown) => {
         if (options.typeScript || options.omitFileExtensions) {
             // Typescript doesn't like file extensions
             filePath = filePath.replace(/\.js$/, '');
@@ -162,7 +166,10 @@ export const processPragmas = (
     generateConfig: GenerateConfig,
     crawlConfig: CrawlConfig,
     rawSource: string,
-): {generate: boolean, strict?: boolean} => {
+): {
+    generate: boolean
+    strict?: boolean
+} => {
     if (
         crawlConfig.ignorePragma &&
         rawSource.includes(crawlConfig.ignorePragma)

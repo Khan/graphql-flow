@@ -1,4 +1,4 @@
-// @flow
+import {isTruthy} from '@khanacademy/wonder-stuff-core';
 import type {
     BabelNodeImportDeclaration,
     BabelNodeVariableDeclarator,
@@ -42,40 +42,54 @@ import {getPathWithExtension} from './utils';
  *   in `gqlOp<Type>()` or not (to inform an auto-wrapper of the future)
  */
 
-export type Template = {|
-    literals: Array<string>,
-    expressions: Array<Document | Import>,
-    loc: Loc,
-|};
-export type Loc = {start: number, end: number, path: string, line: number};
+export type Template = {
+    literals: Array<string>
+    expressions: Array<Document | Import>
+    loc: Loc
+};
+export type Loc = {
+    start: number
+    end: number
+    path: string
+    line: number
+};
 
-export type Document = {|
-    type: 'document',
-    source: Template,
-|};
-export type Import = {|
-    type: 'import',
-    name: string,
-    path: string,
-    loc: Loc,
-|};
+export type Document = {
+    type: 'document'
+    source: Template
+};
+export type Import = {
+    type: 'import'
+    name: string
+    path: string
+    loc: Loc
+};
 
-export type Operation = {|
-    source: Template,
+export type Operation = {
+    source: Template
     // TODO: Determine if an operation is already wrapped
     // in `gqlOp` so we can automatically wrap if needed.
     // needsWrapping: boolean,
-|};
+};
 
-export type FileResult = {|
-    path: string,
-    operations: Array<Operation>,
-    exports: {[key: string]: Document | Import},
-    locals: {[key: string]: Document | Import},
-    errors: Array<{loc: Loc, message: string}>,
-|};
+export type FileResult = {
+    path: string
+    operations: Array<Operation>
+    exports: {
+        [key: string]: Document | Import
+    }
+    locals: {
+        [key: string]: Document | Import
+    }
+    errors: Array<{
+        loc: Loc
+        message: string
+    }>
+};
 
-export type Files = {[path: string]: FileResult};
+export type Files = {
+    [path: string]: FileResult
+};
 
 /**
  * Finds all referenced imports that might possibly be relevant
@@ -86,7 +100,7 @@ export type Files = {[path: string]: FileResult};
  * from a graphql template are treated as relevant.
  */
 const listExternalReferences = (file: FileResult): Array<string> => {
-    const paths = {};
+    const paths: Record<string, any> = {};
     const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === 'import') {
             if (followImports) {
@@ -126,7 +140,10 @@ const listExternalReferences = (file: FileResult): Array<string> => {
 
 export const processFile = (
     filePath: string,
-    contents: string | {text: string, resolvedPath: string},
+    contents: string | {
+        text: string
+        resolvedPath: string
+    },
 ): FileResult => {
     const dir = path.dirname(filePath);
     const result: FileResult = {
@@ -140,7 +157,7 @@ export const processFile = (
         typeof contents === 'string' ? filePath : contents.resolvedPath;
     const text = typeof contents === 'string' ? contents : contents.text;
     const plugins = resolved.match(/\.tsx?$/)
-        ? ['typescript', filePath.endsWith('x') ? 'jsx' : null].filter(Boolean)
+        ? ['typescript', filePath.endsWith('x') ? 'jsx' : null].filter(isTruthy)
         : [['flow', {enums: true}], 'jsx'];
     /* eslint-disable flowtype-errors/uncovered */
     const ast: BabelNodeFile = parse(text, {
@@ -150,7 +167,9 @@ export const processFile = (
     });
     /* eslint-enable flowtype-errors/uncovered */
     const gqlTagNames = [];
-    const seenTemplates: {[key: number]: Document | false} = {};
+    const seenTemplates: {
+        [key: number]: Document | false
+    } = {};
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === 'ImportDeclaration') {
@@ -176,7 +195,7 @@ export const processFile = (
                 const importPath = source.value.startsWith('.')
                     ? path.resolve(path.join(dir, source.value))
                     : source.value;
-                toplevel.specifiers?.forEach((spec) => {
+                toplevel.specifiers?.forEach((spec: unknown) => {
                     if (
                         spec.type === 'ExportSpecifier' &&
                         spec.exported.type === 'Identifier'
@@ -195,7 +214,7 @@ export const processFile = (
                     }
                 });
             } else {
-                toplevel.specifiers?.forEach((spec) => {
+                toplevel.specifiers?.forEach((spec: unknown) => {
                     if (spec.type === 'ExportSpecifier') {
                         const local = result.locals[spec.local.name];
                         if (local && spec.exported.type === 'Identifier') {
@@ -285,7 +304,7 @@ export const processFile = (
 
     /* eslint-disable flowtype-errors/uncovered */
     traverse(ast, {
-        TaggedTemplateExpression(path) {
+        TaggedTemplateExpression(path: unknown) {
             visitTpl(path.node, (name) => {
                 const binding = path.scope.getBinding(name);
                 const start = binding.path.node.init
@@ -306,10 +325,10 @@ export const processFile = (
 const processTemplate = (
     tpl: BabelNodeTaggedTemplateExpression,
     result: FileResult,
-    getTemplate?: (name: string) => Document | null,
     // getBinding?: (name: string) => Binding,
     // seenTemplates,
-): ?Template => {
+    getTemplate?: (name: string) => Document | null,
+): Template | null | undefined => {
     // 'cooked' is the string as runtime javascript will see it.
     const literals = tpl.quasi.quasis.map((q) => q.value.cooked || '');
     const expressions = tpl.quasi.expressions.map(
@@ -347,7 +366,7 @@ const processTemplate = (
     }
     return {
         literals,
-        expressions: expressions.filter(Boolean),
+        expressions: expressions.filter(isTruthy),
         loc: {
             line: tpl.loc?.start.line ?? -1,
             start: tpl.start ?? -1,
@@ -357,18 +376,16 @@ const processTemplate = (
     };
 };
 
-const getLocals = (
-    dir,
-    toplevel: BabelNodeImportDeclaration,
-    myPath: string,
-): ?{[key: string]: Import} => {
+const getLocals = (dir: unknown, toplevel: BabelNodeImportDeclaration, myPath: string): {
+    [key: string]: Import
+} | null | undefined => {
     if (toplevel.importKind === 'type') {
         return null;
     }
     const importPath = toplevel.source.value.startsWith('.')
         ? path.resolve(path.join(dir, toplevel.source.value))
         : toplevel.source.value;
-    const locals = {};
+    const locals: Record<string, any> = {};
     toplevel.specifiers.forEach((spec) => {
         if (spec.type === 'ImportDefaultSpecifier') {
             locals[spec.local.name] = {
@@ -394,9 +411,10 @@ const getLocals = (
 
 export const processFiles = (
     filePaths: Array<string>,
-    getFileSource: (
-        path: string,
-    ) => string | {text: string, resolvedPath: string},
+    getFileSource: (path: string) => string | {
+        text: string
+        resolvedPath: string
+    },
 ): Files => {
     const files: Files = {};
     const toProcess = filePaths.slice();

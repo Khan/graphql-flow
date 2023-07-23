@@ -1,4 +1,3 @@
-// @flow
 /**
  * Takes the introspectionQuery response and parses it into the "Schema"
  * type that we use to look up types, interfaces, etc.
@@ -6,9 +5,7 @@
 import type {IntrospectionQuery} from 'graphql';
 import type {Schema} from './types';
 
-export const schemaFromIntrospectionData = (
-    schema: IntrospectionQuery,
-): Schema => {
+export const schemaFromIntrospectionData = (schema: IntrospectionQuery): Schema => {
     const result: Schema = {
         interfacesByName: {},
         typesByName: {},

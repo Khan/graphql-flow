@@ -1,4 +1,3 @@
-// @flow
 import type {CrawlConfig, GenerateConfig} from '../types';
 
 import {processPragmas} from '../generateTypeFiles';

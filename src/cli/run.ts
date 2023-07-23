@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// @flow
 /* eslint-disable no-console */
 import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
@@ -13,7 +12,7 @@ import {addTypenameToDocument} from 'apollo-utilities'; // eslint-disable-line f
 
 import {execSync} from 'child_process';
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
-import {type DocumentNode} from 'graphql';
+import {DocumentNode} from 'graphql';
 import {print} from 'graphql/language/printer';
 import {validate} from 'graphql/validation';
 import path from 'path';
@@ -129,7 +128,9 @@ console.log(Object.keys(resolved).length, 'resolved queries');
 
 /** Step (4) */
 
-const schemaCache: {[key: string]: [GraphQLSchema, Schema]} = {};
+const schemaCache: {
+    [key: string]: [GraphQLSchema, Schema]
+} = {};
 const getCachedSchemas = (schemaFilePath: string) => {
     if (!schemaCache[schemaFilePath]) {
         schemaCache[schemaFilePath] = getSchemas(
@@ -208,7 +209,7 @@ Object.keys(resolved).forEach((filePathAndLine) => {
             generateConfig,
         );
         // eslint-disable-next-line flowtype-errors/uncovered
-    } catch (err) {
+    } catch (err: any) {
         console.error(`Error while generating operation from ${raw.loc.path}`);
         console.error(printed);
         // eslint-disable-next-line flowtype-errors/uncovered
