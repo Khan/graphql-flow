@@ -16,7 +16,7 @@ describe('findApplicableConfig', () => {
             schemaFilePath: 'ok.graphql',
             exclude: [/hello$/],
         } as const;
-        expect(findApplicableConfig('/hello', config)).toBeUndefined();
+        expect(findApplicableConfig('/hello', config as any)).toBeUndefined();
     });
 
     it('should match & exclude with multiple configs', () => {

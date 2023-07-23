@@ -1,12 +1,13 @@
 /* eslint-disable no-console */
 import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import * as babelTypes from '@babel/types';
-import {FlowType, ObjectTypeProperty, ObjectTypeSpreadProperty} from '@babel/types';
+import {FlowType, ObjectTypeProperty} from '@babel/types';
 import type {
     FieldNode,
     IntrospectionOutputTypeRef,
     OperationDefinitionNode,
     FragmentDefinitionNode,
+    SelectionNode,
 } from 'graphql';
 import type {Context, Schema, Selections} from './types';
 import {
@@ -37,7 +38,7 @@ export const generateResponseType = (schema: Schema, query: OperationDefinitionN
 
 const sortedObjectTypeAnnotation = (
     ctx: Context,
-    properties: Array<ObjectTypeProperty | ObjectTypeSpreadProperty>,
+    properties: Array<ObjectTypeProperty>,
 ) => {
     const obj = babelTypes.objectTypeAnnotation(
         properties.sort((a, b) => {
@@ -100,7 +101,7 @@ export const generateFragmentType = (schema: Schema, fragment: FragmentDefinitio
     return generate(ast).code;
 };
 
-const _typeToFlow = (ctx: Context, type: any, selection: any): babelTypes.FlowType => {
+const _typeToFlow = (ctx: Context, type: any, selection: FieldNode): babelTypes.FlowType => {
     if (type.kind === 'SCALAR') {
         return scalarTypeToFlow(ctx, type.name);
     }
@@ -181,7 +182,7 @@ export const typeToFlow = (ctx: Context, type: IntrospectionOutputTypeRef, selec
     return transferLeadingComments(inner, result);
 };
 
-const ensureOnlyOneTypenameProperty = (properties: Array<ObjectTypeProperty | ObjectTypeSpreadProperty>) => {
+const ensureOnlyOneTypenameProperty = (properties: Array<ObjectTypeProperty>) => {
     let seenTypeName: false | string = false;
     return properties.filter((type) => {
         // The apollo-utilities "addTypeName" utility will add it
@@ -228,8 +229,8 @@ export const objectPropertiesToFlow = (
     },
     typeName: string,
     selections: Selections,
-): Array<ObjectTypeProperty | ObjectTypeSpreadProperty> => {
-    return selections.flatMap((selection): Array<ObjectTypeProperty | ObjectTypeSpreadProperty> => {
+): Array<ObjectTypeProperty> => {
+    return selections.flatMap((selection): Array<ObjectTypeProperty> => {
         switch (selection.kind) {
             case 'InlineFragment': {
                 const newTypeName =
@@ -341,7 +342,7 @@ export const unionOrInterfaceToFlow = (
         (selection) => selection.kind === 'Field',
     );
     const selectedAttributes: Array<{
-        attributes: Array<ObjectTypeProperty | ObjectTypeSpreadProperty>
+        attributes: Array<ObjectTypeProperty>
         typeName: string
     }> = type.possibleTypes
         .slice()
@@ -349,10 +350,10 @@ export const unionOrInterfaceToFlow = (
             return a.name < b.name ? -1 : 1;
         })
         .map((possible) => {
-            const configWithUpdatedPath = {
+            const configWithUpdatedPath: Context = {
                 ...ctx,
                 path: allFields ? ctx.path : ctx.path.concat([possible.name]),
-            } as const;
+            };
             return {
                 typeName: possible.name,
                 attributes: ensureOnlyOneTypenameProperty(
@@ -445,7 +446,7 @@ export const unionOrInterfaceToFlow = (
     }
     return result;
 };
-const unionOrInterfaceSelection = (config: any, type: any, possible: any, selection: any): Array<ObjectTypeProperty | ObjectTypeSpreadProperty> => {
+const unionOrInterfaceSelection = (config: Context, type: any, possible: any, selection: SelectionNode): Array<ObjectTypeProperty> => {
     if (selection.kind === 'Field' && selection.name.value === '__typename') {
         const alias = selection.alias
             ? selection.alias.value
@@ -506,14 +507,12 @@ const unionOrInterfaceSelection = (config: any, type: any, possible: any, select
                 ]) ||
             typeName === possible.name
         ) {
-            return [].concat(
-                ...fragment.selectionSet.selections.map((selection: any) =>
-                    unionOrInterfaceSelection(
-                        config,
-                        config.schema.typesByName[possible.name],
-                        possible,
-                        selection,
-                    ),
+            return fragment.selectionSet.selections.flatMap((selection: SelectionNode) =>
+                unionOrInterfaceSelection(
+                    config,
+                    config.schema.typesByName[possible.name],
+                    possible,
+                    selection,
                 ),
             );
         } else {
