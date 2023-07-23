@@ -1,5 +1,3 @@
-// @flow
-
 /**
  * Tests for our graphql flow generation!
  */
@@ -13,17 +11,14 @@ import type {GenerateConfig} from '../types';
 // This allows us to "snapshot" a string cleanly.
 /* eslint-disable flowtype-errors/uncovered */
 expect.addSnapshotSerializer({
-    test: (value) => value && typeof value === 'string',
-    print: (value, _, __) => value,
+    test: (value: any) => value && typeof value === 'string',
+    print: (value: any, _: any, __: any) => value,
 });
 /* eslint-enable flowtype-errors/uncovered */
 
 const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
 
-const rawQueryToFlowTypes = (
-    query: string,
-    options?: $Partial<GenerateConfig>,
-): string => {
+const rawQueryToFlowTypes = (query: string, options?: Partial<GenerateConfig>): string => {
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
         schemaFilePath: '',
@@ -31,11 +26,15 @@ const rawQueryToFlowTypes = (
         ...options,
     })
         .map(
-            ({typeName, code, extraTypes}) =>
+            ({
+                typeName,
+                code,
+                extraTypes,
+            }: any) =>
                 `// ${typeName}.js\n${code}` +
                 Object.keys(extraTypes)
                     .sort()
-                    .map((k) => `\nexport type ${k} = ${extraTypes[k]};`)
+                    .map((k: any) => `\nexport type ${k} = ${extraTypes[k]};`)
                     .join(''),
         )
         .join('\n\n');

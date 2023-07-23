@@ -1,4 +1,3 @@
-// @flow
 import gql from 'graphql-tag';
 import {getPathWithExtension} from './utils';
 import type {DocumentNode} from 'graphql/language/ast';
@@ -6,14 +5,15 @@ import type {FileResult, Files, Import, Template, Document} from './parse';
 
 export type Resolved = {
     [key: string]: {
-        document: DocumentNode,
-        raw: Template,
-    },
+        document: DocumentNode
+        raw: Template
+    }
 };
 
-export const resolveDocuments = (
-    files: Files,
-): {resolved: Resolved, errors: FileResult['errors']} => {
+export const resolveDocuments = (files: Files): {
+    resolved: Resolved
+    errors: FileResult['errors']
+} => {
     const resolved: Resolved = {};
     const errors: FileResult['errors'] = [];
     Object.keys(files).forEach((path) => {
@@ -35,8 +35,10 @@ const resolveImport = (
     expr: Import,
     files: Files,
     errors: FileResult['errors'],
-    seen: {[key: string]: true},
-): ?Document => {
+    seen: {
+        [key: string]: true
+    },
+): Document | null | undefined => {
     const absPath: string = getPathWithExtension(expr.path);
     if (seen[absPath]) {
         errors.push({
@@ -72,8 +74,10 @@ const resolveGqlTemplate = (
     files: Files,
     errors: FileResult['errors'],
     resolved: Resolved,
-    seen: {[key: string]: Template},
-): ?DocumentNode => {
+    seen: {
+        [key: string]: Template
+    },
+): DocumentNode | null | undefined => {
     const key = template.loc.path + ':' + template.loc.line;
     if (seen[key]) {
         errors.push({

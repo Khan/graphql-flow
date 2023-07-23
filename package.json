@@ -30,7 +30,8 @@
         "eslint-plugin-react-hooks": "^4.3.0",
         "flow-bin": "^0.172.0",
         "graphql-tag": "2.10.1",
-        "jest": "^27.5.1"
+        "jest": "^27.5.1",
+        "typescript": "^5.1.6"
     },
     "dependencies": {
         "@babel/core": "^7.6.2",

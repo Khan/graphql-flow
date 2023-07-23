@@ -1,12 +1,13 @@
-// @flow
-
 import {processFiles} from '../parse';
 import {resolveDocuments} from '../resolve';
 
 import {print} from 'graphql/language/printer';
 
 const fixtureFiles: {
-    [key: string]: string | {text: string, resolvedPath: string},
+    [key: string]: string | {
+        text: string
+        resolvedPath: string
+    }
 } = {
     '/firstFile.js': `
         // Note that you can import graphql-tag as
@@ -151,14 +152,14 @@ const getFileSource = (name: string) => {
 describe('processing fragments in various ways', () => {
     it('should work', () => {
         const files = processFiles(['/thirdFile.js'], getFileSource);
-        Object.keys(files).forEach((k) => {
+        Object.keys(files).forEach((k: any) => {
             expect(files[k].errors).toEqual([]);
         });
         const {resolved, errors} = resolveDocuments(files);
         expect(errors).toEqual([]);
-        const printed = {};
+        const printed: Record<string, any> = {};
         Object.keys(resolved).map(
-            (k) => (printed[k] = print(resolved[k].document).trim()),
+            (k: any) => (printed[k] = print(resolved[k].document).trim()),
         );
         expect(printed).toMatchInlineSnapshot(`
             Object {
@@ -216,7 +217,7 @@ describe('processing fragments in various ways', () => {
 
     it('should flag things it doesnt support', () => {
         const files = processFiles(['/invalidThings.js'], getFileSource);
-        expect(files['/invalidThings.js'].errors.map((m) => m.message))
+        expect(files['/invalidThings.js'].errors.map((m: any) => m.message))
             .toMatchInlineSnapshot(`
             Array [
               "Unable to resolve someExternalFragment",
@@ -228,11 +229,11 @@ describe('processing fragments in various ways', () => {
 
     it('should flag resolution errors', () => {
         const files = processFiles(['/invalidReferences.js'], getFileSource);
-        Object.keys(files).forEach((k) => {
+        Object.keys(files).forEach((k: any) => {
             expect(files[k].errors).toEqual([]);
         });
         const {resolved, errors} = resolveDocuments(files);
-        expect(errors.map((m) => m.message)).toMatchInlineSnapshot(`
+        expect(errors.map((m: any) => m.message)).toMatchInlineSnapshot(`
             Array [
               "Circular import /circular.js -> /invalidReferences.js -> /circular.js",
               "/circular.js has no valid gql export doesntExist",
@@ -240,9 +241,9 @@ describe('processing fragments in various ways', () => {
               "Recursive template dependency! /circular.js:5 ~ 1,2 -> /invalidReferences.js:15 ~ 1,2 -> /circular.js:5",
             ]
         `);
-        const printed = {};
+        const printed: Record<string, any> = {};
         Object.keys(resolved).map(
-            (k) => (printed[k] = print(resolved[k].document).trim()),
+            (k: any) => (printed[k] = print(resolved[k].document).trim()),
         );
         expect(printed).toMatchInlineSnapshot(`Object {}`);
     });

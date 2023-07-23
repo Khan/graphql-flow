@@ -1,4 +1,3 @@
-// @flow
 const path = require('path');
 const {execSync} = require('child_process');
 
@@ -9,7 +8,7 @@ export const findRepoRoot = (): string => {
         });
         return res.trim();
         // eslint-disable-next-line flowtype-errors/uncovered
-    } catch (err) {
+    } catch (err: any) {
         throw new Error(
             // eslint-disable-next-line flowtype-errors/uncovered
             `Unable to use git rev-parse to find the repository root. ${err.message}`,
@@ -31,7 +30,7 @@ export const findGraphqlTagReferences = (root: string): Array<string> => {
             .split('\n')
             .map((relative) => path.join(root, relative));
         // eslint-disable-next-line flowtype-errors/uncovered
-    } catch (err) {
+    } catch (err: any) {
         throw new Error(
             // eslint-disable-next-line flowtype-errors/uncovered
             `Unable to use git grep to find files with gql tags. ${err.message}`,

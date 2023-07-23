@@ -1,4 +1,3 @@
-// @flow
 import fs from 'fs';
 
 export const getPathWithExtension = (pathWithoutExtension: string): string => {

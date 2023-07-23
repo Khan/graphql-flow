@@ -1,8 +1,7 @@
-// @flow
 /* eslint-disable no-console */
 import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import * as babelTypes from '@babel/types';
-import {type BabelNodeFlowType} from '@babel/types';
+import {BabelNodeFlowType} from '@babel/types';
 import type {
     FieldNode,
     IntrospectionOutputTypeRef,
@@ -27,11 +26,7 @@ import {
     BabelNodeObjectTypeSpreadProperty,
 } from '@babel/types';
 
-export const generateResponseType = (
-    schema: Schema,
-    query: OperationDefinitionNode,
-    ctx: Context,
-): string => {
+export const generateResponseType = (schema: Schema, query: OperationDefinitionNode, ctx: Context): string => {
     const ast = querySelectionToObjectType(
         ctx,
         query.selectionSet.selections,
@@ -46,9 +41,7 @@ export const generateResponseType = (
 
 const sortedObjectTypeAnnotation = (
     ctx: Context,
-    properties: Array<
-        BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
-    >,
+    properties: Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>,
 ) => {
     const obj = babelTypes.objectTypeAnnotation(
         properties.sort((a, b) => {
@@ -77,11 +70,7 @@ const sortedObjectTypeAnnotation = (
     }
 };
 
-export const generateFragmentType = (
-    schema: Schema,
-    fragment: FragmentDefinitionNode,
-    ctx: Context,
-): string => {
+export const generateFragmentType = (schema: Schema, fragment: FragmentDefinitionNode, ctx: Context): string => {
     const onType = fragment.typeCondition.name.value;
     let ast;
 
@@ -115,11 +104,7 @@ export const generateFragmentType = (
     return generate(ast).code;
 };
 
-const _typeToFlow = (
-    ctx: Context,
-    type,
-    selection,
-): babelTypes.BabelNodeFlowType => {
+const _typeToFlow = (ctx: Context, type: unknown, selection: unknown): babelTypes.BabelNodeFlowType => {
     if (type.kind === 'SCALAR') {
         return scalarTypeToFlow(ctx, type.name);
     }
@@ -186,11 +171,7 @@ const _typeToFlow = (
     );
 };
 
-export const typeToFlow = (
-    ctx: Context,
-    type: IntrospectionOutputTypeRef,
-    selection: FieldNode,
-): babelTypes.BabelNodeFlowType => {
+export const typeToFlow = (ctx: Context, type: IntrospectionOutputTypeRef, selection: FieldNode): babelTypes.BabelNodeFlowType => {
     // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
         return _typeToFlow(ctx, type.ofType, selection);
@@ -204,7 +185,7 @@ export const typeToFlow = (
     return transferLeadingComments(inner, result);
 };
 
-const ensureOnlyOneTypenameProperty = (properties) => {
+const ensureOnlyOneTypenameProperty = (properties: unknown) => {
     let seenTypeName: false | string = false;
     return properties.filter((type) => {
         // The apollo-utilities "addTypeName" utility will add it
@@ -232,12 +213,7 @@ const ensureOnlyOneTypenameProperty = (properties) => {
     });
 };
 
-const querySelectionToObjectType = (
-    ctx: Context,
-    selections,
-    type,
-    typeName: string,
-): BabelNodeFlowType => {
+const querySelectionToObjectType = (ctx: Context, selections: unknown, type: unknown, typeName: string): BabelNodeFlowType => {
     return sortedObjectTypeAnnotation(
         ctx,
         ensureOnlyOneTypenameProperty(
@@ -249,7 +225,9 @@ const querySelectionToObjectType = (
 export const objectPropertiesToFlow = (
     ctx: Context,
     type: IntrospectionObjectType & {
-        fieldsByName: {[name: string]: IntrospectionField},
+        fieldsByName: {
+            [name: string]: IntrospectionField
+        }
     },
     typeName: string,
     selections: Selections,
@@ -355,21 +333,19 @@ export const objectPropertiesToFlow = (
 
 export const unionOrInterfaceToFlow = (
     ctx: Context,
-    type:
-        | IntrospectionUnionType
-        | (IntrospectionInterfaceType & {
-              fieldsByName: {[key: string]: IntrospectionField},
-          }),
+    type: IntrospectionUnionType | IntrospectionInterfaceType & {
+        fieldsByName: {
+            [key: string]: IntrospectionField
+        }
+    },
     selections: Selections,
 ): BabelNodeFlowType => {
     const allFields = selections.every(
         (selection) => selection.kind === 'Field',
     );
     const selectedAttributes: Array<{
-        attributes: Array<
-            BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty,
-        >,
-        typeName: string,
+        attributes: Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>
+        typeName: string
     }> = type.possibleTypes
         .slice()
         .sort((a, b) => {
@@ -379,7 +355,7 @@ export const unionOrInterfaceToFlow = (
             const configWithUpdatedPath = {
                 ...ctx,
                 path: allFields ? ctx.path : ctx.path.concat([possible.name]),
-            };
+            } as const;
             return {
                 typeName: possible.name,
                 attributes: ensureOnlyOneTypenameProperty(
@@ -412,9 +388,9 @@ export const unionOrInterfaceToFlow = (
                     selectedAttributes.map(
                         (attrs) =>
                             // eslint-disable-next-line flowtype-errors/uncovered
-                            ((attrs.attributes[
+                            (attrs.attributes[
                                 typeNameIndex
-                            ]: any): BabelNodeObjectTypeProperty).value,
+                            ] as BabelNodeObjectTypeProperty).value,
                     ),
                 ),
             );
@@ -472,12 +448,7 @@ export const unionOrInterfaceToFlow = (
     }
     return result;
 };
-const unionOrInterfaceSelection = (
-    config,
-    type,
-    possible,
-    selection,
-): Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty> => {
+const unionOrInterfaceSelection = (config: unknown, type: unknown, possible: unknown, selection: unknown): Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty> => {
     if (selection.kind === 'Field' && selection.name.value === '__typename') {
         const alias = selection.alias
             ? selection.alias.value

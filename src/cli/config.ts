@@ -1,4 +1,3 @@
-// @flow
 import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
@@ -11,12 +10,12 @@ import {
     buildSchema,
     getIntrospectionQuery,
     graphqlSync,
-    type IntrospectionQuery,
+    IntrospectionQuery,
 } from 'graphql';
 import type {Config, GenerateConfig} from '../types';
 import {validate} from 'jsonschema'; // eslint-disable-line flowtype-errors/uncovered
 
-export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
+export const validateOrThrow = (value: unknown, jsonSchema: unknown) => {
     /* eslint-disable flowtype-errors/uncovered */
     const result = validate(value, jsonSchema);
     if (!result.valid) {
@@ -28,7 +27,6 @@ export const validateOrThrow = (value: mixed, jsonSchema: mixed) => {
 };
 
 export const loadConfigFile = (configFile: string): Config => {
-    // $FlowIgnore
     const data: Config = require(configFile); // eslint-disable-line flowtype-errors/uncovered
     validateOrThrow(data, configSchema); // eslint-disable-line flowtype-errors/uncovered
     return data;
@@ -47,7 +45,7 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
         );
         const schemaForTypeGeneration = schemaFromIntrospectionData(
             // eslint-disable-next-line flowtype-errors/uncovered
-            ((queryResponse.data: any): IntrospectionQuery),
+            (queryResponse.data as IntrospectionQuery),
         );
         return [schemaForValidation, schemaForTypeGeneration];
     } else {
@@ -65,15 +63,12 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
  * - no item of `exclude` matches
  * - at least one item of `match` matches
  */
-export const findApplicableConfig = (
-    path: string,
-    configs: Array<GenerateConfig> | GenerateConfig,
-): ?GenerateConfig => {
+export const findApplicableConfig = (path: string, configs: Array<GenerateConfig> | GenerateConfig): GenerateConfig | null | undefined => {
     if (!Array.isArray(configs)) {
         configs = [configs];
     }
     return configs.find((config) => {
-        if (config.exclude?.some((exclude) => new RegExp(exclude).test(path))) {
+        if (config.exclude?.some((exclude: unknown) => new RegExp(exclude).test(path))) {
             return false;
         }
         if (!config.match) {

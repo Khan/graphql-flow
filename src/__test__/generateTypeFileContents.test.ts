@@ -1,4 +1,3 @@
-// @flow
 // Test the generate the type file contents
 
 import {getSchemas} from '../cli/config';
@@ -37,7 +36,7 @@ describe('generateTypeFileContents', () => {
         `);
         expect(
             Object.keys(files)
-                .map((k) => `// ${k}\n${files[k]}`)
+                .map((k: any) => `// ${k}\n${files[k]}`)
                 .join('\n\n'),
         ).toMatchInlineSnapshot(`
             "// __generated__/Hello.js
@@ -80,7 +79,7 @@ describe('generateTypeFileContents', () => {
         );
         expect(
             Object.keys(files)
-                .map((k) => `// ${k}\n${files[k]}`)
+                .map((k: any) => `// ${k}\n${files[k]}`)
                 .join('\n\n'),
         ).toMatchInlineSnapshot(`
             "// __generated__/prefix-Hello-suffix.js
@@ -123,7 +122,7 @@ describe('generateTypeFileContents', () => {
             );
             expect(
                 Object.keys(files)
-                    .map((k) => `// ${k}\n${files[k]}`)
+                    .map((k: any) => `// ${k}\n${files[k]}`)
                     .join('\n\n'),
             ).toMatchInlineSnapshot(`
                 "// __generated__/Hello.js
