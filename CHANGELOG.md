@@ -1,5 +1,15 @@
 # @khanacademy/graphql-flow
 
+## 2.0.0
+
+### Major Changes
+
+-   38eb544: Generate TypeScript directly and only TypeScript
+
+### Minor Changes
+
+-   2933c91: Migrate to TypeScript
+
 ## 1.2.0
 
 ### Minor Changes
