@@ -1,4 +1,4 @@
-import type {BabelNode} from '@babel/types';
+import type {Node} from '@babel/types';
 import type {
     FragmentDefinitionNode,
     IntrospectionEnumType,
@@ -85,11 +85,11 @@ export type Context = {
     scalars: Scalars
     errors: Array<string>
     allObjectTypes: null | {
-        [key: string]: BabelNode
+        [key: string]: Node
     }
     typeScript: boolean
     experimentalEnumsMap?: {
-        [key: string]: BabelNode
+        [key: string]: Node
     } // index signature that is populated with declarations
 };
 export type Scalars = {

@@ -15,7 +15,7 @@ import {
     generateResponseType,
 } from './generateResponseType';
 import {generateVariablesType} from './generateVariablesType';
-import type {BabelNode} from '@babel/types';
+import type {Node} from '@babel/types';
 
 import type {Context, Schema, GenerateConfig} from './types';
 
@@ -48,6 +48,8 @@ const optionsToConfig = (
         ...internalOptions,
     } as const;
 
+    // @ts-expect-error: TS2322 - The type 'readonly []' is 'readonly' and cannot be
+    // assigned to the mutable type 'string[]'.
     return config;
 };
 
@@ -150,7 +152,7 @@ export const documentToFlowTypes = (document: DocumentNode, schema: Schema, opti
 
 function codegenExtraTypes(
     types: {
-        [key: string]: BabelNode
+        [key: string]: Node
     },
 ): {
     [key: string]: string

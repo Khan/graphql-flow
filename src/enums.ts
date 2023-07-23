@@ -2,12 +2,16 @@
  * Both input & output types can have enums & scalars.
  */
 import * as babelTypes from '@babel/types';
-import type {BabelNodeFlowType} from '@babel/types';
+import type {FlowType} from '@babel/types';
 import type {Context} from './types';
 import {maybeAddDescriptionComment} from './utils';
 import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
 
-export const experimentalEnumTypeToFlow = (ctx: Context, enumConfig: IntrospectionEnumType, description: string): BabelNodeFlowType => {
+export const experimentalEnumTypeToFlow = (
+    ctx: Context,
+    enumConfig: IntrospectionEnumType,
+    description: string,
+): FlowType => {
     const enumDeclaration = babelTypes.enumDeclaration(
         // pass id into generic type annotation
         babelTypes.identifier(enumConfig.name),
@@ -28,7 +32,7 @@ export const experimentalEnumTypeToFlow = (ctx: Context, enumConfig: Introspecti
     );
 };
 
-export const enumTypeToFlow = (ctx: Context, name: string): BabelNodeFlowType => {
+export const enumTypeToFlow = (ctx: Context, name: string): FlowType => {
     const enumConfig = ctx.schema.enumsByName[name];
     let combinedDescription = enumConfig.enumValues
         .map(
@@ -57,7 +61,7 @@ export const enumTypeToFlow = (ctx: Context, name: string): BabelNodeFlowType =>
 };
 
 export const builtinScalars: {
-    [key: string]: string
+    [key: string]: string,
 } = {
     Boolean: 'boolean',
     String: 'string',
@@ -68,7 +72,7 @@ export const builtinScalars: {
     Float: 'number',
 };
 
-export const scalarTypeToFlow = (ctx: Context, name: string): BabelNodeFlowType => {
+export const scalarTypeToFlow = (ctx: Context, name: string): FlowType => {
     if (builtinScalars[name]) {
         return babelTypes.genericTypeAnnotation(
             babelTypes.identifier(builtinScalars[name]),

@@ -2,7 +2,7 @@ import type {Schema} from '../types';
 import type {GraphQLSchema} from 'graphql/type/schema';
 
 import {schemaFromIntrospectionData} from '../schemaFromIntrospectionData';
-import configSchema from './schema.json'; // eslint-disable-line flowtype-errors/uncovered
+import configSchema from '../../schema.json'; // eslint-disable-line flowtype-errors/uncovered
 
 import fs from 'fs';
 import {
@@ -68,7 +68,7 @@ export const findApplicableConfig = (path: string, configs: Array<GenerateConfig
         configs = [configs];
     }
     return configs.find((config) => {
-        if (config.exclude?.some((exclude: unknown) => new RegExp(exclude).test(path))) {
+        if (config.exclude?.some((exclude: any) => new RegExp(exclude).test(path))) {
             return false;
         }
         if (!config.match) {

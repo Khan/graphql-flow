@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
 import * as babelTypes from '@babel/types';
-import {BabelNodeFlowType} from '@babel/types';
+import {FlowType, ObjectTypeProperty, ObjectTypeSpreadProperty} from '@babel/types';
 import type {
     FieldNode,
     IntrospectionOutputTypeRef,
@@ -21,10 +21,6 @@ import type {
     IntrospectionObjectType,
     IntrospectionUnionType,
 } from 'graphql/utilities/introspectionQuery';
-import {
-    BabelNodeObjectTypeProperty,
-    BabelNodeObjectTypeSpreadProperty,
-} from '@babel/types';
 
 export const generateResponseType = (schema: Schema, query: OperationDefinitionNode, ctx: Context): string => {
     const ast = querySelectionToObjectType(
@@ -41,7 +37,7 @@ export const generateResponseType = (schema: Schema, query: OperationDefinitionN
 
 const sortedObjectTypeAnnotation = (
     ctx: Context,
-    properties: Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>,
+    properties: Array<ObjectTypeProperty | ObjectTypeSpreadProperty>,
 ) => {
     const obj = babelTypes.objectTypeAnnotation(
         properties.sort((a, b) => {
@@ -104,7 +100,7 @@ export const generateFragmentType = (schema: Schema, fragment: FragmentDefinitio
     return generate(ast).code;
 };
 
-const _typeToFlow = (ctx: Context, type: unknown, selection: unknown): babelTypes.BabelNodeFlowType => {
+const _typeToFlow = (ctx: Context, type: any, selection: any): babelTypes.FlowType => {
     if (type.kind === 'SCALAR') {
         return scalarTypeToFlow(ctx, type.name);
     }
@@ -171,7 +167,7 @@ const _typeToFlow = (ctx: Context, type: unknown, selection: unknown): babelType
     );
 };
 
-export const typeToFlow = (ctx: Context, type: IntrospectionOutputTypeRef, selection: FieldNode): babelTypes.BabelNodeFlowType => {
+export const typeToFlow = (ctx: Context, type: IntrospectionOutputTypeRef, selection: FieldNode): babelTypes.FlowType => {
     // throw new Error('npoe');
     if (type.kind === 'NON_NULL') {
         return _typeToFlow(ctx, type.ofType, selection);
@@ -185,7 +181,7 @@ export const typeToFlow = (ctx: Context, type: IntrospectionOutputTypeRef, selec
     return transferLeadingComments(inner, result);
 };
 
-const ensureOnlyOneTypenameProperty = (properties: unknown) => {
+const ensureOnlyOneTypenameProperty = (properties: Array<ObjectTypeProperty | ObjectTypeSpreadProperty>) => {
     let seenTypeName: false | string = false;
     return properties.filter((type) => {
         // The apollo-utilities "addTypeName" utility will add it
@@ -193,6 +189,7 @@ const ensureOnlyOneTypenameProperty = (properties: unknown) => {
         // the extra one here.
         if (
             type.type === 'ObjectTypeProperty' &&
+            type.key.type === "Identifier" &&
             type.key.name === '__typename'
         ) {
             const name =
@@ -213,7 +210,7 @@ const ensureOnlyOneTypenameProperty = (properties: unknown) => {
     });
 };
 
-const querySelectionToObjectType = (ctx: Context, selections: unknown, type: unknown, typeName: string): BabelNodeFlowType => {
+const querySelectionToObjectType = (ctx: Context, selections: any, type: any, typeName: string): FlowType => {
     return sortedObjectTypeAnnotation(
         ctx,
         ensureOnlyOneTypenameProperty(
@@ -231,104 +228,104 @@ export const objectPropertiesToFlow = (
     },
     typeName: string,
     selections: Selections,
-): Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty> => {
-    return [].concat(
-        ...selections.map((selection) => {
-            switch (selection.kind) {
-                case 'InlineFragment': {
-                    const newTypeName =
-                        selection.typeCondition?.name.value ?? typeName;
-                    if (newTypeName !== typeName) {
-                        return [];
-                    }
-                    return objectPropertiesToFlow(
-                        ctx,
-                        ctx.schema.typesByName[newTypeName],
-                        newTypeName,
-                        selection.selectionSet.selections,
-                    );
+): Array<ObjectTypeProperty | ObjectTypeSpreadProperty> => {
+    return selections.flatMap((selection): Array<ObjectTypeProperty | ObjectTypeSpreadProperty> => {
+        switch (selection.kind) {
+            case 'InlineFragment': {
+                const newTypeName =
+                    selection.typeCondition?.name.value ?? typeName;
+                if (newTypeName !== typeName) {
+                    return [];
                 }
-                case 'FragmentSpread':
-                    if (!ctx.fragments[selection.name.value]) {
-                        ctx.errors.push(
-                            `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
-                        );
-                        return [
-                            babelTypes.objectTypeProperty(
-                                babelTypes.identifier(selection.name.value),
-                                babelTypes.genericTypeAnnotation(
-                                    babelTypes.identifier(`UNKNOWN_FRAGMENT`),
-                                ),
-                            ),
-                        ];
-                    }
-
-                    return objectPropertiesToFlow(
-                        ctx,
-                        type,
-                        typeName,
-                        ctx.fragments[selection.name.value].selectionSet
-                            .selections,
+                return objectPropertiesToFlow(
+                    ctx,
+                    ctx.schema.typesByName[newTypeName],
+                    newTypeName,
+                    selection.selectionSet.selections,
+                );
+            }
+            case 'FragmentSpread':
+                if (!ctx.fragments[selection.name.value]) {
+                    ctx.errors.push(
+                        `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
                     );
-
-                case 'Field':
-                    const name = selection.name.value;
-                    const alias: string = selection.alias
-                        ? selection.alias.value
-                        : name;
-                    if (name === '__typename') {
-                        return [
-                            babelTypes.objectTypeProperty(
-                                babelTypes.identifier(alias),
-                                babelTypes.stringLiteralTypeAnnotation(
-                                    typeName,
-                                ),
+                    return [
+                        babelTypes.objectTypeProperty(
+                            babelTypes.identifier(selection.name.value),
+                            babelTypes.genericTypeAnnotation(
+                                babelTypes.identifier(`UNKNOWN_FRAGMENT`),
                             ),
-                        ];
-                    }
-                    if (!type.fieldsByName[name]) {
-                        ctx.errors.push(
-                            `Unknown field '${name}' for type '${typeName}'`,
-                        );
-                        return babelTypes.objectTypeProperty(
+                        ),
+                    ];
+                }
+
+                return objectPropertiesToFlow(
+                    ctx,
+                    type,
+                    typeName,
+                    ctx.fragments[selection.name.value].selectionSet
+                        .selections,
+                );
+
+            case 'Field':
+                const name = selection.name.value;
+                const alias: string = selection.alias
+                    ? selection.alias.value
+                    : name;
+                if (name === '__typename') {
+                    return [
+                        babelTypes.objectTypeProperty(
+                            babelTypes.identifier(alias),
+                            babelTypes.stringLiteralTypeAnnotation(
+                                typeName,
+                            ),
+                        ),
+                    ];
+                }
+                if (!type.fieldsByName[name]) {
+                    ctx.errors.push(
+                        `Unknown field '${name}' for type '${typeName}'`,
+                    );
+                    return [
+                        babelTypes.objectTypeProperty(
                             babelTypes.identifier(alias),
                             babelTypes.genericTypeAnnotation(
                                 babelTypes.identifier(
                                     `UNKNOWN_FIELD["${name}"]`,
                                 ),
                             ),
-                        );
-                    }
-                    const typeField = type.fieldsByName[name];
+                        )
+                    ];
+                }
+                const typeField = type.fieldsByName[name];
 
-                    return [
-                        maybeAddDescriptionComment(
-                            typeField.description,
-                            liftLeadingPropertyComments(
-                                babelTypes.objectTypeProperty(
-                                    babelTypes.identifier(alias),
-                                    typeToFlow(
-                                        {
-                                            ...ctx,
-                                            path: ctx.path.concat([alias]),
-                                        },
-                                        typeField.type,
-                                        selection,
-                                    ),
+                return [
+                    maybeAddDescriptionComment(
+                        typeField.description,
+                        liftLeadingPropertyComments(
+                            babelTypes.objectTypeProperty(
+                                babelTypes.identifier(alias),
+                                typeToFlow(
+                                    {
+                                        ...ctx,
+                                        path: ctx.path.concat([alias]),
+                                    },
+                                    typeField.type,
+                                    selection,
                                 ),
                             ),
                         ),
-                    ];
+                    ),
+                ];
 
-                default:
-                    ctx.errors.push(
-                        // eslint-disable-next-line flowtype-errors/uncovered
-                        `Unsupported selection kind '${selection.kind}'`,
-                    );
-                    return [];
-            }
-        }),
-    );
+            default:
+                ctx.errors.push(
+                    // @ts-expect-error: `selection` is `never` here
+                    `Unsupported selection kind '${selection.kind}'`,
+                );
+                return [];
+        }
+    });
 };
 
 export const unionOrInterfaceToFlow = (
@@ -339,12 +336,12 @@ export const unionOrInterfaceToFlow = (
         }
     },
     selections: Selections,
-): BabelNodeFlowType => {
+): FlowType => {
     const allFields = selections.every(
         (selection) => selection.kind === 'Field',
     );
     const selectedAttributes: Array<{
-        attributes: Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty>
+        attributes: Array<ObjectTypeProperty | ObjectTypeSpreadProperty>
         typeName: string
     }> = type.possibleTypes
         .slice()
@@ -390,7 +387,7 @@ export const unionOrInterfaceToFlow = (
                             // eslint-disable-next-line flowtype-errors/uncovered
                             (attrs.attributes[
                                 typeNameIndex
-                            ] as BabelNodeObjectTypeProperty).value,
+                            ] as ObjectTypeProperty).value,
                     ),
                 ),
             );
@@ -448,7 +445,7 @@ export const unionOrInterfaceToFlow = (
     }
     return result;
 };
-const unionOrInterfaceSelection = (config: unknown, type: unknown, possible: unknown, selection: unknown): Array<BabelNodeObjectTypeProperty | BabelNodeObjectTypeSpreadProperty> => {
+const unionOrInterfaceSelection = (config: any, type: any, possible: any, selection: any): Array<ObjectTypeProperty | ObjectTypeSpreadProperty> => {
     if (selection.kind === 'Field' && selection.name.value === '__typename') {
         const alias = selection.alias
             ? selection.alias.value
@@ -510,7 +507,7 @@ const unionOrInterfaceSelection = (config: unknown, type: unknown, possible: unk
             typeName === possible.name
         ) {
             return [].concat(
-                ...fragment.selectionSet.selections.map((selection) =>
+                ...fragment.selectionSet.selections.map((selection: any) =>
                     unionOrInterfaceSelection(
                         config,
                         config.schema.typesByName[possible.name],

@@ -32,7 +32,7 @@ export const generateTypeFileContents = (
     const files: Record<string, any> = {};
 
     /// Write export for __generated__/index.js if it doesn't exist
-    const addToIndex = (filePath: unknown, typeName: unknown) => {
+    const addToIndex = (filePath: string, typeName: unknown) => {
         if (options.typeScript || options.omitFileExtensions) {
             // Typescript doesn't like file extensions
             filePath = filePath.replace(/\.js$/, '');
