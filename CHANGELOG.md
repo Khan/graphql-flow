@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.0.0
+
+### Major Changes
+
+-   ad68019: Update 'graphql' to 16.3.x (requires consumers to change their version of 'graphql')
+
 ## 2.0.0
 
 ### Major Changes
