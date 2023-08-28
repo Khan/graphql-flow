@@ -39,13 +39,13 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
     const raw = fs.readFileSync(schemaFilePath, 'utf8');
     if (schemaFilePath.endsWith('.graphql')) {
         const schemaForValidation = buildSchema(raw);
-        const queryResponse = graphqlSync(
-            schemaForValidation,
-            getIntrospectionQuery({descriptions: true}),
-        );
+        const queryResponse = graphqlSync({
+            schema: schemaForValidation,
+            source: getIntrospectionQuery({descriptions: true}),
+        });
         const schemaForTypeGeneration = schemaFromIntrospectionData(
             // eslint-disable-next-line flowtype-errors/uncovered
-            (queryResponse.data as IntrospectionQuery),
+            ((queryResponse.data as any) as IntrospectionQuery),
         );
         return [schemaForValidation, schemaForTypeGeneration];
     } else {
