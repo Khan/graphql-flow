@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.0.1
+
+### Patch Changes
+
+-   c6be76f: Search through untracked files for graphql-tag. Don't error out on files that can't be found.
+
 ## 3.0.0
 
 ### Major Changes
