@@ -21,7 +21,8 @@ export const getPathWithExtension = (pathWithoutExtension: string): string => {
         return pathWithoutExtension + '.ts';
     }
     // NOTE(john): This is a bit of a hack, but it's necessary for when we
-    // have a file that doesn't have an extension. This will happen when we
-    // delete all of the type files before re-running graphql-flow again.
+    // have a file that doesn't exist. This will happen when we delete all of
+    // the type files before re-running graphql-flow again. We want to ensure
+    // that we don't error out in this case.
     return "";
 };
