@@ -32,8 +32,11 @@ import {dirname} from 'path';
 /** Step (1) */
 
 const findGraphqlTagReferences = (root: string): Array<string> => {
+    // NOTE(john): We want to include untracked files here so that we can
+    // generate types for them. This is useful for when we have a new file
+    // that we want to generate types for, but we haven't committed it yet.
     const response = execSync(
-        "git grep -I --word-regexp --name-only --fixed-strings 'graphql-tag' -- '*.js' '*.jsx' '*.ts' '*.tsx'",
+        "git grep -I --word-regexp --name-only --fixed-strings --untracked 'graphql-tag' -- '*.js' '*.jsx' '*.ts' '*.tsx'",
         {
             encoding: 'utf8',
             cwd: root,

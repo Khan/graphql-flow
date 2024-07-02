@@ -20,5 +20,8 @@ export const getPathWithExtension = (pathWithoutExtension: string): string => {
     if (fs.existsSync(pathWithoutExtension + '.ts')) {
         return pathWithoutExtension + '.ts';
     }
-    throw new Error("Can't find file at " + pathWithoutExtension);
+    // NOTE(john): This is a bit of a hack, but it's necessary for when we
+    // have a file that doesn't have an extension. This will happen when we
+    // delete all of the type files before re-running graphql-flow again.
+    return "";
 };
