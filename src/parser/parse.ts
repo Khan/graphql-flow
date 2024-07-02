@@ -105,7 +105,9 @@ const listExternalReferences = (file: FileResult): Array<string> => {
         if (v.type === 'import') {
             if (followImports) {
                 const absPath = getPathWithExtension(v.path);
-                paths[absPath] = true;
+                if (absPath) {
+                    paths[absPath] = true;
+                }
             }
         } else {
             v.source.expressions.forEach((expr) => add(expr, true));
