@@ -52,7 +52,7 @@ jobs:
         limited: yarn eslint {}
 
     - id: jest-reset
-      uses: Khan/actions@filter-files-v0=1
+      uses: Khan/actions@filter-files-v1
       name: Files that would trigger a full jest run
       with:
         changed-files: ${{ steps.changed.outputs.files }}
