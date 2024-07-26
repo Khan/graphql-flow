@@ -2,10 +2,12 @@
  * Takes the introspectionQuery response and parses it into the "Schema"
  * type that we use to look up types, interfaces, etc.
  */
-import type {IntrospectionQuery} from 'graphql';
-import type {Schema} from './types';
+import type {IntrospectionQuery} from "graphql";
+import type {Schema} from "./types";
 
-export const schemaFromIntrospectionData = (schema: IntrospectionQuery): Schema => {
+export const schemaFromIntrospectionData = (
+    schema: IntrospectionQuery,
+): Schema => {
     const result: Schema = {
         interfacesByName: {},
         typesByName: {},
@@ -15,15 +17,15 @@ export const schemaFromIntrospectionData = (schema: IntrospectionQuery): Schema 
     };
 
     schema.__schema.types.forEach((type) => {
-        if (type.kind === 'ENUM') {
+        if (type.kind === "ENUM") {
             result.enumsByName[type.name] = type;
             return;
         }
-        if (type.kind === 'UNION') {
+        if (type.kind === "UNION") {
             result.unionsByName[type.name] = type;
             return;
         }
-        if (type.kind === 'INTERFACE') {
+        if (type.kind === "INTERFACE") {
             result.interfacesByName[type.name] = {
                 ...type,
                 possibleTypesByName: {},
@@ -41,11 +43,11 @@ export const schemaFromIntrospectionData = (schema: IntrospectionQuery): Schema 
             });
             return;
         }
-        if (type.kind === 'INPUT_OBJECT') {
+        if (type.kind === "INPUT_OBJECT") {
             result.inputObjectsByName[type.name] = type;
             return;
         }
-        if (type.kind === 'SCALAR') {
+        if (type.kind === "SCALAR") {
             return;
         }
         result.typesByName[type.name] = {

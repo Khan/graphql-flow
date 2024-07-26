@@ -1,7 +1,7 @@
 {
-    "parser": "flow",
+    "parser": "typescript",
     "tabWidth": 4,
     "trailingComma": "all",
     "bracketSpacing": false,
-    "singleQuote": true
+    "singleQuote": false
 }

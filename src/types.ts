@@ -1,4 +1,4 @@
-import type {Node} from '@babel/types';
+import type {Node} from "@babel/types";
 import type {
     FragmentDefinitionNode,
     IntrospectionEnumType,
@@ -8,90 +8,94 @@ import type {
     IntrospectionObjectType,
     IntrospectionUnionType,
     SelectionNode,
-} from 'graphql';
+} from "graphql";
 
 export type Selections = ReadonlyArray<SelectionNode>;
 
 export type GenerateConfig = {
-    schemaFilePath: string
-    match?: ReadonlyArray<RegExp | string>
-    exclude?: ReadonlyArray<RegExp | string>
-    typeScript?: boolean
-    scalars?: Scalars
-    strictNullability?: boolean
+    schemaFilePath: string;
+    match?: ReadonlyArray<RegExp | string>;
+    exclude?: ReadonlyArray<RegExp | string>;
+    typeScript?: boolean;
+    scalars?: Scalars;
+    strictNullability?: boolean;
     /**
      * The command that users should run to regenerate the types files.
      */
-    regenerateCommand?: string
-    readOnlyArray?: boolean
-    splitTypes?: boolean
-    generatedDirectory?: string
-    exportAllObjectTypes?: boolean
-    typeFileName?: string
-    experimentalEnums?: boolean
-    omitFileExtensions?: boolean
+    regenerateCommand?: string;
+    readOnlyArray?: boolean;
+    splitTypes?: boolean;
+    generatedDirectory?: string;
+    exportAllObjectTypes?: boolean;
+    typeFileName?: string;
+    experimentalEnums?: boolean;
+    omitFileExtensions?: boolean;
 };
 
 export type CrawlConfig = {
-    root: string
-    pragma?: string
-    loosePragma?: string
-    ignorePragma?: string
-    dumpOperations?: string
+    root: string;
+    pragma?: string;
+    loosePragma?: string;
+    ignorePragma?: string;
+    dumpOperations?: string;
 };
 
 export type Config = {
-    crawl: CrawlConfig
-    generate: GenerateConfig | Array<GenerateConfig>
+    crawl: CrawlConfig;
+    generate: GenerateConfig | Array<GenerateConfig>;
+    alias?: Array<{
+        find: RegExp | string;
+        replacement: string;
+    }>;
 };
 
 export type Schema = {
     interfacesByName: {
         [key: string]: IntrospectionInterfaceType & {
             fieldsByName: {
-                [key: string]: IntrospectionField
-            }
+                [key: string]: IntrospectionField;
+            };
             possibleTypesByName: {
-                [key: string]: boolean
-            }
-        }
-    }
+                [key: string]: boolean;
+            };
+        };
+    };
     inputObjectsByName: {
-        [key: string]: IntrospectionInputObjectType
-    }
+        [key: string]: IntrospectionInputObjectType;
+    };
     typesByName: {
         [key: string]: IntrospectionObjectType & {
             fieldsByName: {
-                [key: string]: IntrospectionField
-            }
-        }
-    }
+                [key: string]: IntrospectionField;
+            };
+        };
+    };
     unionsByName: {
-        [key: string]: IntrospectionUnionType
-    }
+        [key: string]: IntrospectionUnionType;
+    };
     enumsByName: {
-        [key: string]: IntrospectionEnumType
-    }
+        [key: string]: IntrospectionEnumType;
+    };
 };
 
 export type Context = {
-    path: Array<string>
-    strictNullability: boolean
-    readOnlyArray: boolean
+    path: Array<string>;
+    strictNullability: boolean;
+    readOnlyArray: boolean;
     fragments: {
-        [key: string]: FragmentDefinitionNode
-    }
-    schema: Schema
-    scalars: Scalars
-    errors: Array<string>
+        [key: string]: FragmentDefinitionNode;
+    };
+    schema: Schema;
+    scalars: Scalars;
+    errors: Array<string>;
     allObjectTypes: null | {
-        [key: string]: Node
-    }
-    typeScript: boolean
+        [key: string]: Node;
+    };
+    typeScript: boolean;
     experimentalEnumsMap?: {
-        [key: string]: Node
-    } // index signature that is populated with declarations
+        [key: string]: Node;
+    }; // index signature that is populated with declarations
 };
 export type Scalars = {
-    [key: string]: 'string' | 'number' | 'boolean'
+    [key: string]: "string" | "number" | "boolean";
 };

@@ -1,11 +1,16 @@
-import * as babelTypes from '@babel/types';
-import {TSPropertySignature} from '@babel/types';
+import * as babelTypes from "@babel/types";
+import {TSPropertySignature} from "@babel/types";
 
-export const liftLeadingPropertyComments = (property: TSPropertySignature): TSPropertySignature => {
+export const liftLeadingPropertyComments = (
+    property: TSPropertySignature,
+): TSPropertySignature => {
     return transferLeadingComments(property.typeAnnotation!, property);
 };
 
-export const maybeAddDescriptionComment = <T extends babelTypes.Node>(description: string | null | undefined, node: T): T => {
+export const maybeAddDescriptionComment = <T extends babelTypes.Node>(
+    description: string | null | undefined,
+    node: T,
+): T => {
     if (description) {
         addCommentAsLineComments(description, node);
     }
@@ -17,18 +22,21 @@ export function addCommentAsLineComments(
     res: babelTypes.Node,
 ) {
     if (res.leadingComments?.length) {
-        res.leadingComments[0].value += '\n\n---\n\n' + description;
+        res.leadingComments[0].value += "\n\n---\n\n" + description;
     } else {
         babelTypes.addComment(
             res,
-            'leading',
-            '* ' + description,
+            "leading",
+            "* " + description,
             false, // this specifies that it's a block comment, not a line comment
         );
     }
 }
 
-export const transferLeadingComments = <T extends babelTypes.Node>(source: babelTypes.Node, dest: T): T => {
+export const transferLeadingComments = <T extends babelTypes.Node>(
+    source: babelTypes.Node,
+    dest: T,
+): T => {
     if (source.leadingComments?.length) {
         dest.leadingComments = [
             ...(dest.leadingComments || []),
@@ -40,17 +48,21 @@ export const transferLeadingComments = <T extends babelTypes.Node>(source: babel
 };
 
 export function nullableType(type: babelTypes.TSType): babelTypes.TSType {
-    return babelTypes.tsUnionType([type, babelTypes.tsNullKeyword(), babelTypes.tsUndefinedKeyword()]);
+    return babelTypes.tsUnionType([
+        type,
+        babelTypes.tsNullKeyword(),
+        babelTypes.tsUndefinedKeyword(),
+    ]);
 }
 
 export function isnNullableType(type: babelTypes.TSType): boolean {
     let hasNull = false;
     let hasUndefined = false;
-    if (type.type === 'TSUnionType') {
+    if (type.type === "TSUnionType") {
         for (const t of type.types) {
-            if (t.type === 'TSNullKeyword') {
+            if (t.type === "TSNullKeyword") {
                 hasNull = true;
-            } else if (t.type === 'TSUndefinedKeyword') {
+            } else if (t.type === "TSUndefinedKeyword") {
                 hasUndefined = true;
             }
         }
@@ -58,10 +70,12 @@ export function isnNullableType(type: babelTypes.TSType): boolean {
     return hasNull && hasUndefined;
 }
 
-export function objectTypeFromProperties(properties: babelTypes.TSPropertySignature[]): babelTypes.TSTypeLiteral {
-    let exitingProperties: Record<string, boolean> = {};
-    let filteredProperties = properties.filter((p) => {
-        if (p.key.type === 'Identifier') {
+export function objectTypeFromProperties(
+    properties: babelTypes.TSPropertySignature[],
+): babelTypes.TSTypeLiteral {
+    const exitingProperties: Record<string, boolean> = {};
+    const filteredProperties = properties.filter((p) => {
+        if (p.key.type === "Identifier") {
             if (exitingProperties[p.key.name]) {
                 return false;
             }
