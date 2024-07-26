@@ -1,15 +1,20 @@
-import {processFiles} from '../parse';
-import {resolveDocuments} from '../resolve';
+import {describe, it, expect} from "@jest/globals";
 
-import {print} from 'graphql/language/printer';
+import {Config} from "../../types";
+import {processFiles} from "../parse";
+import {resolveDocuments} from "../resolve";
+
+import {print} from "graphql/language/printer";
 
 const fixtureFiles: {
-    [key: string]: string | {
-        text: string
-        resolvedPath: string
-    }
+    [key: string]:
+        | string
+        | {
+              text: string;
+              resolvedPath: string;
+          };
 } = {
-    '/firstFile.js': `
+    "/firstFile.js": `
         // Note that you can import graphql-tag as
         // something other than gql.
         import tagme from 'graphql-tag';
@@ -35,7 +40,7 @@ const fixtureFiles: {
         }
         \`;`,
 
-    '/secondFile.js': `
+    "/secondFile.js": `
         import gql from 'graphql-tag';
         import {fromFirstFile} from './firstFile.js';
         // This import won't be followed, because it's not exported
@@ -52,7 +57,7 @@ const fixtureFiles: {
         \`;
         export {secondFragment};`,
 
-    '/thirdFile.js': `
+    "/thirdFile.js": `
         import {fromFirstFile, alsoFirst, secondFragment} from './secondFile.js';
         import gql from 'graphql-tag';
         import type {someType} from './somePlace';
@@ -91,7 +96,7 @@ const fixtureFiles: {
             \`;
         }`,
 
-    '/invalidThings.js': `
+    "/invalidThings.js": `
         import gql from 'graphql-tag';
         // Importing a fragment from an npm module is invalid.
         import someExternalFragment from 'somewhere';
@@ -107,7 +112,7 @@ const fixtureFiles: {
         \`;
     `,
 
-    '/circular.js': `
+    "/circular.js": `
         import gql from 'graphql-tag';
         export {otherThing} from './invalidReferences.js';
         import {one} from './invalidReferences.js';
@@ -119,7 +124,7 @@ const fixtureFiles: {
         \`;
     `,
 
-    '/invalidReferences.js': `
+    "/invalidReferences.js": `
         import gql from 'graphql-tag';
         import {otherThing, two, doesntExist} from './circular.js';
         // 'otherThing' is imported circularly
@@ -149,13 +154,39 @@ const getFileSource = (name: string) => {
     return fixtureFiles[name];
 };
 
-describe('processing fragments in various ways', () => {
-    it('should work', () => {
-        const files = processFiles(['/thirdFile.js'], getFileSource);
+describe("processing fragments in various ways", () => {
+    it("should work", () => {
+        const config: Config = {
+            crawl: {
+                root: "/here/we/crawl",
+            },
+            generate: {
+                match: [/\.fixture\.js$/],
+                exclude: [
+                    "_test\\.js$",
+                    "\\bcourse-editor-package\\b",
+                    "\\.fixture\\.js$",
+                    "\\b__flowtests__\\b",
+                    "\\bcourse-editor\\b",
+                ],
+                readOnlyArray: false,
+                regenerateCommand: "make gqlflow",
+                scalars: {
+                    JSONString: "string",
+                    KALocale: "string",
+                    NaiveDateTime: "string",
+                },
+                splitTypes: true,
+                generatedDirectory: "__graphql-types__",
+                exportAllObjectTypes: true,
+                schemaFilePath: "./composed_schema.graphql",
+            },
+        };
+        const files = processFiles(["/thirdFile.js"], config, getFileSource);
         Object.keys(files).forEach((k: any) => {
             expect(files[k].errors).toEqual([]);
         });
-        const {resolved, errors} = resolveDocuments(files);
+        const {resolved, errors} = resolveDocuments(files, config);
         expect(errors).toEqual([]);
         const printed: Record<string, any> = {};
         Object.keys(resolved).map(
@@ -215,9 +246,39 @@ describe('processing fragments in various ways', () => {
         `);
     });
 
-    it('should flag things it doesnt support', () => {
-        const files = processFiles(['/invalidThings.js'], getFileSource);
-        expect(files['/invalidThings.js'].errors.map((m: any) => m.message))
+    it("should flag things it doesnt support", () => {
+        const config: Config = {
+            crawl: {
+                root: "/here/we/crawl",
+            },
+            generate: {
+                match: [/\.fixture\.js$/],
+                exclude: [
+                    "_test\\.js$",
+                    "\\bcourse-editor-package\\b",
+                    "\\.fixture\\.js$",
+                    "\\b__flowtests__\\b",
+                    "\\bcourse-editor\\b",
+                ],
+                readOnlyArray: false,
+                regenerateCommand: "make gqlflow",
+                scalars: {
+                    JSONString: "string",
+                    KALocale: "string",
+                    NaiveDateTime: "string",
+                },
+                splitTypes: true,
+                generatedDirectory: "__graphql-types__",
+                exportAllObjectTypes: true,
+                schemaFilePath: "./composed_schema.graphql",
+            },
+        };
+        const files = processFiles(
+            ["/invalidThings.js"],
+            config,
+            getFileSource,
+        );
+        expect(files["/invalidThings.js"].errors.map((m: any) => m.message))
             .toMatchInlineSnapshot(`
             Array [
               "Unable to resolve someExternalFragment",
@@ -227,12 +288,42 @@ describe('processing fragments in various ways', () => {
         `);
     });
 
-    it('should flag resolution errors', () => {
-        const files = processFiles(['/invalidReferences.js'], getFileSource);
+    it("should flag resolution errors", () => {
+        const config: Config = {
+            crawl: {
+                root: "/here/we/crawl",
+            },
+            generate: {
+                match: [/\.fixture\.js$/],
+                exclude: [
+                    "_test\\.js$",
+                    "\\bcourse-editor-package\\b",
+                    "\\.fixture\\.js$",
+                    "\\b__flowtests__\\b",
+                    "\\bcourse-editor\\b",
+                ],
+                readOnlyArray: false,
+                regenerateCommand: "make gqlflow",
+                scalars: {
+                    JSONString: "string",
+                    KALocale: "string",
+                    NaiveDateTime: "string",
+                },
+                splitTypes: true,
+                generatedDirectory: "__graphql-types__",
+                exportAllObjectTypes: true,
+                schemaFilePath: "./composed_schema.graphql",
+            },
+        };
+        const files = processFiles(
+            ["/invalidReferences.js"],
+            config,
+            getFileSource,
+        );
         Object.keys(files).forEach((k: any) => {
             expect(files[k].errors).toEqual([]);
         });
-        const {resolved, errors} = resolveDocuments(files);
+        const {resolved, errors} = resolveDocuments(files, config);
         expect(errors.map((m: any) => m.message)).toMatchInlineSnapshot(`
             Array [
               "Circular import /circular.js -> /invalidReferences.js -> /circular.js",

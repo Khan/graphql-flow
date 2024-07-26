@@ -1,11 +1,11 @@
 /**
  * Both input & output types can have enums & scalars.
  */
-import * as babelTypes from '@babel/types';
-import type {TSType} from '@babel/types';
-import type {Context} from './types';
-import {maybeAddDescriptionComment} from './utils';
-import type {IntrospectionEnumType} from 'graphql/utilities/introspectionQuery';
+import * as babelTypes from "@babel/types";
+import type {TSType} from "@babel/types";
+import type {Context} from "./types";
+import {maybeAddDescriptionComment} from "./utils";
+import type {IntrospectionEnumType} from "graphql";
 
 export const experimentalEnumTypeToFlow = (
     ctx: Context,
@@ -40,13 +40,13 @@ export const enumTypeToFlow = (ctx: Context, name: string): TSType => {
             (n) =>
                 `- ${n.name}` +
                 (n.description
-                    ? '\n\n      ' + n.description.replace(/\n/g, '\n      ')
-                    : ''),
+                    ? "\n\n      " + n.description.replace(/\n/g, "\n      ")
+                    : ""),
         )
-        .join('\n');
+        .join("\n");
     if (enumConfig.description) {
         combinedDescription =
-            enumConfig.description + '\n\n' + combinedDescription;
+            enumConfig.description + "\n\n" + combinedDescription;
     }
 
     return ctx.experimentalEnumsMap
@@ -64,15 +64,15 @@ export const enumTypeToFlow = (ctx: Context, name: string): TSType => {
 };
 
 export const builtinScalars: {
-    [key: string]: string,
+    [key: string]: string;
 } = {
-    Boolean: 'boolean',
-    String: 'string',
-    DateTime: 'string',
-    Date: 'string',
-    ID: 'string',
-    Int: 'number',
-    Float: 'number',
+    Boolean: "boolean",
+    String: "string",
+    DateTime: "string",
+    Date: "string",
+    ID: "string",
+    Int: "number",
+    Float: "number",
 };
 
 export const scalarTypeToFlow = (ctx: Context, name: string): TSType => {

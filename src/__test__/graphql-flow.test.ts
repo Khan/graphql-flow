@@ -1,22 +1,21 @@
 /**
  * Tests for our graphql flow generation!
  */
+import {describe, it, expect} from "@jest/globals";
+import gql from "graphql-tag";
 
-import {getSchemas} from '../cli/config';
-import {documentToFlowTypes} from '..';
-import gql from 'graphql-tag';
-
-import type {GenerateConfig} from '../types';
+import {getSchemas} from "../cli/config";
+import {documentToFlowTypes} from "..";
+import type {GenerateConfig} from "../types";
 
 // This allows us to "snapshot" a string cleanly.
-/* eslint-disable flowtype-errors/uncovered */
+
 expect.addSnapshotSerializer({
-    test: (value: any) => value && typeof value === 'string',
+    test: (value: any) => value && typeof value === "string",
     print: (value: any, _: any, __: any) => value,
 });
-/* eslint-enable flowtype-errors/uncovered */
 
-const [_, exampleSchema] = getSchemas(__dirname + '/example-schema.graphql');
+const [_, exampleSchema] = getSchemas(__dirname + "/example-schema.graphql");
 
 const rawQueryToFlowTypes = (
     query: string,
@@ -24,8 +23,8 @@ const rawQueryToFlowTypes = (
 ): string => {
     const node = gql(query);
     return documentToFlowTypes(node, exampleSchema, {
-        schemaFilePath: '',
-        scalars: {PositiveNumber: 'number'},
+        schemaFilePath: "",
+        scalars: {PositiveNumber: "number"},
         ...options,
     })
         .map(
@@ -34,13 +33,13 @@ const rawQueryToFlowTypes = (
                 Object.keys(extraTypes)
                     .sort()
                     .map((k: any) => `\nexport type ${k} = ${extraTypes[k]};`)
-                    .join(''),
+                    .join(""),
         )
-        .join('\n\n');
+        .join("\n\n");
 };
 
-describe('graphql-flow generation', () => {
-    it('should allow custom scalars as input', () => {
+describe("graphql-flow generation", () => {
+    it("should allow custom scalars as input", () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery($candies: PositiveNumber!) {
                 candies(number: $candies)
@@ -60,7 +59,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('should split types', () => {
+    it("should split types", () => {
         const result = rawQueryToFlowTypes(
             `
             query SomeQuery($id: String!) {
@@ -87,7 +86,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('should work with a basic query', () => {
+    it("should work with a basic query", () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
                 human(id: "Han Solo") {
@@ -123,7 +122,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('renames', () => {
+    it("renames", () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
                 human(id: "Han Solo") {
@@ -147,7 +146,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('should work with unions', () => {
+    it("should work with unions", () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
                 friend(id: "Han Solo") {
@@ -184,7 +183,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('should work with fragments on interface', () => {
+    it("should work with fragments on interface", () => {
         const result = rawQueryToFlowTypes(`
             query SomeQuery {
                 human(id: "Han Solo") {
@@ -275,7 +274,7 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    it('should work with a readOnlyArray turned off', () => {
+    it("should work with a readOnlyArray turned off", () => {
         const result = rawQueryToFlowTypes(
             `
             query SomeQuery {
@@ -306,8 +305,8 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    describe('Object properties', () => {
-        it('should reject invalid field', () => {
+    describe("Object properties", () => {
+        it("should reject invalid field", () => {
             expect(() =>
                 rawQueryToFlowTypes(`
                     query SomeQuery {
@@ -321,7 +320,7 @@ describe('graphql-flow generation', () => {
             );
         });
 
-        it('should reject an unknown fragment', () => {
+        it("should reject an unknown fragment", () => {
             expect(() =>
                 rawQueryToFlowTypes(`
             query SomeQuery {
@@ -336,8 +335,8 @@ describe('graphql-flow generation', () => {
         });
     });
 
-    describe('Fragments', () => {
-        it('should resolve correctly, and produce a type file for the fragment', () => {
+    describe("Fragments", () => {
+        it("should resolve correctly, and produce a type file for the fragment", () => {
             const result = rawQueryToFlowTypes(
                 `query Hello {
                     hero(episode: JEDI) {
@@ -380,7 +379,7 @@ describe('graphql-flow generation', () => {
             `);
         });
 
-        it('Should specialize the fragment type correctly', () => {
+        it("Should specialize the fragment type correctly", () => {
             const result = rawQueryToFlowTypes(
                 `query Deps {
                     droid(id: "hello") {
@@ -435,7 +434,7 @@ describe('graphql-flow generation', () => {
         });
     });
 
-    it('should generate all types when exportAllObjectTypes is set', () => {
+    it("should generate all types when exportAllObjectTypes is set", () => {
         const result = rawQueryToFlowTypes(
             `
             query SomeQuery {
@@ -488,8 +487,8 @@ describe('graphql-flow generation', () => {
         `);
     });
 
-    describe('Input variables', () => {
-        it('should generate a variables type', () => {
+    describe("Input variables", () => {
+        it("should generate a variables type", () => {
             const result = rawQueryToFlowTypes(
                 `query SomeQuery($id: String!, $episode: Episode) {
                     human(id: $id) {
@@ -531,7 +530,7 @@ describe('graphql-flow generation', () => {
             `);
         });
 
-        it('should handle an inline fragment on an interface without a typeCondition', () => {
+        it("should handle an inline fragment on an interface without a typeCondition", () => {
             const result = rawQueryToFlowTypes(
                 `
                 query SomeQuery {
@@ -563,7 +562,7 @@ describe('graphql-flow generation', () => {
             `);
         });
 
-        it('should handle an inline fragment on an object (not an interface)', () => {
+        it("should handle an inline fragment on an object (not an interface)", () => {
             const result = rawQueryToFlowTypes(
                 `
                 query SomeQuery {
@@ -594,7 +593,7 @@ describe('graphql-flow generation', () => {
             `);
         });
 
-        it('should handle a complex input variable', () => {
+        it("should handle a complex input variable", () => {
             const result = rawQueryToFlowTypes(
                 `mutation addCharacter($character: CharacterInput!) {
                     addCharacter(character: $character) {

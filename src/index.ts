@@ -1,4 +1,4 @@
-import {isTruthy} from '@khanacademy/wonder-stuff-core';
+import {isTruthy} from "@khanacademy/wonder-stuff-core";
 /* eslint-disable no-console */
 /* flow-uncovered-file */
 /**
@@ -7,17 +7,17 @@ import {isTruthy} from '@khanacademy/wonder-stuff-core';
  * It relies on `introspection-query.json` existing in this directory,
  * which is produced by running `./tools/graphql-flow/sendIntrospection.js`.
  */
-import type {DefinitionNode, DocumentNode} from 'graphql';
+import type {DefinitionNode, DocumentNode} from "graphql";
 
-import generate from '@babel/generator'; // eslint-disable-line flowtype-errors/uncovered
+import generate from "@babel/generator";
 import {
     generateFragmentType,
     generateResponseType,
-} from './generateResponseType';
-import {generateVariablesType} from './generateVariablesType';
-import type {Node} from '@babel/types';
+} from "./generateResponseType";
+import {generateVariablesType} from "./generateVariablesType";
+import type {Node} from "@babel/types";
 
-import type {Context, Schema, GenerateConfig} from './types';
+import type {Context, Schema, GenerateConfig} from "./types";
 
 const optionsToConfig = (
     schema: Schema,
@@ -34,7 +34,7 @@ const optionsToConfig = (
     } as const;
     const fragments: Record<string, any> = {};
     definitions.forEach((def) => {
-        if (def.kind === 'FragmentDefinition') {
+        if (def.kind === "FragmentDefinition") {
             fragments[def.name.value] = def;
         }
     });
@@ -56,22 +56,26 @@ const optionsToConfig = (
 export class FlowGenerationError extends Error {
     messages: Array<string>;
     constructor(errors: Array<string>) {
-        super(`Graphql-flow type generation failed! ${errors.join('; ')}`);
+        super(`Graphql-flow type generation failed! ${errors.join("; ")}`);
         this.messages = errors;
     }
 }
 
-export const documentToFlowTypes = (document: DocumentNode, schema: Schema, options?: GenerateConfig): ReadonlyArray<{
-    name: string
-    typeName: string
-    code: string
-    isFragment?: boolean
+export const documentToFlowTypes = (
+    document: DocumentNode,
+    schema: Schema,
+    options?: GenerateConfig,
+): ReadonlyArray<{
+    name: string;
+    typeName: string;
+    code: string;
+    isFragment?: boolean;
     extraTypes: {
-        [key: string]: string
-    }
+        [key: string]: string;
+    };
     experimentalEnums: {
-        [key: string]: string
-    }
+        [key: string]: string;
+    };
 }> => {
     const errors: Array<string> = [];
     const config = optionsToConfig(
@@ -82,7 +86,7 @@ export const documentToFlowTypes = (document: DocumentNode, schema: Schema, opti
     );
     const result = document.definitions
         .map((item) => {
-            if (item.kind === 'FragmentDefinition') {
+            if (item.kind === "FragmentDefinition") {
                 const name = item.name.value;
                 const types: Record<string, any> = {};
                 const code = `export type ${name} = ${generateFragmentType(
@@ -112,8 +116,8 @@ export const documentToFlowTypes = (document: DocumentNode, schema: Schema, opti
                 };
             }
             if (
-                item.kind === 'OperationDefinition' &&
-                (item.operation === 'query' || item.operation === 'mutation') &&
+                item.kind === "OperationDefinition" &&
+                (item.operation === "query" || item.operation === "mutation") &&
                 item.name
             ) {
                 const types: Record<string, any> = {};
@@ -150,18 +154,13 @@ export const documentToFlowTypes = (document: DocumentNode, schema: Schema, opti
     return result;
 };
 
-function codegenExtraTypes(
-    types: {
-        [key: string]: Node
-    },
-): {
-    [key: string]: string
+function codegenExtraTypes(types: {[key: string]: Node}): {
+    [key: string]: string;
 } {
     const extraTypes: {
-        [key: string]: string
+        [key: string]: string;
     } = {};
     Object.keys(types).forEach((k: string) => {
-        // eslint-disable-next-line flowtype-errors/uncovered
         extraTypes[k] = generate(types[k]).code;
     });
     return extraTypes;
