@@ -1,19 +1,20 @@
 import fs from "fs";
 import {Config} from "../types";
 
+export const fixPathResolution = (path: string, config: Config) => {
+    if (config.alias) {
+        for (const {find, replacement} of config.alias) {
+            path = path.replace(find, replacement);
+        }
+    }
+    return path;
+};
+
 export const getPathWithExtension = (
     pathWithoutExtension: string,
     config: Config,
-): string => {
-    // Process the path so that we can handle aliases.
-    if (config.alias) {
-        for (const {find, replacement} of config.alias) {
-            pathWithoutExtension = pathWithoutExtension.replace(
-                find,
-                replacement,
-            );
-        }
-    }
+) => {
+    pathWithoutExtension = fixPathResolution(pathWithoutExtension, config);
     if (
         /\.(less|css|png|gif|jpg|jpeg|js|jsx|ts|tsx|mjs)$/.test(
             pathWithoutExtension,
@@ -33,9 +34,5 @@ export const getPathWithExtension = (
     if (fs.existsSync(pathWithoutExtension + ".ts")) {
         return pathWithoutExtension + ".ts";
     }
-    // NOTE(john): This is a bit of a hack, but it's necessary for when we
-    // have a file that doesn't exist. This will happen when we delete all of
-    // the type files before re-running graphql-flow again. We want to ensure
-    // that we don't error out in this case.
-    return "";
+    return null;
 };

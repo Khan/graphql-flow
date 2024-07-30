@@ -50,7 +50,7 @@ describe("getPathWithExtension", () => {
         expect(result).toBe("/path/to/file.js");
     });
 
-    it("returns an empty string if no file is found", () => {
+    it("returns null if no file is found", () => {
         // Arrange
         jest.spyOn(fs, "existsSync").mockImplementation((path) => false);
 
@@ -58,7 +58,7 @@ describe("getPathWithExtension", () => {
         const result = getPathWithExtension("/path/to/file", config);
 
         // Assert
-        expect(result).toBe("");
+        expect(result).toBe(null);
     });
 
     it("maps aliases to their correct value", () => {

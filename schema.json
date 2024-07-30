@@ -91,7 +91,23 @@
         "generate": {"oneOf": [
             {"$ref": "#/definitions/GenerateConfig"},
             {"type": "array", "items": {"$ref": "#/definitions/GenerateConfig"}}
-        ]}
+        ]},
+        "alias": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "find": {
+                        "type": ["string", "object"]
+                    },
+                    "replacement": {
+                        "type": "string"
+                    }
+                },
+                "required": [ "find", "replacement" ]
+            }
+        }
     },
     "required": [ "crawl", "generate" ]
 }
