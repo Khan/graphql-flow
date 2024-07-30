@@ -51,7 +51,10 @@ const resolveImport = (
     },
     config: Config,
 ): Document | null | undefined => {
-    const absPath: string = getPathWithExtension(expr.path, config);
+    const absPath = getPathWithExtension(expr.path, config);
+    if (!absPath) {
+        return null;
+    }
     if (seen[absPath]) {
         errors.push({
             loc: expr.loc,

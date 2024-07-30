@@ -6,6 +6,7 @@ import type {GraphQLSchema} from "graphql/type/schema";
 import {generateTypeFiles, processPragmas} from "../generateTypeFiles";
 import {processFiles} from "../parser/parse";
 import {resolveDocuments} from "../parser/resolve";
+import {getPathWithExtension} from "../parser/utils";
 import {findApplicableConfig, getSchemas, loadConfigFile} from "./config";
 
 import {addTypenameToDocument} from "apollo-utilities";
@@ -81,22 +82,11 @@ const inputFiles = cliFiles.length
 /** Step (2) */
 
 const files = processFiles(inputFiles, config, (f) => {
-    if (existsSync(f)) {
-        return readFileSync(f, "utf8");
+    const resolvedPath = getPathWithExtension(f, config);
+    if (!resolvedPath) {
+        throw new Error(`Unable to find ${f}`);
     }
-    if (existsSync(f + ".js")) {
-        return {text: readFileSync(f + ".js", "utf8"), resolvedPath: f + ".js"};
-    }
-    if (existsSync(f + ".ts")) {
-        return {text: readFileSync(f + ".ts", "utf8"), resolvedPath: f + ".ts"};
-    }
-    if (existsSync(f + ".tsx")) {
-        return {
-            text: readFileSync(f + ".tsx", "utf8"),
-            resolvedPath: f + ".tsx",
-        };
-    }
-    throw new Error(`Unable to find ${f}`);
+    return {text: readFileSync(resolvedPath, "utf8"), resolvedPath};
 });
 
 let filesHadErrors = false;

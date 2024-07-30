@@ -11,7 +11,7 @@ import traverse from "@babel/traverse";
 
 import path from "path";
 
-import {getPathWithExtension} from "./utils";
+import {fixPathResolution, getPathWithExtension} from "./utils";
 import {Config} from "../types";
 
 /**
@@ -152,6 +152,7 @@ export const processFile = (
               text: string;
               resolvedPath: string;
           },
+    config: Config,
 ): FileResult => {
     const dir = path.dirname(filePath);
     const result: FileResult = {
@@ -177,7 +178,7 @@ export const processFile = (
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === "ImportDeclaration") {
-            const newLocals = getLocals(dir, toplevel, filePath);
+            const newLocals = getLocals(dir, toplevel, filePath, config);
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
                     const local = newLocals[k];
@@ -386,6 +387,7 @@ const getLocals = (
     dir: string,
     toplevel: ImportDeclaration,
     myPath: string,
+    config: Config,
 ):
     | {
           [key: string]: Import;
@@ -395,9 +397,10 @@ const getLocals = (
     if (toplevel.importKind === "type") {
         return null;
     }
-    const importPath = toplevel.source.value.startsWith(".")
-        ? path.resolve(path.join(dir, toplevel.source.value))
-        : toplevel.source.value;
+    const fixedPath = fixPathResolution(toplevel.source.value, config);
+    const importPath = fixedPath.startsWith(".")
+        ? path.resolve(path.join(dir, fixedPath))
+        : fixedPath;
     const locals: Record<string, any> = {};
     toplevel.specifiers.forEach((spec) => {
         if (spec.type === "ImportDefaultSpecifier") {
@@ -439,7 +442,7 @@ export const processFiles = (
         if (!next || files[next]) {
             continue;
         }
-        const result = processFile(next, getFileSource(next));
+        const result = processFile(next, getFileSource(next), config);
         files[next] = result;
         listExternalReferences(result, config).forEach((path) => {
             if (!files[path] && !toProcess.includes(path)) {
