@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.1.1
+
+### Patch Changes
+
+-   45f09ef: Fix up some more alias resolution in graphql-flow.
+
 ## 3.1.0
 
 ### Minor Changes
