@@ -60,6 +60,7 @@ input CharacterInput {
   friends: [ID!]
   appearsIn: [Episode!]
   candies: PositiveNumber!
+  friendly: Boolean! = true
 }
 
 type Mutation {
