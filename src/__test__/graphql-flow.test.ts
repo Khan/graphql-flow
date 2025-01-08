@@ -621,7 +621,7 @@ describe("graphql-flow generation", () => {
                     - JEDI*/
                     "NEW_HOPE" | "EMPIRE" | "JEDI"> | null | undefined;
                     candies: number;
-                    friendly?: boolean;
+                    friendly?: boolean | null | undefined;
                   };
                 },
                     response: {

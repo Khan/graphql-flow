@@ -31,7 +31,7 @@ export const inputObjectToFlow = (
                     vbl.description,
                     maybeOptionalObjectTypeProperty(
                         vbl.name,
-                        inputRefToFlow(ctx, vbl.type),
+                        inputRefToFlow(ctx, vbl.type, vbl.defaultValue != null),
                     ),
                 ),
             ),
@@ -58,9 +58,11 @@ export const maybeOptionalObjectTypeProperty = (
 export const inputRefToFlow = (
     ctx: Context,
     inputRef: IntrospectionInputTypeRef,
+    hasDefaultValue = false,
 ): babelTypes.TSType => {
     if (inputRef.kind === "NON_NULL") {
-        return _inputRefToFlow(ctx, inputRef.ofType);
+        const result = _inputRefToFlow(ctx, inputRef.ofType);
+        return hasDefaultValue ? nullableType(result) : result;
     }
     const result = _inputRefToFlow(ctx, inputRef);
     return transferLeadingComments(result, nullableType(result));
