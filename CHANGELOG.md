@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.1.2
+
+### Patch Changes
+
+-   09f72b5: Fix handling of input objects with required attributes that have a default value
+
 ## 3.1.1
 
 ### Patch Changes
