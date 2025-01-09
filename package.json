@@ -4,6 +4,9 @@
     "bin": {
         "graphql-flow": "./dist/cli/run.js"
     },
+    "jest": {
+        "testPathIgnorePatterns": ["dist"]
+    },
     "scripts": {
         "test": "jest",
         "publish:ci": "yarn run build && changeset publish",
