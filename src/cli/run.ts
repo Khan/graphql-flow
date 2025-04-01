@@ -86,6 +86,9 @@ const files = processFiles(inputFiles, config, (f) => {
     if (!resolvedPath) {
         throw new Error(`Unable to find ${f}`);
     }
+    if (!existsSync(resolvedPath)) {
+        return null;
+    }
     return {text: readFileSync(resolvedPath, "utf8"), resolvedPath};
 });
 
@@ -136,6 +139,7 @@ const getCachedSchemas = (schemaFilePath: string) => {
 
 let validationFailures: number = 0;
 const printedOperations: Array<string> = [];
+let outputFiles: Record<string, string> = {};
 
 Object.keys(resolved).forEach((filePathAndLine) => {
     const {document, raw} = resolved[filePathAndLine];
@@ -192,11 +196,12 @@ Object.keys(resolved).forEach((filePathAndLine) => {
     }
 
     try {
-        generateTypeFiles(
+        outputFiles = generateTypeFiles(
             raw.loc.path,
             schemaForTypeGeneration,
             withTypeNames,
             generateConfig,
+            outputFiles,
         );
     } catch (err: any) {
         console.error(`Error while generating operation from ${raw.loc.path}`);
@@ -206,6 +211,12 @@ Object.keys(resolved).forEach((filePathAndLine) => {
         validationFailures++;
     }
 });
+
+/** Step (5) */
+
+for (const [fname, content] of Object.entries(outputFiles)) {
+    writeFileSync(fname, content, "utf8");
+}
 
 if (validationFailures) {
     console.error(

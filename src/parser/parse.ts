@@ -307,9 +307,9 @@ export const processFile = (
         }
     };
 
-    traverse(ast, {
+    traverse(ast as any, {
         TaggedTemplateExpression(path) {
-            visitTpl(path.node, (name) => {
+            visitTpl(path.node as any, (name) => {
                 const binding = path.scope.getBinding(name);
                 if (!binding) {
                     return null;
@@ -430,6 +430,7 @@ export const processFiles = (
     config: Config,
     getFileSource: (path: string) =>
         | string
+        | null
         | {
               text: string;
               resolvedPath: string;
@@ -442,7 +443,11 @@ export const processFiles = (
         if (!next || files[next]) {
             continue;
         }
-        const result = processFile(next, getFileSource(next), config);
+        const source = getFileSource(next);
+        if (!source) {
+            continue;
+        }
+        const result = processFile(next, source, config);
         files[next] = result;
         listExternalReferences(result, config).forEach((path) => {
             if (!files[path] && !toProcess.includes(path)) {
