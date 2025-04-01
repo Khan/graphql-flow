@@ -20,27 +20,26 @@ export const generateTypeFileContents = (
     document: DocumentNode,
     options: GenerateConfig,
     generatedDir: string,
-    indexContents: string,
+    originalIndexContents: string,
 ): {
     indexContents: string;
     files: {
         [key: string]: string;
     };
 } => {
+    let indexContents = originalIndexContents;
     const files: Record<string, any> = {};
 
     /// Write export for __generated__/index.ts if it doesn't exist
     const addToIndex = (filePath: string, typeName: unknown) => {
-        if (options.typeScript || options.omitFileExtensions) {
+        if (options.omitFileExtensions) {
             // Typescript doesn't like file extensions
             filePath = filePath.replace(/\.ts$/, "");
         }
-        const newLine = `export type {${typeName}} from './${path.basename(
+        const newLine = `export type {${typeName}} from "./${path.basename(
             filePath,
-        )}';`;
-        // We match the entire new line to avoid issues that can arise from
-        // prefix matches.
-        if (indexContents.indexOf(newLine) === -1) {
+        )}";`;
+        if (!indexContents.includes(newLine)) {
             indexContents += newLine + "\n";
         }
     };
@@ -119,6 +118,7 @@ export const generateTypeFiles = (
     schema: Schema,
     document: DocumentNode,
     options: GenerateConfig,
+    outputFiles: Record<string, string>,
 ) => {
     const generatedDir = getGeneratedDir(fileName, options);
     const indexFile = path.join(generatedDir, "index.ts");
@@ -126,8 +126,8 @@ export const generateTypeFiles = (
     if (!fs.existsSync(generatedDir)) {
         fs.mkdirSync(generatedDir, {recursive: true});
     }
-    if (!fs.existsSync(indexFile)) {
-        fs.writeFileSync(indexFile, indexPrelude(options.regenerateCommand));
+    if (!outputFiles[indexFile]) {
+        outputFiles[indexFile] = indexPrelude(options.regenerateCommand);
     }
 
     const {indexContents, files} = generateTypeFileContents(
@@ -136,15 +136,18 @@ export const generateTypeFiles = (
         document,
         options,
         generatedDir,
-        fs.readFileSync(indexFile, "utf8"),
+        outputFiles[indexFile],
     );
 
-    fs.writeFileSync(indexFile, indexContents);
-    Object.keys(files).forEach((fname) => {
-        fs.writeFileSync(fname, files[fname]);
-    });
+    // Write out files
+    for (const [fname, content] of Object.entries(files)) {
+        outputFiles[fname] = content;
+    }
 
-    fs.writeFileSync(indexFile, indexContents);
+    // Write out index file
+    outputFiles[indexFile] = indexContents;
+
+    return outputFiles;
 };
 
 export const processPragmas = (
