@@ -144,5 +144,5 @@ export const generateVariablesType = (
             );
         }),
     );
-    return generate(variableObject).code;
+    return generate(variableObject as any).code;
 };

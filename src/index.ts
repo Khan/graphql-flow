@@ -161,7 +161,7 @@ function codegenExtraTypes(types: {[key: string]: Node}): {
         [key: string]: string;
     } = {};
     Object.keys(types).forEach((k: string) => {
-        extraTypes[k] = generate(types[k]).code;
+        extraTypes[k] = generate(types[k] as any).code;
     });
     return extraTypes;
 }

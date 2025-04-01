@@ -39,7 +39,7 @@ export const generateResponseType = (
         query.operation === "mutation" ? "mutation" : "query",
     );
 
-    return generate(ast).code;
+    return generate(ast as any).code;
 };
 
 const sortedObjectTypeAnnotation = (
@@ -103,7 +103,7 @@ export const generateFragmentType = (
         throw new Error(`Unknown ${onType}`);
     }
 
-    return generate(ast).code;
+    return generate(ast as any).code;
 };
 
 const _typeToFlow = (
