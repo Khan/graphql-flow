@@ -76,9 +76,7 @@ describe("graphql-flow generation", () => {
               id: string;
             },
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 id: string;
               } | null | undefined;
             }
@@ -105,17 +103,13 @@ describe("graphql-flow generation", () => {
             export type SomeQueryType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 friends: ReadonlyArray<{
                   name: string | null | undefined;
                 } | null | undefined> | null | undefined;
                 homePlanet: string | null | undefined;
                 id: string;
-
-                /** The person's name*/
-                name: string | null | undefined;
+                /** The person's name*/name: string | null | undefined;
               } | null | undefined;
             }
             };
@@ -136,9 +130,7 @@ describe("graphql-flow generation", () => {
             export type SomeQueryType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 notDead: boolean | null | undefined;
               } | null | undefined;
             }
@@ -166,18 +158,16 @@ describe("graphql-flow generation", () => {
             export type SomeQueryType = {
                 variables: {},
                 response: {
-              friend: ({
+              friend: {
                 __typename: "Animal";
               } | {
                 __typename: "Droid";
-
-                /** The robot's primary function*/
-                primaryFunction: string;
+                /** The robot's primary function*/primaryFunction: string;
               } | {
                 __typename: "Human";
                 hands: number | null | undefined;
                 id: string;
-              }) | null | undefined;
+              } | null | undefined;
             }
             };
         `);
@@ -217,17 +207,15 @@ describe("graphql-flow generation", () => {
             export type SomeQueryType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 alive: boolean | null | undefined;
-                friends: ReadonlyArray<({
+                friends: ReadonlyArray<{
                   __typename: "Droid";
                   appearsIn: ReadonlyArray<
                   /** - NEW_HOPE
                   - EMPIRE
                   - JEDI*/
-                  ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined> | null | undefined;
+                  "NEW_HOPE" | "EMPIRE" | "JEDI" | null | undefined> | null | undefined;
                   friends: ReadonlyArray<{
                     id: string;
                   } | null | undefined> | null | undefined;
@@ -239,20 +227,18 @@ describe("graphql-flow generation", () => {
                   /** - NEW_HOPE
                   - EMPIRE
                   - JEDI*/
-                  ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined> | null | undefined;
+                  "NEW_HOPE" | "EMPIRE" | "JEDI" | null | undefined> | null | undefined;
                   friends: ReadonlyArray<{
                     id: string;
                   } | null | undefined> | null | undefined;
                   hands: number | null | undefined;
                   id: string;
                   name: string | null | undefined;
-                }) | null | undefined> | null | undefined;
+                } | null | undefined> | null | undefined;
                 hands: number | null | undefined;
                 homePlanet: string | null | undefined;
                 id: string;
-
-                /** The person's name*/
-                name: string | null | undefined;
+                /** The person's name*/name: string | null | undefined;
               } | null | undefined;
             }
             };
@@ -264,7 +250,7 @@ describe("graphql-flow generation", () => {
               /** - NEW_HOPE
               - EMPIRE
               - JEDI*/
-              ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined> | null | undefined;
+              "NEW_HOPE" | "EMPIRE" | "JEDI" | null | undefined> | null | undefined;
               friends: ReadonlyArray<{
                 id: string;
               } | null | undefined> | null | undefined;
@@ -293,9 +279,7 @@ describe("graphql-flow generation", () => {
             export type SomeQueryType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 friends: Array<{
                   name: string | null | undefined;
                 } | null | undefined> | null | undefined;
@@ -356,23 +340,19 @@ describe("graphql-flow generation", () => {
                 export type HelloType = {
                     variables: {},
                     response: {
-                  hero: ({
+                  hero: {
                     __typename: "Droid";
-
-                    /** The robot's primary function*/
-                    primaryFunction: string;
+                    /** The robot's primary function*/primaryFunction: string;
                   } | {
                     __typename: "Human";
-                  }) | null | undefined;
+                  } | null | undefined;
                 }
                 };
 
                 // onChar.js
                 export type onChar = {
                   __typename: "Droid";
-
-                  /** The robot's primary function*/
-                  primaryFunction: string;
+                  /** The robot's primary function*/primaryFunction: string;
                 } | {
                   __typename: "Human";
                 };
@@ -406,14 +386,10 @@ describe("graphql-flow generation", () => {
                 export type DepsType = {
                     variables: {},
                     response: {
-                  droid:
-                  /** A robot character*/
-                  {
+                  droid: /** A robot character*/{
                     __typename: "Droid";
                     name: string | null | undefined;
-
-                    /** The robot's primary function*/
-                    primaryFunction: string;
+                    /** The robot's primary function*/primaryFunction: string;
                   } | null | undefined;
                 }
                 };
@@ -422,9 +398,7 @@ describe("graphql-flow generation", () => {
                 export type Hello = {
                   __typename: "Droid";
                   name: string | null | undefined;
-
-                  /** The robot's primary function*/
-                  primaryFunction: string;
+                  /** The robot's primary function*/primaryFunction: string;
                 } | {
                   __typename: "Human";
                   homePlanet: string | null | undefined;
@@ -461,9 +435,7 @@ describe("graphql-flow generation", () => {
             export type SomeQueryType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              SomeQuery_human | null | undefined;
+              human: /** A human character*/SomeQuery_human | null | undefined;
             }
             };
             export type SomeQuery_human = {
@@ -472,9 +444,7 @@ describe("graphql-flow generation", () => {
               hands: number | null | undefined;
               homePlanet: string | null | undefined;
               id: string;
-
-              /** The person's name*/
-              name: string | null | undefined;
+              /** The person's name*/name: string | null | undefined;
             };
             export type SomeQuery_human_friends = SomeQuery_human_friends_Droid | SomeQuery_human_friends_Human;
             export type SomeQuery_human_friends_Droid = {
@@ -512,15 +482,13 @@ describe("graphql-flow generation", () => {
                   /** - NEW_HOPE
                   - EMPIRE
                   - JEDI*/
-                  ("NEW_HOPE" | "EMPIRE" | "JEDI") | null | undefined;
+                  "NEW_HOPE" | "EMPIRE" | "JEDI" | null | undefined;
                 },
                     response: {
                   hero: {
                     name: string | null | undefined;
                   } | null | undefined;
-                  human:
-                  /** A human character*/
-                  {
+                  human: /** A human character*/{
                     friends: Array<{
                       name: string | null | undefined;
                     } | null | undefined> | null | undefined;
@@ -548,15 +516,13 @@ describe("graphql-flow generation", () => {
                 export type SomeQueryType = {
                     variables: {},
                     response: {
-                  hero: ({
+                  hero: {
                     id: string;
                     name: string | null | undefined;
                   } | {
                     id: string;
-
-                    /** The person's name*/
-                    name: string | null | undefined;
-                  }) | null | undefined;
+                    /** The person's name*/name: string | null | undefined;
+                  } | null | undefined;
                 }
                 };
             `);
@@ -580,13 +546,9 @@ describe("graphql-flow generation", () => {
                 export type SomeQueryType = {
                     variables: {},
                     response: {
-                  human:
-                  /** A human character*/
-                  {
+                  human: /** A human character*/{
                     id: string;
-
-                    /** The person's name*/
-                    name: string | null | undefined;
+                    /** The person's name*/name: string | null | undefined;
                   } | null | undefined;
                 }
                 };
@@ -607,14 +569,9 @@ describe("graphql-flow generation", () => {
                 // addCharacterType.js
                 export type addCharacterType = {
                     variables: {
-                  character:
-                  /** A character to add*/
-                  {
-                    /** The new character's name*/
-                    name: string;
-
-                    /** The character's friends*/
-                    friends?: ReadonlyArray<string> | null | undefined;
+                  character: /** A character to add*/{
+                    /** The new character's name*/name: string;
+                    /** The character's friends*/friends?: ReadonlyArray<string> | null | undefined;
                     appearsIn?: ReadonlyArray<
                     /** - NEW_HOPE
                     - EMPIRE

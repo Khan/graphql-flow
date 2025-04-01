@@ -30,7 +30,7 @@ describe("generateTypeFileContents", () => {
             //      To regenerate, run yarn queries
             //
 
-            export type {HelloType} from './Hello.ts';
+            export type {HelloType} from \\"./Hello.ts\\";
             "
         `);
         expect(
@@ -44,9 +44,7 @@ describe("generateTypeFileContents", () => {
             export type HelloType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 id: string;
               } | null | undefined;
             }
@@ -87,9 +85,7 @@ describe("generateTypeFileContents", () => {
             export type HelloType = {
                 variables: {},
                 response: {
-              human:
-              /** A human character*/
-              {
+              human: /** A human character*/{
                 id: string;
               } | null | undefined;
             }
@@ -130,9 +126,7 @@ describe("generateTypeFileContents", () => {
                 export type HelloType = {
                     variables: {},
                     response: {
-                  human:
-                  /** A human character*/
-                  {
+                  human: /** A human character*/{
                     appearsIn: ReadonlyArray<
                     /** - NEW_HOPE
                     - EMPIRE
