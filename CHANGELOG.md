@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.1.3
+
+### Patch Changes
+
+-   a8be4ea: Fix file extension toggling, improve file writing.
+
 ## 3.1.2
 
 ### Patch Changes
