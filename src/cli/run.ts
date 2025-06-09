@@ -10,6 +10,7 @@ import {getPathWithExtension} from "../parser/utils";
 import {findApplicableConfig, getSchemas, loadConfigFile} from "./config";
 
 import {addTypenameToDocument} from "apollo-utilities";
+import processArgs from "minimist";
 
 import {execSync} from "child_process";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
@@ -49,14 +50,10 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
         .map((relative) => path.join(root, relative));
 };
 
-const [_, __, configFilePath, ...cliFiles] = process.argv;
+const args = processArgs(process.argv.slice(2));
+const [configFilePath, ...cliFiles] = args._;
 
-if (
-    configFilePath === "-h" ||
-    configFilePath === "--help" ||
-    configFilePath === "help" ||
-    !configFilePath
-) {
+if (args.h || args.help || !configFilePath) {
     console.log(`graphql-flow
 
 Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
@@ -70,8 +67,17 @@ const makeAbsPath = (maybeRelativePath: string, basePath: string) => {
 };
 
 const absConfigPath = makeAbsPath(configFilePath, process.cwd());
-
 const config = loadConfigFile(absConfigPath);
+
+if (args["schema-file"]) {
+    if (Array.isArray(config.generate)) {
+        config.generate.forEach((item) => {
+            item.schemaFilePath = args["schema-file"];
+        });
+    } else {
+        config.generate.schemaFilePath = args["schema-file"];
+    }
+}
 
 const inputFiles = cliFiles.length
     ? cliFiles
