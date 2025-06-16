@@ -1,8 +1,47 @@
 import {describe, it, expect} from "@jest/globals";
 
 import type {Config} from "../../types";
-import {findApplicableConfig, validateOrThrow} from "../config";
+import {
+    findApplicableConfig,
+    parseCliOptions,
+    validateOrThrow,
+} from "../config";
 import configSchema from "../../../schema.json";
+
+describe("parseCliOptions", () => {
+    it("should handle basic invocation", () => {
+        expect(parseCliOptions(["config.json"], "./")).toEqual({
+            configFilePath: "config.json",
+            cliFiles: [],
+        });
+    });
+
+    it("should handle cli files", () => {
+        expect(
+            parseCliOptions(["config.json", "one.js", "two.ts"], "./"),
+        ).toEqual({
+            configFilePath: "config.json",
+            cliFiles: ["one.js", "two.ts"],
+        });
+    });
+
+    it("should handle -h", () => {
+        expect(
+            parseCliOptions(["config.json", "-h", "one.js", "two.ts"], "./"),
+        ).toEqual(false);
+        expect(parseCliOptions([], "./")).toEqual(false);
+    });
+
+    it("should pick up schema-file", () => {
+        expect(
+            parseCliOptions(["config.json", "--schema-file=some.schema"], "./"),
+        ).toEqual({
+            configFilePath: "config.json",
+            cliFiles: [],
+            schemaFile: "some.schema",
+        });
+    });
+});
 
 describe("findApplicableConfig", () => {
     it("should work with one that matches", () => {

@@ -7,10 +7,16 @@ import {generateTypeFiles, processPragmas} from "../generateTypeFiles";
 import {processFiles} from "../parser/parse";
 import {resolveDocuments} from "../parser/resolve";
 import {getPathWithExtension} from "../parser/utils";
-import {findApplicableConfig, getSchemas, loadConfigFile} from "./config";
+import {
+    findApplicableConfig,
+    getInputFiles,
+    getSchemas,
+    loadConfigFile,
+    makeAbsPath,
+    parseCliOptions,
+} from "./config";
 
 import {addTypenameToDocument} from "apollo-utilities";
-import processArgs from "minimist";
 
 import {execSync} from "child_process";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
@@ -33,57 +39,19 @@ import {dirname} from "path";
 
 /** Step (1) */
 
-const findGraphqlTagReferences = (root: string): Array<string> => {
-    // NOTE(john): We want to include untracked files here so that we can
-    // generate types for them. This is useful for when we have a new file
-    // that we want to generate types for, but we haven't committed it yet.
-    const response = execSync(
-        "git grep -I --word-regexp --name-only --fixed-strings --untracked 'graphql-tag' -- '*.js' '*.jsx' '*.ts' '*.tsx'",
-        {
-            encoding: "utf8",
-            cwd: root,
-        },
-    );
-    return response
-        .trim()
-        .split("\n")
-        .map((relative) => path.join(root, relative));
-};
+const options = parseCliOptions(process.argv.slice(2), process.cwd());
 
-const args = processArgs(process.argv.slice(2));
-const [configFilePath, ...cliFiles] = args._;
-
-if (args.h || args.help || !configFilePath) {
+if (options === false) {
     console.log(`graphql-flow
 
-Usage: graphql-flow [configFile.json] [filesToCrawl...]`);
+Usage: graphql-flow [configFile.json] [filesToCrawl...]
+Options:
+  --schema-file: provide a schema file to override the one defined in config`);
     process.exit(1);
 }
 
-const makeAbsPath = (maybeRelativePath: string, basePath: string) => {
-    return path.isAbsolute(maybeRelativePath)
-        ? maybeRelativePath
-        : path.join(basePath, maybeRelativePath);
-};
-
-const absConfigPath = makeAbsPath(configFilePath, process.cwd());
-const config = loadConfigFile(absConfigPath);
-
-if (args["schema-file"]) {
-    if (Array.isArray(config.generate)) {
-        config.generate.forEach((item) => {
-            item.schemaFilePath = args["schema-file"];
-        });
-    } else {
-        config.generate.schemaFilePath = args["schema-file"];
-    }
-}
-
-const inputFiles = cliFiles.length
-    ? cliFiles
-    : findGraphqlTagReferences(
-          makeAbsPath(config.crawl.root, path.dirname(absConfigPath)),
-      );
+const config = loadConfigFile(options);
+const inputFiles = getInputFiles(options, config);
 
 /** Step (2) */
 
@@ -136,7 +104,7 @@ const schemaCache: {
 const getCachedSchemas = (schemaFilePath: string) => {
     if (!schemaCache[schemaFilePath]) {
         schemaCache[schemaFilePath] = getSchemas(
-            makeAbsPath(schemaFilePath, path.dirname(absConfigPath)),
+            makeAbsPath(schemaFilePath, path.dirname(options.configFilePath)),
         );
     }
 

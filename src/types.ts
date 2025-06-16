@@ -10,6 +10,12 @@ import type {
     SelectionNode,
 } from "graphql";
 
+export type CliOptions = {
+    schemaFile?: string;
+    configFilePath: string;
+    cliFiles: string[];
+};
+
 export type Selections = ReadonlyArray<SelectionNode>;
 
 export type GenerateConfig = {
