@@ -28,7 +28,7 @@ export const experimentalEnumTypeToFlow = (
     }
 
     return maybeAddDescriptionComment(
-        description,
+        ctx.noComments ? null : description,
         babelTypes.tsTypeReference(enumDeclaration.id),
     );
 };
@@ -52,7 +52,7 @@ export const enumTypeToFlow = (ctx: Context, name: string): TSType => {
     return ctx.experimentalEnumsMap
         ? experimentalEnumTypeToFlow(ctx, enumConfig, combinedDescription)
         : maybeAddDescriptionComment(
-              combinedDescription,
+              ctx.noComments ? null : combinedDescription,
               babelTypes.tsUnionType(
                   enumConfig.enumValues.map((n) =>
                       babelTypes.tsLiteralType(

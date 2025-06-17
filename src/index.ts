@@ -31,6 +31,7 @@ const optionsToConfig = (
         scalars: options?.scalars ?? {},
         typeScript: options?.typeScript ?? false,
         omitFileExtensions: options?.omitFileExtensions ?? false,
+        noComments: options?.noComments,
     } as const;
     const fragments: Record<string, any> = {};
     definitions.forEach((def) => {
@@ -101,9 +102,10 @@ export const documentToFlowTypes = (
                     },
                 )};`;
 
-                const extraTypes = codegenExtraTypes(types);
+                const extraTypes = codegenExtraTypes(types, config);
                 const experimentalEnums = codegenExtraTypes(
                     config.experimentalEnumsMap || {},
+                    config,
                 );
 
                 return {
@@ -139,9 +141,10 @@ export const documentToFlowTypes = (
                 // We'll see what's required to get webapp on board.
                 const code = `export type ${typeName} = {\n    variables: ${variables},\n    response: ${response}\n};`;
 
-                const extraTypes = codegenExtraTypes(types);
+                const extraTypes = codegenExtraTypes(types, config);
                 const experimentalEnums = codegenExtraTypes(
                     config.experimentalEnumsMap || {},
+                    config,
                 );
 
                 return {name, typeName, code, extraTypes, experimentalEnums};
@@ -154,14 +157,19 @@ export const documentToFlowTypes = (
     return result;
 };
 
-function codegenExtraTypes(types: {[key: string]: Node}): {
+function codegenExtraTypes(
+    types: {[key: string]: Node},
+    ctx: Context,
+): {
     [key: string]: string;
 } {
     const extraTypes: {
         [key: string]: string;
     } = {};
     Object.keys(types).forEach((k: string) => {
-        extraTypes[k] = generate(types[k] as any).code;
+        extraTypes[k] = generate(types[k] as any, {
+            comments: ctx.noComments ? false : true,
+        }).code;
     });
     return extraTypes;
 }

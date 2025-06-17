@@ -24,6 +24,7 @@ export type GenerateConfig = {
     exclude?: ReadonlyArray<RegExp | string>;
     typeScript?: boolean;
     scalars?: Scalars;
+    noComments?: boolean;
     strictNullability?: boolean;
     /**
      * The command that users should run to regenerate the types files.
@@ -87,6 +88,7 @@ export type Schema = {
 export type Context = {
     path: Array<string>;
     strictNullability: boolean;
+    noComments: boolean;
     readOnlyArray: boolean;
     fragments: {
         [key: string]: FragmentDefinitionNode;

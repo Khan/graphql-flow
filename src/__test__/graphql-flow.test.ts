@@ -589,5 +589,36 @@ describe("graphql-flow generation", () => {
                 };
             `);
         });
+
+        it("should strip comments", () => {
+            const result = rawQueryToFlowTypes(
+                `mutation addCharacter($character: CharacterInput!) {
+                    addCharacter(character: $character) {
+                        id
+                    }
+                }`,
+                {readOnlyArray: false, noComments: true},
+            );
+
+            expect(result).toMatchInlineSnapshot(`
+                // addCharacterType.js
+                export type addCharacterType = {
+                    variables: {
+                  character: {
+                    name: string;
+                    friends?: ReadonlyArray<string> | null | undefined;
+                    appearsIn?: ReadonlyArray<"NEW_HOPE" | "EMPIRE" | "JEDI"> | null | undefined;
+                    candies: number;
+                    friendly?: boolean | null | undefined;
+                  };
+                },
+                    response: {
+                  addCharacter: {
+                    id: string;
+                  } | null | undefined;
+                }
+                };
+            `);
+        });
     });
 });
