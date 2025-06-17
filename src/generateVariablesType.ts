@@ -144,5 +144,7 @@ export const generateVariablesType = (
             );
         }),
     );
-    return generate(variableObject as any).code;
+    return generate(variableObject as any, {
+        comments: ctx.noComments ? false : true,
+    }).code;
 };
