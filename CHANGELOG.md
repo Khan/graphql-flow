@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.2.0
+
+### Minor Changes
+
+-   7c01b6a: Add a --schema-file graphql argument, and allow exporting a function from the config.js file
+
 ## 3.1.3
 
 ### Patch Changes
