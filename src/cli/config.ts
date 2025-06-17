@@ -1,8 +1,8 @@
-import type {Schema} from "../types";
 import type {GraphQLSchema} from "graphql/type/schema";
+import type {CliOptions, Schema} from "../types";
 
-import {schemaFromIntrospectionData} from "../schemaFromIntrospectionData";
 import configSchema from "../../schema.json";
+import {schemaFromIntrospectionData} from "../schemaFromIntrospectionData";
 
 import fs from "fs";
 import {
@@ -12,8 +12,11 @@ import {
     graphqlSync,
     IntrospectionQuery,
 } from "graphql";
-import type {Config, GenerateConfig} from "../types";
 import {validate} from "jsonschema";
+import processArgs from "minimist";
+import type {Config, GenerateConfig} from "../types";
+import {execSync} from "child_process";
+import path from "path";
 
 export const validateOrThrow = (value: unknown, jsonSchema: unknown) => {
     const result = validate(value, jsonSchema);
@@ -24,10 +27,59 @@ export const validateOrThrow = (value: unknown, jsonSchema: unknown) => {
     }
 };
 
-export const loadConfigFile = (configFile: string): Config => {
-    const data: Config = require(configFile);
+export const makeAbsPath = (maybeRelativePath: string, basePath: string) => {
+    return path.isAbsolute(maybeRelativePath)
+        ? maybeRelativePath
+        : path.join(basePath, maybeRelativePath);
+};
+
+export const loadConfigFile = (options: CliOptions): Config => {
+    let data:
+        | Config
+        | ((c: CliOptions) => Config) = require(options.configFilePath);
+    if (typeof data === "function") {
+        data = data(options);
+    } else {
+        if (options.schemaFile) {
+            if (Array.isArray(data.generate)) {
+                data.generate.forEach((item) => {
+                    item.schemaFilePath = options.schemaFile!;
+                });
+            } else {
+                data.generate.schemaFilePath = options.schemaFile;
+            }
+        }
+    }
     validateOrThrow(data, configSchema);
     return data;
+};
+
+const findGraphqlTagReferences = (root: string): Array<string> => {
+    // NOTE(john): We want to include untracked files here so that we can
+    // generate types for them. This is useful for when we have a new file
+    // that we want to generate types for, but we haven't committed it yet.
+    const response = execSync(
+        "git grep -I --word-regexp --name-only --fixed-strings --untracked 'graphql-tag' -- '*.js' '*.jsx' '*.ts' '*.tsx'",
+        {
+            encoding: "utf8",
+            cwd: root,
+        },
+    );
+    return response
+        .trim()
+        .split("\n")
+        .map((relative) => path.join(root, relative));
+};
+
+export const getInputFiles = (options: CliOptions, config: Config) => {
+    return options.cliFiles.length
+        ? options.cliFiles
+        : findGraphqlTagReferences(
+              makeAbsPath(
+                  config.crawl.root,
+                  path.dirname(options.configFilePath),
+              ),
+          );
 };
 
 /**
@@ -52,6 +104,28 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
             schemaFromIntrospectionData(introspectionData);
         return [schemaForValidation, schemaForTypeGeneration];
     }
+};
+
+export const parseCliOptions = (
+    argv: string[],
+    relativeBase: string,
+): CliOptions | false => {
+    const args = processArgs(argv);
+    let [configFilePath, ...cliFiles] = args._;
+
+    if (args.h || args.help || !configFilePath) {
+        return false;
+    }
+
+    configFilePath = makeAbsPath(configFilePath, relativeBase);
+
+    const options: CliOptions = {configFilePath, cliFiles};
+
+    if (args["schema-file"]) {
+        options.schemaFile = args["schema-file"];
+    }
+
+    return options;
 };
 
 /**
