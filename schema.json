@@ -40,6 +40,9 @@
                 "regenerateCommand": {
                     "type": "string"
                 },
+                "noComments": {
+                    "type": "boolean"
+                },
                 "readOnlyArray": {
                     "type": "boolean"
                 },
