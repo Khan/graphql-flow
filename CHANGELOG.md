@@ -1,5 +1,13 @@
 # @khanacademy/graphql-flow
 
+## 3.2.0
+
+### Minor Changes
+
+-   96c201e: Add a noComments config option to exclude all comments in the output
+-   7c01b6a: Add a --schema-file graphql argument, and allow exporting a function from the config.js file
+-   96c201e: Add a `noComments` config option to exclude all comments
+
 ## 3.1.3
 
 ### Patch Changes
