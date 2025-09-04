@@ -91,7 +91,10 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
         const schemaForValidation = buildSchema(raw);
         const queryResponse = graphqlSync({
             schema: schemaForValidation,
-            source: getIntrospectionQuery({descriptions: true}),
+            source: getIntrospectionQuery({
+                descriptions: true,
+                inputValueDeprecation: true,
+            }),
         });
         const schemaForTypeGeneration = schemaFromIntrospectionData(
             queryResponse.data as any as IntrospectionQuery,
