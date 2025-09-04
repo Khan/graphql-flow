@@ -2,7 +2,6 @@
  * Takes the introspectionQuery response and parses it into the "Schema"
  * type that we use to look up types, interfaces, etc.
  */
-import util from "node:util";
 import type {IntrospectionQuery} from "graphql";
 import type {Schema} from "./types";
 
