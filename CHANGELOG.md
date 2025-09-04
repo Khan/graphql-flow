@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.3.0
+
+### Minor Changes
+
+-   b9fc899: Adds support for marking input fields as @deprecated
+
 ## 3.2.0
 
 ### Minor Changes
