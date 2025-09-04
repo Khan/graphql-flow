@@ -61,6 +61,7 @@ input CharacterInput {
   appearsIn: [Episode!]
   candies: PositiveNumber!
   friendly: Boolean! = true
+  toBeRemoved: String @deprecated(reason: "Unused")
 }
 
 type Mutation {

@@ -579,6 +579,7 @@ describe("graphql-flow generation", () => {
                     "NEW_HOPE" | "EMPIRE" | "JEDI"> | null | undefined;
                     candies: number;
                     friendly?: boolean | null | undefined;
+                    toBeRemoved?: string | null | undefined;
                   };
                 },
                     response: {
@@ -610,6 +611,7 @@ describe("graphql-flow generation", () => {
                     appearsIn?: ReadonlyArray<"NEW_HOPE" | "EMPIRE" | "JEDI"> | null | undefined;
                     candies: number;
                     friendly?: boolean | null | undefined;
+                    toBeRemoved?: string | null | undefined;
                   };
                 },
                     response: {
