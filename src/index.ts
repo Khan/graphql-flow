@@ -22,7 +22,7 @@ import type {Context, Schema, GenerateConfig} from "./types";
 // NOTE(kevinb): This is exported so that tooling in other repos can use
 // the same options for their introspection query.  In particular, we use
 // this in Khan/frontend when downloading the introspection JSON from prod.
-export {INTROSPECTION_OPTIONS} from "./cli/config";
+export {getIntrospectionQuery} from "./cli/get-introspection-query";
 
 const optionsToConfig = (
     schema: Schema,
