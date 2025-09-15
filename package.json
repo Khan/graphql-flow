@@ -11,6 +11,7 @@
     },
     "scripts": {
         "test": "jest",
+        "typecheck": "tsc --noEmit",
         "publish:ci": "yarn run build && changeset publish",
         "build": "babel src --extensions '.ts, .tsx' --out-dir dist --ignore 'src/**/*.spec.ts','src/**/*.test.ts' && chmod 755 dist/cli/run.js"
     },

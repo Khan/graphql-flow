@@ -34,7 +34,7 @@ jobs:
 
     - name: Run TypeScript
       if: steps.ts-files.outputs.filtered != '[]'
-      run: yarn tsc
+      run: yarn typecheck
 
     - id: eslint-reset
       uses: Khan/actions@filter-files-v1
