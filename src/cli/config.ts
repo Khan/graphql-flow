@@ -10,13 +10,19 @@ import {
     buildSchema,
     getIntrospectionQuery,
     graphqlSync,
-    IntrospectionQuery,
+    type IntrospectionOptions,
+    type IntrospectionQuery,
 } from "graphql";
 import {validate} from "jsonschema";
 import processArgs from "minimist";
 import type {Config, GenerateConfig} from "../types";
 import {execSync} from "child_process";
 import path from "path";
+
+export const INTROSPECTION_OPTIONS: IntrospectionOptions = {
+    descriptions: true,
+    inputValueDeprecation: true,
+};
 
 export const validateOrThrow = (value: unknown, jsonSchema: unknown) => {
     const result = validate(value, jsonSchema);
@@ -91,10 +97,7 @@ export const getSchemas = (schemaFilePath: string): [GraphQLSchema, Schema] => {
         const schemaForValidation = buildSchema(raw);
         const queryResponse = graphqlSync({
             schema: schemaForValidation,
-            source: getIntrospectionQuery({
-                descriptions: true,
-                inputValueDeprecation: true,
-            }),
+            source: getIntrospectionQuery(INTROSPECTION_OPTIONS),
         });
         const schemaForTypeGeneration = schemaFromIntrospectionData(
             queryResponse.data as any as IntrospectionQuery,
