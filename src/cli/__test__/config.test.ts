@@ -146,7 +146,6 @@ describe("jsonschema validation", () => {
         ).toThrowErrorMatchingInlineSnapshot(`
             "instance is not allowed to have the additional property \\"schemaFilePath\\"
             instance is not allowed to have the additional property \\"options\\"
-            instance requires property \\"crawl\\"
             instance requires property \\"generate\\""
         `);
     });
