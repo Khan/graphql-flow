@@ -48,7 +48,7 @@ export type CrawlConfig = {
 };
 
 export type Config = {
-    crawl: CrawlConfig;
+    crawl?: CrawlConfig;
     generate: GenerateConfig | Array<GenerateConfig>;
     alias?: Array<{
         find: RegExp | string;

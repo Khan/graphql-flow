@@ -66,6 +66,7 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
             cwd: root,
         },
     );
+    response; // ?
     return response
         .trim()
         .split("\n")
@@ -73,14 +74,18 @@ const findGraphqlTagReferences = (root: string): Array<string> => {
 };
 
 export const getInputFiles = (options: CliOptions, config: Config) => {
-    return options.cliFiles.length
-        ? options.cliFiles
-        : findGraphqlTagReferences(
-              makeAbsPath(
-                  config.crawl.root,
-                  path.dirname(options.configFilePath),
-              ),
-          );
+    if (options.cliFiles.length) {
+        return options.cliFiles;
+    }
+    if (config.crawl) {
+        return findGraphqlTagReferences(
+            makeAbsPath(
+                config.crawl.root,
+                path.dirname(options.configFilePath),
+            ),
+        );
+    }
+    throw new Error("Either crawl or cliFiles must be provided");
 };
 
 /**

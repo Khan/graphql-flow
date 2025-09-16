@@ -138,16 +138,18 @@ Object.keys(resolved).forEach((filePathAndLine) => {
         printedOperations.push(printed);
     }
 
-    const pragmaResult = processPragmas(
-        generateConfig,
-        config.crawl,
-        rawSource,
-    );
-    if (!pragmaResult.generate) {
-        return;
-    }
-    if (pragmaResult.strict != null) {
-        generateConfig.strictNullability = pragmaResult.strict;
+    if (config.crawl) {
+        const pragmaResult = processPragmas(
+            generateConfig,
+            config.crawl,
+            rawSource,
+        );
+        if (!pragmaResult.generate) {
+            return;
+        }
+        if (pragmaResult.strict != null) {
+            generateConfig.strictNullability = pragmaResult.strict;
+        }
     }
 
     const [schemaForValidation, schemaForTypeGeneration] = getCachedSchemas(
@@ -200,7 +202,7 @@ if (validationFailures) {
     process.exit(1);
 }
 
-if (config.crawl.dumpOperations) {
+if (config.crawl?.dumpOperations) {
     const dumpOperations = config.crawl.dumpOperations;
     const parent = dirname(dumpOperations);
     mkdirSync(parent, {recursive: true});
