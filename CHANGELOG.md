@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.4.0
+
+### Minor Changes
+
+-   c699e6a: Export the introspection options we use
+
 ## 3.3.0
 
 ### Minor Changes
