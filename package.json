@@ -1,6 +1,13 @@
 {
     "name": "@khanacademy/graphql-flow",
     "version": "3.4.2",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Khan/graphql-flow.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Khan/graphql-flow/issues"
+    },
     "publishConfig": {
         "access": "public",
         "provenance": true
