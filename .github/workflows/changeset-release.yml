@@ -52,7 +52,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: npm publish:ci
+          publish: npm run publish:ci
         env:
           # We use a Personal Access Token here rather than the GITHUB_TOKEN
           # so that it will trigger our other actions. The token has to be on
