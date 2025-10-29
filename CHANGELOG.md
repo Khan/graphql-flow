@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.4.2
+
+### Patch Changes
+
+-   958d35e: Enable Trusted Publishing for npm
+
 ## 3.4.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@khanacademy/graphql-flow",
-    "version": "3.4.1",
+    "version": "3.4.2",
     "bin": {
         "graphql-flow": "dist/cli/run.js"
     },
