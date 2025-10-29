@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 3.4.1
+
+### Patch Changes
+
+-   92b8412: Update project to use Trusted Publishing
+
 ## 3.4.0
 
 ### Minor Changes
