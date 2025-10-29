@@ -47,7 +47,10 @@ jobs:
           # the account of someone with appropriate access levels and given the
           # repo scope.
           GITHUB_TOKEN: ${{ secrets.KHAN_ACTIONS_BOT_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Note: we no longer use the NPM_TOKEN secret because we've enabled
+          # Trusted Publishing (https://docs.npmjs.com/trusted-publishers) on
+          # the npmjs.com side:
+          # https://www.npmjs.com/package/@khanacademy/graphql-flow/access
 
       - name: Send a Slack notification for web if a publish happens
         if: steps.changesets.outputs.published == 'true'
