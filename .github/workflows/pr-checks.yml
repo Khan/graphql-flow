@@ -17,7 +17,7 @@ jobs:
         node-version: [20.x]
     steps:
     - uses: actions/checkout@v4
-    - uses: Khan/actions@shared-node-cache-v2
+    - uses: Khan/actions@shared-node-cache-v3
       with:
         node-version: ${{ matrix.node-version }}
 
@@ -34,7 +34,7 @@ jobs:
 
     - name: Run TypeScript
       if: steps.ts-files.outputs.filtered != '[]'
-      run: yarn typecheck
+      run: pnpm typecheck
 
     - id: eslint-reset
       uses: Khan/actions@filter-files-v1
@@ -47,9 +47,9 @@ jobs:
       uses: Khan/actions@full-or-limited-v0
       with:
         full-trigger: ${{ steps.eslint-reset.outputs.filtered }}
-        full: yarn eslint src/**/*.ts
+        full: pnpm eslint src/**/*.ts
         limited-trigger: ${{ steps.ts-files.outputs.filtered }}
-        limited: yarn eslint {}
+        limited: pnpm eslint {}
 
     - id: jest-reset
       uses: Khan/actions@filter-files-v1
@@ -62,6 +62,6 @@ jobs:
       uses: Khan/actions@full-or-limited-v0
       with:
         full-trigger: ${{ steps.jest-reset.outputs.filtered }}
-        full: yarn jest
+        full: pnpm jest
         limited-trigger: ${{ steps.ts-files.outputs.filtered }}
-        limited: yarn jest --findRelatedTests {}
+        limited: pnpm jest --findRelatedTests {}
