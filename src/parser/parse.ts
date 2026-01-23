@@ -375,8 +375,9 @@ export const processFile = (
     };
 
     traverse(ast as any, {
-        TaggedTemplateExpression(path) {
-            visitTpl(path.node, (name) => {
+        TaggedTemplateExpression(path: NodePath) {
+            const node = path.node as TaggedTemplateExpression;
+            visitTpl(node, (name) => {
                 const binding = path.scope.getBinding(name);
                 if (!binding) {
                     return null;
