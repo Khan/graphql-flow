@@ -57,7 +57,6 @@ const inputFiles = getInputFiles(options, config);
 
 if (config.moduleRoots && config.moduleRoots.length > 0) {
     config.moduleMap = buildModuleMap(config.moduleRoots);
-    console.log(`module map`, config.moduleMap, config.moduleRoots);
 }
 
 const files = processFiles(inputFiles, config, (f) => {
