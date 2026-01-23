@@ -84,6 +84,12 @@ export type FileResult = {
         [key: string]: Document | Import;
     };
     exportAlls: Array<Import>;
+    unresolvedImports?: {
+        [key: string]: {
+            source: string;
+            loc: Loc;
+        };
+    };
     locals: {
         [key: string]: Document | Import;
     };
@@ -165,6 +171,7 @@ export const processFile = (
         operations: [],
         exports: {},
         exportAlls: [],
+        unresolvedImports: {},
         locals: {},
         errors: [],
     };
@@ -184,6 +191,38 @@ export const processFile = (
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === "ImportDeclaration") {
+            const fixedSource = fixPathResolution(
+                toplevel.source.value,
+                config,
+            );
+            const resolvedSource = resolveImportPath(
+                toplevel.source.value,
+                dir,
+                config,
+            );
+            const isUnresolvedModule =
+                !resolvedSource &&
+                !fixedSource.startsWith(".") &&
+                !path.isAbsolute(fixedSource) &&
+                fixedSource !== "graphql-tag";
+            if (isUnresolvedModule) {
+                toplevel.specifiers.forEach((spec) => {
+                    if (
+                        spec.type === "ImportSpecifier" ||
+                        spec.type === "ImportDefaultSpecifier"
+                    ) {
+                        result.unresolvedImports![spec.local.name] = {
+                            source: fixedSource,
+                            loc: {
+                                start: spec.start ?? -1,
+                                end: spec.end ?? -1,
+                                line: spec.loc?.start.line ?? -1,
+                                path: filePath,
+                            },
+                        };
+                    }
+                });
+            }
             const newLocals = getLocals(dir, toplevel, filePath, config);
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
@@ -385,10 +424,18 @@ const processTemplate = (
                     const found = getTemplate(expr.name);
                     return found;
                 }
-                result.errors.push({
-                    loc,
-                    message: `Unable to resolve ${expr.name}`,
-                });
+                const unresolved = result.unresolvedImports?.[expr.name];
+                if (unresolved) {
+                    result.errors.push({
+                        loc: unresolved.loc,
+                        message: `Unable to resolve import ${expr.name} from "${unresolved.source}" at ${unresolved.loc.path}:${unresolved.loc.line}. If this is a local package, add it to moduleRoots.`,
+                    });
+                } else {
+                    result.errors.push({
+                        loc,
+                        message: `Unable to resolve ${expr.name}`,
+                    });
+                }
                 return null;
             }
             return result.locals[expr.name];

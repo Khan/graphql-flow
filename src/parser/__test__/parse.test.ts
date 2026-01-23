@@ -327,7 +327,7 @@ describe("processing fragments in various ways", () => {
         expect(files["/invalidThings.js"].errors.map((m: any) => m.message))
             .toMatchInlineSnapshot(`
             Array [
-              "Unable to resolve someExternalFragment",
+              "Unable to resolve import someExternalFragment from \"somewhere\" at /invalidThings.js:4. If this is a local package, add it to moduleRoots.",
               "Unable to resolve someUndefinedFragment",
               "Template literal interpolation must be an identifier",
             ]
