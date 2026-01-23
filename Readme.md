@@ -44,6 +44,8 @@ module.exports = {
     crawl: {
         root: "../../",
     },
+    // Allow resolving fragments imported from workspace packages.
+    moduleRoots: ["../../"],
     generate: [
         {
             ...options,

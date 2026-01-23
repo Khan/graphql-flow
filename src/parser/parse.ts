@@ -11,7 +11,11 @@ import traverse from "@babel/traverse";
 
 import path from "path";
 
-import {fixPathResolution, getPathWithExtension} from "./utils";
+import {
+    fixPathResolution,
+    getPathWithExtension,
+    resolveImportPath,
+} from "./utils";
 import {Config} from "../types";
 
 /**
@@ -182,7 +186,7 @@ export const processFile = (
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
                     const local = newLocals[k];
-                    if (local.path.startsWith("/")) {
+                    if (path.isAbsolute(local.path)) {
                         result.locals[k] = local;
                     }
                     if (
@@ -197,9 +201,13 @@ export const processFile = (
         if (toplevel.type === "ExportNamedDeclaration") {
             if (toplevel.source) {
                 const source = toplevel.source;
-                const importPath = source.value.startsWith(".")
-                    ? path.resolve(path.join(dir, source.value))
-                    : source.value;
+                const resolvedPath = resolveImportPath(
+                    source.value,
+                    dir,
+                    config,
+                );
+                const importPath =
+                    resolvedPath ?? fixPathResolution(source.value, config);
                 toplevel.specifiers?.forEach((spec) => {
                     if (
                         spec.type === "ExportSpecifier" &&
@@ -398,9 +406,11 @@ const getLocals = (
         return null;
     }
     const fixedPath = fixPathResolution(toplevel.source.value, config);
-    const importPath = fixedPath.startsWith(".")
-        ? path.resolve(path.join(dir, fixedPath))
-        : fixedPath;
+    const resolvedPath =
+        fixedPath === "graphql-tag"
+            ? null
+            : resolveImportPath(toplevel.source.value, dir, config);
+    const importPath = resolvedPath ?? fixedPath;
     const locals: Record<string, any> = {};
     toplevel.specifiers.forEach((spec) => {
         if (spec.type === "ImportDefaultSpecifier") {

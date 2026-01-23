@@ -1,5 +1,5 @@
 {
-    "$schema":"http://json-schema.org/draft-07/schema",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
     "additionalProperties": false,
     "definitions": {
@@ -13,19 +13,13 @@
                 "match": {
                     "type": "array",
                     "items": {
-                        "oneOf": [
-                            { "type": "object" },
-                            { "type": "string" }
-                        ]
+                        "oneOf": [{"type": "object"}, {"type": "string"}]
                     }
                 },
                 "exclude": {
                     "type": "array",
                     "items": {
-                        "oneOf": [
-                            { "type": "object" },
-                            { "type": "string" }
-                        ]
+                        "oneOf": [{"type": "object"}, {"type": "string"}]
                     }
                 },
                 "scalars": {
@@ -65,9 +59,7 @@
                     "type": "boolean"
                 }
             },
-            "required": [
-                "schemaFilePath"
-            ]
+            "required": ["schemaFilePath"]
         }
     },
     "properties": {
@@ -89,12 +81,17 @@
                     "type": "string"
                 }
             },
-            "required": [ "root" ]
+            "required": ["root"]
         },
-        "generate": {"oneOf": [
-            {"$ref": "#/definitions/GenerateConfig"},
-            {"type": "array", "items": {"$ref": "#/definitions/GenerateConfig"}}
-        ]},
+        "generate": {
+            "oneOf": [
+                {"$ref": "#/definitions/GenerateConfig"},
+                {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/GenerateConfig"}
+                }
+            ]
+        },
         "alias": {
             "type": "array",
             "items": {
@@ -108,9 +105,15 @@
                         "type": "string"
                     }
                 },
-                "required": [ "find", "replacement" ]
+                "required": ["find", "replacement"]
+            }
+        },
+        "moduleRoots": {
+            "type": "array",
+            "items": {
+                "type": "string"
             }
         }
     },
-    "required": [ "crawl", "generate" ]
+    "required": ["crawl", "generate"]
 }

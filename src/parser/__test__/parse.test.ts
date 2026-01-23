@@ -1,4 +1,5 @@
-import {describe, it, expect} from "@jest/globals";
+import {describe, it, expect, jest} from "@jest/globals";
+import fs from "fs";
 
 import {Config} from "../../types";
 import {processFiles} from "../parse";
@@ -14,6 +15,27 @@ const fixtureFiles: {
               resolvedPath: string;
           };
 } = {
+    "/repo/node_modules/monorepo-package/fragment.js": `
+        import gql from 'graphql-tag';
+
+        export const sharedFragment = gql\`
+        fragment SharedFields on Something {
+            id
+        }
+        \`;
+    `,
+    "/repo/packages/app/App.js": `
+        import gql from 'graphql-tag';
+        import {sharedFragment} from 'monorepo-package/fragment';
+        export const appQuery = gql\`
+        query AppQuery {
+            viewer {
+                ...SharedFields
+            }
+        }
+        \${sharedFragment}
+        \`;
+    `,
     "/firstFile.js": `
         // Note that you can import graphql-tag as
         // something other than gql.
@@ -337,5 +359,98 @@ describe("processing fragments in various ways", () => {
             (k: any) => (printed[k] = print(resolved[k].document).trim()),
         );
         expect(printed).toMatchInlineSnapshot(`Object {}`);
+    });
+
+    it("should resolve fragments imported from monorepo packages", () => {
+        const config: Config = {
+            crawl: {
+                root: "/here/we/crawl",
+            },
+            generate: {
+                match: [/\.fixture\.js$/],
+                exclude: [
+                    "_test\\.js$",
+                    "\\bcourse-editor-package\\b",
+                    "\\.fixture\\.js$",
+                    "\\b__flowtests__\\b",
+                    "\\bcourse-editor\\b",
+                ],
+                readOnlyArray: false,
+                regenerateCommand: "make gqlflow",
+                scalars: {
+                    JSONString: "string",
+                    KALocale: "string",
+                    NaiveDateTime: "string",
+                },
+                splitTypes: true,
+                generatedDirectory: "__graphql-types__",
+                exportAllObjectTypes: true,
+                schemaFilePath: "./composed_schema.graphql",
+            },
+            moduleRoots: ["/repo"],
+        };
+
+        const existsSpy = jest
+            .spyOn(fs, "existsSync")
+            .mockImplementation((path) => {
+                if (typeof path !== "string") {
+                    return false;
+                }
+                return (
+                    path ===
+                        "/repo/node_modules/monorepo-package/package.json" ||
+                    path === "/repo/node_modules/monorepo-package/fragment.js"
+                );
+            });
+        const readSpy = jest
+            .spyOn(fs, "readFileSync")
+            .mockImplementation((path) => {
+                if (
+                    path === "/repo/node_modules/monorepo-package/package.json"
+                ) {
+                    return JSON.stringify({name: "monorepo-package"});
+                }
+                throw new Error(`Unexpected readFileSync for ${path}`);
+            });
+        const realpathSpy = jest
+            .spyOn(fs, "realpathSync")
+            .mockImplementation((value) => value.toString());
+
+        try {
+            const files = processFiles(
+                ["/repo/packages/app/App.js"],
+                config,
+                getFileSource,
+            );
+            Object.keys(files).forEach((k: any) => {
+                expect(files[k].errors).toEqual([]);
+            });
+            const {resolved, errors} = resolveDocuments(files, config);
+            expect(errors).toEqual([]);
+            const printed: Record<string, any> = {};
+            Object.keys(resolved).map(
+                (k: any) => (printed[k] = print(resolved[k].document).trim()),
+            );
+            expect(printed).toMatchInlineSnapshot(`
+                Object {
+                  "/repo/node_modules/monorepo-package/fragment.js:4": "fragment SharedFields on Something {
+                  id
+                }",
+                  "/repo/packages/app/App.js:4": "query AppQuery {
+                  viewer {
+                    ...SharedFields
+                  }
+                }
+
+                fragment SharedFields on Something {
+                  id
+                }",
+                }
+            `);
+        } finally {
+            existsSpy.mockRestore();
+            readSpy.mockRestore();
+            realpathSpy.mockRestore();
+        }
     });
 });

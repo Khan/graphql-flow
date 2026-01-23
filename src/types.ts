@@ -54,6 +54,11 @@ export type Config = {
         find: RegExp | string;
         replacement: string;
     }>;
+    /**
+     * Absolute paths to monorepo roots or package roots used to resolve
+     * non-relative fragment imports (e.g. workspace packages).
+     */
+    moduleRoots?: Array<string>;
 };
 
 export type Schema = {
