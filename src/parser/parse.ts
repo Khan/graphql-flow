@@ -8,6 +8,7 @@ import type {
 
 import {parse, ParserPlugin} from "@babel/parser";
 import traverse from "@babel/traverse";
+import type {NodePath} from "@babel/traverse";
 
 import path from "path";
 
@@ -375,7 +376,7 @@ export const processFile = (
 
     traverse(ast as any, {
         TaggedTemplateExpression(path) {
-            visitTpl(path.node as any, (name) => {
+            visitTpl(path.node, (name) => {
                 const binding = path.scope.getBinding(name);
                 if (!binding) {
                     return null;
