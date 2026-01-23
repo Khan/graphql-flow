@@ -1,5 +1,8 @@
+/**
+ * @jest-environment node
+ */
 import fs from "fs";
-import {describe, it, expect, jest} from "@jest/globals";
+import {describe, it, expect} from "@jest/globals";
 import type {Config} from "../../types";
 
 import {buildModuleMap, getPathWithExtension} from "../utils";
@@ -87,6 +90,7 @@ describe("buildModuleMap", () => {
     });
 
     it("collects package.json names and ignores node_modules", () => {
+        // Arrange
         const existsSpy = jest
             .spyOn(fs, "existsSync")
             .mockImplementation((value) => {
@@ -142,7 +146,10 @@ describe("buildModuleMap", () => {
             .mockImplementation((value) => value.toString());
 
         try {
+            // Act
             const result = buildModuleMap(["/repo"]);
+
+            // Assert
             expect(result).toEqual({
                 "root-package": "/repo",
                 "app-package": "/repo/packages/app",

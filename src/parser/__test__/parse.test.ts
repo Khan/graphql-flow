@@ -1,4 +1,7 @@
-import {describe, it, expect, jest} from "@jest/globals";
+/**
+ * @jest-environment node
+ */
+import {describe, it, expect} from "@jest/globals";
 import fs from "fs";
 
 import {Config} from "../../types";
@@ -386,6 +389,7 @@ describe("processing fragments in various ways", () => {
     });
 
     it("should resolve fragments re-exported via export all", () => {
+        // Arrange
         const config: Config = {
             crawl: {
                 root: "/here/we/crawl",
@@ -412,20 +416,23 @@ describe("processing fragments in various ways", () => {
                 schemaFilePath: "./composed_schema.graphql",
             },
         };
+        // Act
         const files = processFiles(
             ["/starExportConsumer.js"],
             config,
             getFileSource,
         );
-        Object.keys(files).forEach((k: any) => {
-            expect(files[k].errors).toEqual([]);
-        });
         const {resolved, errors} = resolveDocuments(files, config);
-        expect(errors).toEqual([]);
         const printed: Record<string, any> = {};
         Object.keys(resolved).map(
             (k: any) => (printed[k] = print(resolved[k].document).trim()),
         );
+
+        // Assert
+        Object.keys(files).forEach((k: any) => {
+            expect(files[k].errors).toEqual([]);
+        });
+        expect(errors).toEqual([]);
         expect(printed).toMatchInlineSnapshot(`
             Object {
               "/starExportConsumer.js:4": "query StarQuery {
@@ -445,6 +452,7 @@ describe("processing fragments in various ways", () => {
     });
 
     it("should resolve fragments imported from monorepo packages", () => {
+        // Arrange
         const config: Config = {
             crawl: {
                 root: "/here/we/crawl",
@@ -503,20 +511,23 @@ describe("processing fragments in various ways", () => {
             .mockImplementation((value) => value.toString());
 
         try {
+            // Act
             const files = processFiles(
                 ["/repo/packages/app/App.js"],
                 config,
                 getFileSource,
             );
-            Object.keys(files).forEach((k: any) => {
-                expect(files[k].errors).toEqual([]);
-            });
             const {resolved, errors} = resolveDocuments(files, config);
-            expect(errors).toEqual([]);
             const printed: Record<string, any> = {};
             Object.keys(resolved).map(
                 (k: any) => (printed[k] = print(resolved[k].document).trim()),
             );
+
+            // Assert
+            Object.keys(files).forEach((k: any) => {
+                expect(files[k].errors).toEqual([]);
+            });
+            expect(errors).toEqual([]);
             expect(printed).toMatchInlineSnapshot(`
                 Object {
                   "/repo/node_modules/monorepo-package/fragment.js:4": "fragment SharedFields on Something {
