@@ -45,6 +45,7 @@ module.exports = {
         root: "../../",
     },
     // Allow resolving fragments imported from workspace packages.
+    // moduleRoots are crawled once at startup to map package names.
     moduleRoots: ["../../"],
     generate: [
         {

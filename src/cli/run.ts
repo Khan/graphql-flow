@@ -6,7 +6,7 @@ import type {GraphQLSchema} from "graphql/type/schema";
 import {generateTypeFiles, processPragmas} from "../generateTypeFiles";
 import {processFiles} from "../parser/parse";
 import {resolveDocuments} from "../parser/resolve";
-import {getPathWithExtension} from "../parser/utils";
+import {buildModuleMap, getPathWithExtension} from "../parser/utils";
 import {
     findApplicableConfig,
     getInputFiles,
@@ -54,6 +54,11 @@ const config = loadConfigFile(options);
 const inputFiles = getInputFiles(options, config);
 
 /** Step (2) */
+
+if (config.moduleRoots && config.moduleRoots.length > 0) {
+    config.moduleMap = buildModuleMap(config.moduleRoots);
+    console.log(`module map`, config.moduleMap, config.moduleRoots);
+}
 
 const files = processFiles(inputFiles, config, (f) => {
     const resolvedPath = getPathWithExtension(f, config);

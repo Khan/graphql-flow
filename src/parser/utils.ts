@@ -2,6 +2,8 @@ import fs from "fs";
 import path from "path";
 import {Config} from "../types";
 
+export type ModuleMap = {[key: string]: string};
+
 export const fixPathResolution = (path: string, config: Config) => {
     if (config.alias) {
         for (const {find, replacement} of config.alias) {
@@ -72,6 +74,50 @@ const resolvePackageRoot = (moduleName: string, moduleRoots: Array<string>) => {
     return null;
 };
 
+const getRealPath = (candidate: string) => {
+    try {
+        return fs.realpathSync(candidate);
+    } catch (err) {
+        return candidate;
+    }
+};
+
+export const buildModuleMap = (moduleRoots: Array<string>): ModuleMap => {
+    const moduleMap: ModuleMap = {};
+    const visited = new Set<string>();
+    const stack = moduleRoots.map((root) => getRealPath(root));
+    while (stack.length) {
+        const current = stack.pop();
+        if (!current || visited.has(current)) {
+            continue;
+        }
+        visited.add(current);
+        const packageJsonPath = path.join(current, "package.json");
+        const packageJson = tryReadPackageJson(packageJsonPath);
+        if (packageJson?.name && typeof packageJson.name === "string") {
+            if (!moduleMap[packageJson.name]) {
+                moduleMap[packageJson.name] = current;
+            }
+        }
+        let entries: Array<fs.Dirent> = [];
+        try {
+            entries = fs.readdirSync(current, {withFileTypes: true});
+        } catch (err) {
+            continue;
+        }
+        entries.forEach((entry) => {
+            if (!entry.isDirectory()) {
+                return;
+            }
+            if (entry.name === "node_modules") {
+                return;
+            }
+            stack.push(path.join(current, entry.name));
+        });
+    }
+    return moduleMap;
+};
+
 const resolvePackageEntry = (
     packageRoot: string,
     config: Config,
@@ -114,11 +160,11 @@ export const resolveImportPath = (
     if (path.isAbsolute(fixedPath)) {
         return fixedPath;
     }
-    if (!config.moduleRoots || config.moduleRoots.length === 0) {
-        return null;
-    }
     const {moduleName, subpath} = parseModuleSpecifier(fixedPath);
-    const packageRoot = resolvePackageRoot(moduleName, config.moduleRoots);
+    let packageRoot = config.moduleMap?.[moduleName] ?? null;
+    if (!packageRoot && config.moduleRoots && config.moduleRoots.length > 0) {
+        packageRoot = resolvePackageRoot(moduleName, config.moduleRoots);
+    }
     if (!packageRoot) {
         return null;
     }

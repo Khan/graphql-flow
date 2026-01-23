@@ -59,6 +59,11 @@ export type Config = {
      * non-relative fragment imports (e.g. workspace packages).
      */
     moduleRoots?: Array<string>;
+    /**
+     * Internal map of package name to package root path.
+     * Populated from moduleRoots before processing files.
+     */
+    moduleMap?: {[key: string]: string};
 };
 
 export type Schema = {

@@ -388,6 +388,9 @@ describe("processing fragments in various ways", () => {
                 schemaFilePath: "./composed_schema.graphql",
             },
             moduleRoots: ["/repo"],
+            moduleMap: {
+                "monorepo-package": "/repo/node_modules/monorepo-package",
+            },
         };
 
         const existsSpy = jest
