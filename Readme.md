@@ -44,8 +44,6 @@ module.exports = {
     crawl: {
         root: "../../",
     },
-    // Allow resolving fragments imported from workspace packages.
-    // Uses Node-style resolution (workspace packages via node_modules/symlinks).
     generate: [
         {
             ...options,
