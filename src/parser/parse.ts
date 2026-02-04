@@ -153,6 +153,7 @@ const listExternalReferences = (
             ),
         ),
     );
+    file.exportAlls.forEach((expr) => add(expr, true));
     return Object.keys(paths);
 };
 
@@ -430,7 +431,7 @@ const processTemplate = (
                 if (unresolved) {
                     result.errors.push({
                         loc: unresolved.loc,
-                        message: `Unable to resolve import ${expr.name} from "${unresolved.source}" at ${unresolved.loc.path}:${unresolved.loc.line}. If this is a local package, add it to moduleRoots.`,
+                        message: `Unable to resolve import ${expr.name} from "${unresolved.source}" at ${unresolved.loc.path}:${unresolved.loc.line}.`,
                     });
                 } else {
                     result.errors.push({

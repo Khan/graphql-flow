@@ -107,12 +107,6 @@
                 },
                 "required": ["find", "replacement"]
             }
-        },
-        "moduleRoots": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
         }
     },
     "required": ["crawl", "generate"]

@@ -2,13 +2,15 @@
  * @jest-environment node
  */
 import {describe, it, expect} from "@jest/globals";
-import fs from "fs";
+import resolve from "resolve";
 
 import {Config} from "../../types";
 import {processFiles} from "../parse";
 import {resolveDocuments} from "../resolve";
 
 import {print} from "graphql/language/printer";
+
+jest.mock("resolve");
 
 const fixtureFiles: {
     [key: string]:
@@ -330,7 +332,7 @@ describe("processing fragments in various ways", () => {
         expect(files["/invalidThings.js"].errors.map((m: any) => m.message))
             .toMatchInlineSnapshot(`
             Array [
-              "Unable to resolve import someExternalFragment from \"somewhere\" at /invalidThings.js:4. If this is a local package, add it to moduleRoots.",
+              "Unable to resolve import someExternalFragment from \\\"somewhere\\\" at /invalidThings.js:4.",
               "Unable to resolve someUndefinedFragment",
               "Template literal interpolation must be an identifier",
             ]
@@ -435,7 +437,7 @@ describe("processing fragments in various ways", () => {
         expect(errors).toEqual([]);
         expect(printed).toMatchInlineSnapshot(`
             Object {
-              "/starExportConsumer.js:4": "query StarQuery {
+              "/starExportConsumer.js:5": "query StarQuery {
               stars {
                 ...StarFragment
               }
@@ -478,37 +480,15 @@ describe("processing fragments in various ways", () => {
                 exportAllObjectTypes: true,
                 schemaFilePath: "./composed_schema.graphql",
             },
-            moduleRoots: ["/repo"],
-            moduleMap: {
-                "monorepo-package": "/repo/node_modules/monorepo-package",
-            },
         };
 
-        const existsSpy = jest
-            .spyOn(fs, "existsSync")
-            .mockImplementation((path) => {
-                if (typeof path !== "string") {
-                    return false;
-                }
-                return (
-                    path ===
-                        "/repo/node_modules/monorepo-package/package.json" ||
-                    path === "/repo/node_modules/monorepo-package/fragment.js"
-                );
-            });
-        const readSpy = jest
-            .spyOn(fs, "readFileSync")
-            .mockImplementation((path) => {
-                if (
-                    path === "/repo/node_modules/monorepo-package/package.json"
-                ) {
-                    return JSON.stringify({name: "monorepo-package"});
-                }
-                throw new Error(`Unexpected readFileSync for ${path}`);
-            });
-        const realpathSpy = jest
-            .spyOn(fs, "realpathSync")
-            .mockImplementation((value) => value.toString());
+        const resolveSync = resolve.sync as jest.Mock;
+        resolveSync.mockImplementation((specifier: string) => {
+            if (specifier === "monorepo-package/fragment") {
+                return "/repo/node_modules/monorepo-package/fragment.js";
+            }
+            throw new Error(`Unexpected resolve for ${specifier}`);
+        });
 
         try {
             // Act
@@ -545,9 +525,7 @@ describe("processing fragments in various ways", () => {
                 }
             `);
         } finally {
-            existsSpy.mockRestore();
-            readSpy.mockRestore();
-            realpathSpy.mockRestore();
+            resolveSync.mockReset();
         }
     });
 });

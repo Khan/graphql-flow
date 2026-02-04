@@ -45,8 +45,7 @@ module.exports = {
         root: "../../",
     },
     // Allow resolving fragments imported from workspace packages.
-    // moduleRoots are crawled once at startup to map package names.
-    moduleRoots: ["../../"],
+    // Uses Node-style resolution (workspace packages via node_modules/symlinks).
     generate: [
         {
             ...options,
@@ -64,6 +63,7 @@ module.exports = {
 ```
 
 ## Introspecting your backend's graphql schema
+
 Here's how to get your backend's schema in the way that this tool expects, using the builtin 'graphql introspection query':
 
 ```js

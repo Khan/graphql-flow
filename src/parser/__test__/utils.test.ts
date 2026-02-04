@@ -5,7 +5,10 @@ import fs from "fs";
 import {describe, it, expect} from "@jest/globals";
 import type {Config} from "../../types";
 
-import {buildModuleMap, getPathWithExtension} from "../utils";
+import resolve from "resolve";
+import {getPathWithExtension, resolveImportPath} from "../utils";
+
+jest.mock("resolve");
 
 const generate = {
     match: [/\.fixture\.js$/],
@@ -82,84 +85,35 @@ describe("getPathWithExtension", () => {
     });
 });
 
-describe("buildModuleMap", () => {
-    const makeDirent = (name: string, isDir: boolean) => ({
-        name,
-        isDirectory: () => isDir,
-        isFile: () => !isDir,
+describe("resolveImportPath", () => {
+    const resolveSync = resolve.sync as jest.Mock;
+
+    beforeEach(() => {
+        resolveSync.mockReset();
     });
 
-    it("collects package.json names and ignores node_modules", () => {
-        // Arrange
-        const existsSpy = jest
-            .spyOn(fs, "existsSync")
-            .mockImplementation((value) => {
-                return (
-                    value === "/repo/package.json" ||
-                    value === "/repo/packages/app/package.json" ||
-                    value === "/repo/packages/shared/package.json" ||
-                    value === "/repo/node_modules/ignore-me/package.json"
-                );
-            });
-        const readSpy = jest
-            .spyOn(fs, "readFileSync")
-            .mockImplementation((value) => {
-                if (value === "/repo/package.json") {
-                    return JSON.stringify({name: "root-package"});
-                }
-                if (value === "/repo/packages/app/package.json") {
-                    return JSON.stringify({name: "app-package"});
-                }
-                if (value === "/repo/packages/shared/package.json") {
-                    return JSON.stringify({name: "@scope/shared"});
-                }
-                if (value === "/repo/node_modules/ignore-me/package.json") {
-                    return JSON.stringify({name: "ignore-me"});
-                }
-                throw new Error(`Unexpected readFileSync for ${value}`);
-            });
-        const readdirSpy = jest
-            .spyOn(fs, "readdirSync")
-            .mockImplementation((value) => {
-                if (value === "/repo") {
-                    return [
-                        makeDirent("packages", true),
-                        makeDirent("node_modules", true),
-                    ] as Array<any>;
-                }
-                if (value === "/repo/packages") {
-                    return [
-                        makeDirent("app", true),
-                        makeDirent("shared", true),
-                    ] as Array<any>;
-                }
-                if (
-                    value === "/repo/packages/app" ||
-                    value === "/repo/packages/shared"
-                ) {
-                    return [] as Array<any>;
-                }
-                return [] as Array<any>;
-            });
-        const realpathSpy = jest
-            .spyOn(fs, "realpathSync")
-            .mockImplementation((value) => value.toString());
+    it("returns null for graphql-tag without invoking resolve", () => {
+        const result = resolveImportPath("graphql-tag", "/from", config);
+        expect(result).toBeNull();
+        expect(resolveSync).not.toHaveBeenCalled();
+    });
 
-        try {
-            // Act
-            const result = buildModuleMap(["/repo"]);
+    it("resolves relative paths via node resolution", () => {
+        resolveSync.mockReturnValue("/from/fragment.ts");
+        const result = resolveImportPath("./fragment", "/from", config);
+        expect(result).toBe("/from/fragment");
+        expect(resolveSync).not.toHaveBeenCalled();
+    });
 
-            // Assert
-            expect(result).toEqual({
-                "root-package": "/repo",
-                "app-package": "/repo/packages/app",
-                "@scope/shared": "/repo/packages/shared",
-            });
-        } finally {
-            existsSpy.mockRestore();
-            readSpy.mockRestore();
-            readdirSpy.mockRestore();
-            realpathSpy.mockRestore();
-        }
+    it("resolves package specifiers via node resolution", () => {
+        resolveSync.mockReturnValue("/repo/node_modules/pkg/fragment.js");
+        const result = resolveImportPath("pkg/fragment", "/from", config);
+        expect(result).toBe("/repo/node_modules/pkg/fragment.js");
+        expect(resolveSync).toHaveBeenCalledWith("pkg/fragment", {
+            basedir: "/from",
+            extensions: [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"],
+            paths: undefined,
+            preserveSymlinks: false,
+        });
     });
 });
