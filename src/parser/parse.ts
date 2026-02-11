@@ -12,11 +12,7 @@ import type {NodePath} from "@babel/traverse";
 
 import path from "path";
 
-import {
-    fixPathResolution,
-    getPathWithExtension,
-    resolveImportPath,
-} from "./utils";
+import {applyAliases, getPathWithExtension, resolveImportPath} from "./utils";
 import {Config} from "../types";
 
 /**
@@ -195,10 +191,7 @@ export const processFile = (
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === "ImportDeclaration") {
-            const fixedSource = fixPathResolution(
-                toplevel.source.value,
-                config,
-            );
+            const fixedSource = applyAliases(toplevel.source.value, config);
             const resolvedSource = resolveImportPath(
                 toplevel.source.value,
                 dir,
@@ -256,7 +249,7 @@ export const processFile = (
                     config,
                 );
                 const importPath =
-                    resolvedPath ?? fixPathResolution(source.value, config);
+                    resolvedPath ?? applyAliases(source.value, config);
                 toplevel.specifiers?.forEach((spec) => {
                     if (
                         spec.type === "ExportSpecifier" &&
@@ -290,7 +283,7 @@ export const processFile = (
             const source = toplevel.source;
             const resolvedPath = resolveImportPath(source.value, dir, config);
             const importPath =
-                resolvedPath ?? fixPathResolution(source.value, config);
+                resolvedPath ?? applyAliases(source.value, config);
             result.exportAlls.push({
                 type: "import",
                 name: "*",
@@ -480,7 +473,7 @@ const getLocals = (
     if (toplevel.importKind === "type") {
         return null;
     }
-    const fixedPath = fixPathResolution(toplevel.source.value, config);
+    const fixedPath = applyAliases(toplevel.source.value, config);
     const resolvedPath = resolveImportPath(toplevel.source.value, dir, config);
     const importPath = resolvedPath ?? fixedPath;
     const locals: Record<string, any> = {};

@@ -11,7 +11,7 @@ const RESOLVE_EXTENSIONS = [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"];
  * @param config - Parser config containing optional alias mappings.
  * @returns The path with aliases applied.
  */
-export const fixPathResolution = (path: string, config: Config) => {
+export const applyAliases = (path: string, config: Config) => {
     if (config.alias) {
         for (const {find, replacement} of config.alias) {
             path = path.replace(find, replacement);
@@ -20,11 +20,7 @@ export const fixPathResolution = (path: string, config: Config) => {
     return path;
 };
 
-const resolveWithNode = (
-    specifier: string,
-    fromDir: string,
-    config: Config,
-): string | null => {
+const resolveWithNode = (specifier: string, fromDir: string): string | null => {
     try {
         return resolve.sync(specifier, {
             basedir: fromDir,
@@ -48,21 +44,21 @@ export const resolveImportPath = (
     fromDir: string,
     config: Config,
 ) => {
-    const fixedPath = fixPathResolution(rawImportPath, config);
+    const fixedPath = applyAliases(rawImportPath, config);
     if (fixedPath.startsWith(".")) {
         return path.resolve(path.join(fromDir, fixedPath));
     }
     if (path.isAbsolute(fixedPath)) {
         return fixedPath;
     }
-    return resolveWithNode(fixedPath, fromDir, config);
+    return resolveWithNode(fixedPath, fromDir);
 };
 
 export const getPathWithExtension = (
     pathWithoutExtension: string,
     config: Config,
 ) => {
-    pathWithoutExtension = fixPathResolution(pathWithoutExtension, config);
+    pathWithoutExtension = applyAliases(pathWithoutExtension, config);
     if (
         /\.(less|css|png|gif|jpg|jpeg|js|jsx|ts|tsx|mjs)$/.test(
             pathWithoutExtension,
