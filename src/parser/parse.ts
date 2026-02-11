@@ -237,7 +237,7 @@ export const processFile = (
         if (toplevel.type === "ExportAllDeclaration" && toplevel.source) {
             const source = toplevel.source;
             const importPath = source.value.startsWith(".")
-                ? path.resolve(path.join(dir, source.value))
+                ? path.resolve(path.join(path.dirname(filePath), source.value))
                 : source.value;
             result.exportAlls.push({
                 type: "import",
