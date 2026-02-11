@@ -92,22 +92,46 @@ describe("resolveImportPath", () => {
         resolveSync.mockReset();
     });
 
-    it("returns null for graphql-tag without invoking resolve", () => {
-        const result = resolveImportPath("graphql-tag", "/from", config);
-        expect(result).toBeNull();
-        expect(resolveSync).not.toHaveBeenCalled();
+    it("resolves graphql-tag via node resolution", () => {
+        // Arrange
+        resolveSync.mockReturnValue("/repo/node_modules/graphql-tag/index.js");
+        const importPath = "graphql-tag";
+
+        // Act
+        const result = resolveImportPath(importPath, "/from", config);
+
+        // Assert
+        expect(result).toBe("/repo/node_modules/graphql-tag/index.js");
+        expect(resolveSync).toHaveBeenCalledWith("graphql-tag", {
+            basedir: "/from",
+            extensions: [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"],
+            paths: undefined,
+            preserveSymlinks: false,
+        });
     });
 
     it("resolves relative paths via node resolution", () => {
+        // Arrange
         resolveSync.mockReturnValue("/from/fragment.ts");
-        const result = resolveImportPath("./fragment", "/from", config);
+        const importPath = "./fragment";
+
+        // Act
+        const result = resolveImportPath(importPath, "/from", config);
+
+        // Assert
         expect(result).toBe("/from/fragment");
         expect(resolveSync).not.toHaveBeenCalled();
     });
 
     it("resolves package specifiers via node resolution", () => {
+        // Arrange
         resolveSync.mockReturnValue("/repo/node_modules/pkg/fragment.js");
-        const result = resolveImportPath("pkg/fragment", "/from", config);
+        const importPath = "pkg/fragment";
+
+        // Act
+        const result = resolveImportPath(importPath, "/from", config);
+
+        // Assert
         expect(result).toBe("/repo/node_modules/pkg/fragment.js");
         expect(resolveSync).toHaveBeenCalledWith("pkg/fragment", {
             basedir: "/from",

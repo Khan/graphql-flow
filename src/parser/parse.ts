@@ -68,6 +68,8 @@ export type Import = {
     type: "import";
     name: string;
     path: string;
+    rawPath?: string;
+    resolvedPath?: string | null;
     loc: Loc;
 };
 
@@ -202,11 +204,12 @@ export const processFile = (
                 dir,
                 config,
             );
+            // Flag non-relative, non-absolute imports that didn't resolve so we
+            // can report missing external modules without treating local paths as unresolved.
             const isUnresolvedModule =
                 !resolvedSource &&
                 !fixedSource.startsWith(".") &&
-                !path.isAbsolute(fixedSource) &&
-                fixedSource !== "graphql-tag";
+                !path.isAbsolute(fixedSource);
             if (isUnresolvedModule) {
                 toplevel.specifiers.forEach((spec) => {
                     if (
@@ -229,13 +232,16 @@ export const processFile = (
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
                     const local = newLocals[k];
+                    const isGraphqlTagImport =
+                        local.rawPath === "graphql-tag" ||
+                        (local.resolvedPath?.includes(
+                            `${path.sep}node_modules${path.sep}graphql-tag`,
+                        ) ??
+                            false);
                     if (path.isAbsolute(local.path)) {
                         result.locals[k] = local;
                     }
-                    if (
-                        local.path === "graphql-tag" &&
-                        local.name === "default"
-                    ) {
+                    if (isGraphqlTagImport && local.name === "default") {
                         gqlTagNames.push(k);
                     }
                 });
@@ -475,10 +481,7 @@ const getLocals = (
         return null;
     }
     const fixedPath = fixPathResolution(toplevel.source.value, config);
-    const resolvedPath =
-        fixedPath === "graphql-tag"
-            ? null
-            : resolveImportPath(toplevel.source.value, dir, config);
+    const resolvedPath = resolveImportPath(toplevel.source.value, dir, config);
     const importPath = resolvedPath ?? fixedPath;
     const locals: Record<string, any> = {};
     toplevel.specifiers.forEach((spec) => {
@@ -487,6 +490,8 @@ const getLocals = (
                 type: "import",
                 name: "default",
                 path: importPath,
+                rawPath: toplevel.source.value,
+                resolvedPath,
                 loc: {start: spec.start, end: spec.end, path: myPath},
             };
         } else if (spec.type === "ImportSpecifier") {
@@ -497,6 +502,8 @@ const getLocals = (
                         ? spec.imported.name
                         : spec.imported.value,
                 path: importPath,
+                rawPath: toplevel.source.value,
+                resolvedPath,
                 loc: {start: spec.start, end: spec.end, path: myPath},
             };
         }

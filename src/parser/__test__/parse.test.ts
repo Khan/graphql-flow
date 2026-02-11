@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import {describe, it, expect} from "@jest/globals";
+import {describe, it, expect, afterEach} from "@jest/globals";
 import resolve from "resolve";
 
 import {Config} from "../../types";
@@ -11,6 +11,10 @@ import {resolveDocuments} from "../resolve";
 import {print} from "graphql/language/printer";
 
 jest.mock("resolve");
+
+afterEach(() => {
+    jest.resetAllMocks();
+});
 
 const fixtureFiles: {
     [key: string]:
@@ -490,25 +494,24 @@ describe("processing fragments in various ways", () => {
             throw new Error(`Unexpected resolve for ${specifier}`);
         });
 
-        try {
-            // Act
-            const files = processFiles(
-                ["/repo/packages/app/App.js"],
-                config,
-                getFileSource,
-            );
-            const {resolved, errors} = resolveDocuments(files, config);
-            const printed: Record<string, any> = {};
-            Object.keys(resolved).map(
-                (k: any) => (printed[k] = print(resolved[k].document).trim()),
-            );
+        // Act
+        const files = processFiles(
+            ["/repo/packages/app/App.js"],
+            config,
+            getFileSource,
+        );
+        const {resolved, errors} = resolveDocuments(files, config);
+        const printed: Record<string, any> = {};
+        Object.keys(resolved).map(
+            (k: any) => (printed[k] = print(resolved[k].document).trim()),
+        );
 
-            // Assert
-            Object.keys(files).forEach((k: any) => {
-                expect(files[k].errors).toEqual([]);
-            });
-            expect(errors).toEqual([]);
-            expect(printed).toMatchInlineSnapshot(`
+        // Assert
+        Object.keys(files).forEach((k: any) => {
+            expect(files[k].errors).toEqual([]);
+        });
+        expect(errors).toEqual([]);
+        expect(printed).toMatchInlineSnapshot(`
                 Object {
                   "/repo/node_modules/monorepo-package/fragment.js:4": "fragment SharedFields on Something {
                   id
@@ -524,8 +527,5 @@ describe("processing fragments in various ways", () => {
                 }",
                 }
             `);
-        } finally {
-            resolveSync.mockReset();
-        }
     });
 });

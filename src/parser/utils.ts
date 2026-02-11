@@ -5,6 +5,12 @@ import {Config} from "../types";
 
 const RESOLVE_EXTENSIONS = [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"];
 
+/**
+ * Applies configured alias replacements to an import path.
+ * @param path - Original import path string.
+ * @param config - Parser config containing optional alias mappings.
+ * @returns The path with aliases applied.
+ */
 export const fixPathResolution = (path: string, config: Config) => {
     if (config.alias) {
         for (const {find, replacement} of config.alias) {
@@ -30,15 +36,19 @@ const resolveWithNode = (
     }
 };
 
+/**
+ * Resolves an import path to an absolute path, honoring aliases.
+ * @param rawImportPath - Raw import specifier from source.
+ * @param fromDir - Directory of the importing file.
+ * @param config - Parser config containing alias mappings.
+ * @returns Absolute path string, or null when unresolved.
+ */
 export const resolveImportPath = (
     rawImportPath: string,
     fromDir: string,
     config: Config,
 ) => {
     const fixedPath = fixPathResolution(rawImportPath, config);
-    if (fixedPath === "graphql-tag") {
-        return null;
-    }
     if (fixedPath.startsWith(".")) {
         return path.resolve(path.join(fromDir, fixedPath));
     }
