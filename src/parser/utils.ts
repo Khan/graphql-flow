@@ -20,6 +20,9 @@ export const applyAliases = (path: string, config: Config) => {
     return path;
 };
 
+/**
+ * Uses the `resolve` module to resolve a nodejs-style import
+ */
 const resolveWithNode = (specifier: string, fromDir: string): string | null => {
     try {
         return resolve.sync(specifier, {
