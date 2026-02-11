@@ -86,6 +86,12 @@ export type FileResult = {
         loc: Loc;
         message: string;
     }>;
+    unresolvedImports?: {
+        [key: string]: {
+            source: string;
+            loc: Loc;
+        };
+    };
 };
 
 export type Files = {
@@ -161,6 +167,7 @@ export const processFile = (
         exports: {},
         locals: {},
         errors: [],
+        unresolvedImports: {},
     };
     const text = typeof contents === "string" ? contents : contents.text;
     const plugins: Array<ParserPlugin> = filePath.endsWith("x")
@@ -178,6 +185,28 @@ export const processFile = (
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === "ImportDeclaration") {
+            const isUnresolvedModule =
+                !toplevel.source.value.startsWith(".") &&
+                !path.isAbsolute(toplevel.source.value) &&
+                toplevel.source.value !== "graphql-tag";
+            if (isUnresolvedModule) {
+                toplevel.specifiers.forEach((spec) => {
+                    if (
+                        spec.type === "ImportSpecifier" ||
+                        spec.type === "ImportDefaultSpecifier"
+                    ) {
+                        result.unresolvedImports![spec.local.name] = {
+                            source: toplevel.source.value,
+                            loc: {
+                                start: spec.start ?? -1,
+                                end: spec.end ?? -1,
+                                line: spec.loc?.start.line ?? -1,
+                                path: filePath,
+                            },
+                        };
+                    }
+                });
+            }
             const newLocals = getLocals(dir, toplevel, filePath, config);
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
@@ -358,10 +387,18 @@ const processTemplate = (
                     const found = getTemplate(expr.name);
                     return found;
                 }
-                result.errors.push({
-                    loc,
-                    message: `Unable to resolve ${expr.name}`,
-                });
+                const unresolved = result.unresolvedImports?.[expr.name];
+                if (unresolved) {
+                    result.errors.push({
+                        loc: unresolved.loc,
+                        message: `Unable to resolve import ${expr.name} from "${unresolved.source}" at ${unresolved.loc.path}:${unresolved.loc.line}.`,
+                    });
+                } else {
+                    result.errors.push({
+                        loc,
+                        message: `Unable to resolve ${expr.name}`,
+                    });
+                }
                 return null;
             }
             return result.locals[expr.name];
