@@ -51,7 +51,7 @@ const resolveImport = (
     },
     config: Config,
 ): Document | null | undefined => {
-    const absPath = getPathWithExtension(expr.path, config);
+    const absPath = getPathWithExtension(expr.path);
     if (!absPath) {
         return null;
     }

@@ -50,10 +50,6 @@ export type CrawlConfig = {
 export type Config = {
     crawl: CrawlConfig;
     generate: GenerateConfig | Array<GenerateConfig>;
-    alias?: Array<{
-        find: RegExp | string;
-        replacement: string;
-    }>;
 };
 
 export type Schema = {

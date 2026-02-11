@@ -56,7 +56,7 @@ const inputFiles = getInputFiles(options, config);
 /** Step (2) */
 
 const files = processFiles(inputFiles, config, (f) => {
-    const resolvedPath = getPathWithExtension(f, config);
+    const resolvedPath = getPathWithExtension(f);
     if (!resolvedPath) {
         throw new Error(`Unable to find ${f}`);
     }

@@ -8,10 +8,12 @@ import type {
 
 import {parse, ParserPlugin} from "@babel/parser";
 import traverse from "@babel/traverse";
+import type {NodePath} from "@babel/traverse";
 
 import path from "path";
 
-import {fixPathResolution, getPathWithExtension} from "./utils";
+import {resolveImportPath} from "./resolveImport";
+import {getPathWithExtension} from "./utils";
 import {Config} from "../types";
 
 /**
@@ -63,6 +65,8 @@ export type Import = {
     type: "import";
     name: string;
     path: string;
+    rawPath?: string;
+    resolvedPath?: string | null;
     loc: Loc;
 };
 
@@ -101,15 +105,12 @@ export type Files = {
  * potentially relevant, and of course any values referenced
  * from a graphql template are treated as relevant.
  */
-const listExternalReferences = (
-    file: FileResult,
-    config: Config,
-): Array<string> => {
+const listExternalReferences = (file: FileResult): Array<string> => {
     const paths: Record<string, any> = {};
     const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === "import") {
             if (followImports) {
-                const absPath = getPathWithExtension(v.path, config);
+                const absPath = getPathWithExtension(v.path);
                 if (absPath) {
                     paths[absPath] = true;
                 }
@@ -156,7 +157,6 @@ export const processFile = (
           },
     config: Config,
 ): FileResult => {
-    const dir = path.dirname(filePath);
     const result: FileResult = {
         path: filePath,
         operations: [],
@@ -181,17 +181,20 @@ export const processFile = (
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === "ImportDeclaration") {
-            const newLocals = getLocals(dir, toplevel, filePath, config);
+            const newLocals = getLocals(toplevel, filePath);
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
                     const local = newLocals[k];
-                    if (local.path.startsWith("/")) {
+                    const isGraphqlTagImport =
+                        local.rawPath === "graphql-tag" ||
+                        (local.resolvedPath?.includes(
+                            `${path.sep}node_modules${path.sep}graphql-tag`,
+                        ) ??
+                            false);
+                    if (path.isAbsolute(local.path)) {
                         result.locals[k] = local;
                     }
-                    if (
-                        local.path === "graphql-tag" &&
-                        local.name === "default"
-                    ) {
+                    if (isGraphqlTagImport && local.name === "default") {
                         gqlTagNames.push(k);
                     }
                 });
@@ -200,9 +203,8 @@ export const processFile = (
         if (toplevel.type === "ExportNamedDeclaration") {
             if (toplevel.source) {
                 const source = toplevel.source;
-                const importPath = source.value.startsWith(".")
-                    ? path.resolve(path.join(dir, source.value))
-                    : source.value;
+                const resolvedPath = resolveImportPath(filePath, source.value);
+                const importPath = resolvedPath ?? source.value;
                 toplevel.specifiers?.forEach((spec) => {
                     if (
                         spec.type === "ExportSpecifier" &&
@@ -328,8 +330,9 @@ export const processFile = (
     };
 
     traverse(ast as any, {
-        TaggedTemplateExpression(path) {
-            visitTpl(path.node as any, (name) => {
+        TaggedTemplateExpression(path: NodePath) {
+            const node = path.node as TaggedTemplateExpression;
+            visitTpl(node, (name) => {
                 const binding = path.scope.getBinding(name);
                 if (!binding) {
                     return null;
@@ -404,10 +407,8 @@ const processTemplate = (
 };
 
 const getLocals = (
-    dir: string,
     toplevel: ImportDeclaration,
     myPath: string,
-    config: Config,
 ):
     | {
           [key: string]: Import;
@@ -417,10 +418,8 @@ const getLocals = (
     if (toplevel.importKind === "type") {
         return null;
     }
-    const fixedPath = fixPathResolution(toplevel.source.value, config);
-    const importPath = fixedPath.startsWith(".")
-        ? path.resolve(path.join(dir, fixedPath))
-        : fixedPath;
+    const resolvedPath = resolveImportPath(myPath, toplevel.source.value);
+    const importPath = resolvedPath ?? toplevel.source.value;
     const locals: Record<string, any> = {};
     toplevel.specifiers.forEach((spec) => {
         if (spec.type === "ImportDefaultSpecifier") {
@@ -428,6 +427,8 @@ const getLocals = (
                 type: "import",
                 name: "default",
                 path: importPath,
+                rawPath: toplevel.source.value,
+                resolvedPath,
                 loc: {start: spec.start, end: spec.end, path: myPath},
             };
         } else if (spec.type === "ImportSpecifier") {
@@ -438,6 +439,8 @@ const getLocals = (
                         ? spec.imported.name
                         : spec.imported.value,
                 path: importPath,
+                rawPath: toplevel.source.value,
+                resolvedPath,
                 loc: {start: spec.start, end: spec.end, path: myPath},
             };
         }
@@ -469,7 +472,7 @@ export const processFiles = (
         }
         const result = processFile(next, source, config);
         files[next] = result;
-        listExternalReferences(result, config).forEach((path) => {
+        listExternalReferences(result).forEach((path) => {
             if (!files[path] && !toProcess.includes(path)) {
                 toProcess.push(path);
             }

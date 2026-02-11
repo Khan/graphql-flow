@@ -1,20 +1,6 @@
 import fs from "fs";
-import {Config} from "../types";
 
-export const fixPathResolution = (path: string, config: Config) => {
-    if (config.alias) {
-        for (const {find, replacement} of config.alias) {
-            path = path.replace(find, replacement);
-        }
-    }
-    return path;
-};
-
-export const getPathWithExtension = (
-    pathWithoutExtension: string,
-    config: Config,
-) => {
-    pathWithoutExtension = fixPathResolution(pathWithoutExtension, config);
+export const getPathWithExtension = (pathWithoutExtension: string) => {
     if (
         /\.(less|css|png|gif|jpg|jpeg|js|jsx|ts|tsx|mjs)$/.test(
             pathWithoutExtension,

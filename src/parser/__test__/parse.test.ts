@@ -1,10 +1,39 @@
-import {describe, it, expect} from "@jest/globals";
+/**
+ * @jest-environment node
+ */
+import {describe, it, expect, afterEach} from "@jest/globals";
 
 import {Config} from "../../types";
 import {processFiles} from "../parse";
 import {resolveDocuments} from "../resolve";
 
 import {print} from "graphql/language/printer";
+
+jest.mock("../resolveImport", () => ({
+    resetImportCache: jest.fn(),
+    resolveImportPath: jest
+        .fn()
+        .mockImplementation((sourceFile: string, importPath: string) => {
+            const path = require("path");
+            if (importPath === "graphql-tag") {
+                return "/repo/node_modules/graphql-tag/index.js";
+            }
+            if (importPath === "monorepo-package/fragment") {
+                return "/repo/node_modules/monorepo-package/fragment.js";
+            }
+            if (importPath.startsWith(".")) {
+                return path.resolve(path.dirname(sourceFile), importPath);
+            }
+            if (path.isAbsolute(importPath)) {
+                return importPath;
+            }
+            return null;
+        }),
+}));
+
+afterEach(() => {
+    jest.clearAllMocks();
+});
 
 const fixtureFiles: {
     [key: string]:
@@ -14,6 +43,27 @@ const fixtureFiles: {
               resolvedPath: string;
           };
 } = {
+    "/repo/node_modules/monorepo-package/fragment.js": `
+        import gql from 'graphql-tag';
+
+        export const sharedFragment = gql\`
+        fragment SharedFields on Something {
+            id
+        }
+        \`;
+    `,
+    "/repo/packages/app/App.js": `
+        import gql from 'graphql-tag';
+        import {sharedFragment} from 'monorepo-package/fragment';
+        export const appQuery = gql\`
+        query AppQuery {
+            viewer {
+                ...SharedFields
+            }
+        }
+        \${sharedFragment}
+        \`;
+    `,
     "/firstFile.js": `
         // Note that you can import graphql-tag as
         // something other than gql.
@@ -421,5 +471,65 @@ describe("processing fragments in various ways", () => {
             }",
             }
         `);
+    });
+
+    it("should resolve fragments imported from monorepo packages", () => {
+        // Arrange
+        const config: Config = {
+            crawl: {
+                root: "/here/we/crawl",
+            },
+            generate: {
+                match: [/\.fixture\.js$/],
+                exclude: [
+                    "_test\\.js$",
+                    "\\bcourse-editor-package\\b",
+                    "\\.fixture\\.js$",
+                    "\\b__flowtests__\\b",
+                    "\\bcourse-editor\\b",
+                ],
+                readOnlyArray: false,
+                regenerateCommand: "make gqlflow",
+                scalars: {
+                    JSONString: "string",
+                    KALocale: "string",
+                    NaiveDateTime: "string",
+                },
+                splitTypes: true,
+                generatedDirectory: "__graphql-types__",
+                exportAllObjectTypes: true,
+                schemaFilePath: "./composed_schema.graphql",
+            },
+        };
+
+        // Act
+        const files = processFiles(
+            ["/repo/packages/app/App.js"],
+            config,
+            getFileSource,
+        );
+        const {resolved} = resolveDocuments(files, config);
+        const printed: Record<string, any> = {};
+        Object.keys(resolved).map(
+            (k: any) => (printed[k] = print(resolved[k].document).trim()),
+        );
+
+        // Assert
+        expect(printed).toMatchInlineSnapshot(`
+                Object {
+                  "/repo/node_modules/monorepo-package/fragment.js:4": "fragment SharedFields on Something {
+                  id
+                }",
+                  "/repo/packages/app/App.js:4": "query AppQuery {
+                  viewer {
+                    ...SharedFields
+                  }
+                }
+
+                fragment SharedFields on Something {
+                  id
+                }",
+                }
+            `);
     });
 });

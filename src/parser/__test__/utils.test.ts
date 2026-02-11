@@ -1,40 +1,9 @@
+/**
+ * @jest-environment node
+ */
 import fs from "fs";
-import {describe, it, expect, jest} from "@jest/globals";
-import type {Config} from "../../types";
-
+import {describe, it, expect} from "@jest/globals";
 import {getPathWithExtension} from "../utils";
-
-const generate = {
-    match: [/\.fixture\.js$/],
-    exclude: [
-        "_test\\.js$",
-        "\\bcourse-editor-package\\b",
-        "\\.fixture\\.js$",
-        "\\b__flowtests__\\b",
-        "\\bcourse-editor\\b",
-    ],
-    readOnlyArray: false,
-    regenerateCommand: "make gqlflow",
-    scalars: {
-        JSONString: "string",
-        KALocale: "string",
-        NaiveDateTime: "string",
-    },
-    splitTypes: true,
-    generatedDirectory: "__graphql-types__",
-    exportAllObjectTypes: true,
-    schemaFilePath: "./composed_schema.graphql",
-} as const;
-
-const config: Config = {
-    crawl: {
-        root: "/here/we/crawl",
-    },
-    generate: [
-        {...generate, match: [/^static/], exportAllObjectTypes: false},
-        generate,
-    ],
-};
 
 describe("getPathWithExtension", () => {
     it("should handle a basic missing extension", () => {
@@ -44,7 +13,7 @@ describe("getPathWithExtension", () => {
         );
 
         // Act
-        const result = getPathWithExtension("/path/to/file", config);
+        const result = getPathWithExtension("/path/to/file");
 
         // Assert
         expect(result).toBe("/path/to/file.js");
@@ -55,26 +24,20 @@ describe("getPathWithExtension", () => {
         jest.spyOn(fs, "existsSync").mockImplementation((path) => false);
 
         // Act
-        const result = getPathWithExtension("/path/to/file", config);
+        const result = getPathWithExtension("/path/to/file");
 
         // Assert
         expect(result).toBe(null);
     });
 
-    it("maps aliases to their correct value", () => {
+    it("returns the original path when an extension is already present", () => {
         // Arrange
-        jest.spyOn(fs, "existsSync").mockImplementation((path) =>
-            typeof path === "string" ? path.endsWith(".js") : false,
-        );
-        const tmpConfig: Config = {
-            ...config,
-            alias: [{find: "~", replacement: "../../some/prefix"}],
-        };
+        const input = "/dir/file.tsx";
 
         // Act
-        const result = getPathWithExtension("~/dir/file", tmpConfig);
+        const result = getPathWithExtension(input);
 
         // Assert
-        expect(result).toBe("../../some/prefix/dir/file.js");
+        expect(result).toBe(input);
     });
 });
