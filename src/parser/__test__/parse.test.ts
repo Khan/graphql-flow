@@ -2,7 +2,6 @@
  * @jest-environment node
  */
 import {describe, it, expect, afterEach} from "@jest/globals";
-import resolve from "resolve";
 
 import {Config} from "../../types";
 import {processFiles} from "../parse";
@@ -10,10 +9,30 @@ import {resolveDocuments} from "../resolve";
 
 import {print} from "graphql/language/printer";
 
-jest.mock("resolve");
+jest.mock("../resolveImport", () => ({
+    resetImportCache: jest.fn(),
+    resolveImportPath: jest
+        .fn()
+        .mockImplementation((sourceFile: string, importPath: string) => {
+            const path = require("path");
+            if (importPath === "graphql-tag") {
+                return "/repo/node_modules/graphql-tag/index.js";
+            }
+            if (importPath === "monorepo-package/fragment") {
+                return "/repo/node_modules/monorepo-package/fragment.js";
+            }
+            if (importPath.startsWith(".")) {
+                return path.resolve(path.dirname(sourceFile), importPath);
+            }
+            if (path.isAbsolute(importPath)) {
+                return importPath;
+            }
+            return null;
+        }),
+}));
 
 afterEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
 });
 
 const fixtureFiles: {
@@ -336,7 +355,7 @@ describe("processing fragments in various ways", () => {
         expect(files["/invalidThings.js"].errors.map((m: any) => m.message))
             .toMatchInlineSnapshot(`
             Array [
-              "Unable to resolve import someExternalFragment from \\\"somewhere\\\" at /invalidThings.js:4.",
+              "Unable to resolve import someExternalFragment from \\"somewhere\\" at /invalidThings.js:4.",
               "Unable to resolve someUndefinedFragment",
               "Template literal interpolation must be an identifier",
             ]
@@ -485,14 +504,6 @@ describe("processing fragments in various ways", () => {
                 schemaFilePath: "./composed_schema.graphql",
             },
         };
-
-        const resolveSync = resolve.sync as jest.Mock;
-        resolveSync.mockImplementation((specifier: string) => {
-            if (specifier === "monorepo-package/fragment") {
-                return "/repo/node_modules/monorepo-package/fragment.js";
-            }
-            throw new Error(`Unexpected resolve for ${specifier}`);
-        });
 
         // Act
         const files = processFiles(

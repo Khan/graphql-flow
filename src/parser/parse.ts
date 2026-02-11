@@ -12,7 +12,8 @@ import type {NodePath} from "@babel/traverse";
 
 import path from "path";
 
-import {applyAliases, getPathWithExtension, resolveImportPath} from "./utils";
+import {resolveImportPath} from "./resolveImport";
+import {getPathWithExtension} from "./utils";
 import {Config} from "../types";
 
 /**
@@ -110,15 +111,12 @@ export type Files = {
  * potentially relevant, and of course any values referenced
  * from a graphql template are treated as relevant.
  */
-const listExternalReferences = (
-    file: FileResult,
-    config: Config,
-): Array<string> => {
+const listExternalReferences = (file: FileResult): Array<string> => {
     const paths: Record<string, any> = {};
     const add = (v: Document | Import, followImports: boolean) => {
         if (v.type === "import") {
             if (followImports) {
-                const absPath = getPathWithExtension(v.path, config);
+                const absPath = getPathWithExtension(v.path);
                 if (absPath) {
                     paths[absPath] = true;
                 }
@@ -165,7 +163,6 @@ export const processFile = (
           },
     config: Config,
 ): FileResult => {
-    const dir = path.dirname(filePath);
     const result: FileResult = {
         path: filePath,
         operations: [],
@@ -191,18 +188,16 @@ export const processFile = (
 
     ast.program.body.forEach((toplevel) => {
         if (toplevel.type === "ImportDeclaration") {
-            const fixedSource = applyAliases(toplevel.source.value, config);
             const resolvedSource = resolveImportPath(
+                filePath,
                 toplevel.source.value,
-                dir,
-                config,
             );
             // Flag non-relative, non-absolute imports that didn't resolve so we
             // can report missing external modules without treating local paths as unresolved.
             const isUnresolvedModule =
                 !resolvedSource &&
-                !fixedSource.startsWith(".") &&
-                !path.isAbsolute(fixedSource);
+                !toplevel.source.value.startsWith(".") &&
+                !path.isAbsolute(toplevel.source.value);
             if (isUnresolvedModule) {
                 toplevel.specifiers.forEach((spec) => {
                     if (
@@ -210,7 +205,7 @@ export const processFile = (
                         spec.type === "ImportDefaultSpecifier"
                     ) {
                         result.unresolvedImports![spec.local.name] = {
-                            source: fixedSource,
+                            source: toplevel.source.value,
                             loc: {
                                 start: spec.start ?? -1,
                                 end: spec.end ?? -1,
@@ -221,7 +216,7 @@ export const processFile = (
                     }
                 });
             }
-            const newLocals = getLocals(dir, toplevel, filePath, config);
+            const newLocals = getLocals(toplevel, filePath);
             if (newLocals) {
                 Object.keys(newLocals).forEach((k) => {
                     const local = newLocals[k];
@@ -243,13 +238,8 @@ export const processFile = (
         if (toplevel.type === "ExportNamedDeclaration") {
             if (toplevel.source) {
                 const source = toplevel.source;
-                const resolvedPath = resolveImportPath(
-                    source.value,
-                    dir,
-                    config,
-                );
-                const importPath =
-                    resolvedPath ?? applyAliases(source.value, config);
+                const resolvedPath = resolveImportPath(filePath, source.value);
+                const importPath = resolvedPath ?? source.value;
                 toplevel.specifiers?.forEach((spec) => {
                     if (
                         spec.type === "ExportSpecifier" &&
@@ -281,9 +271,8 @@ export const processFile = (
         }
         if (toplevel.type === "ExportAllDeclaration" && toplevel.source) {
             const source = toplevel.source;
-            const resolvedPath = resolveImportPath(source.value, dir, config);
-            const importPath =
-                resolvedPath ?? applyAliases(source.value, config);
+            const resolvedPath = resolveImportPath(filePath, source.value);
+            const importPath = resolvedPath ?? source.value;
             result.exportAlls.push({
                 type: "import",
                 name: "*",
@@ -460,10 +449,8 @@ const processTemplate = (
 };
 
 const getLocals = (
-    dir: string,
     toplevel: ImportDeclaration,
     myPath: string,
-    config: Config,
 ):
     | {
           [key: string]: Import;
@@ -473,9 +460,8 @@ const getLocals = (
     if (toplevel.importKind === "type") {
         return null;
     }
-    const fixedPath = applyAliases(toplevel.source.value, config);
-    const resolvedPath = resolveImportPath(toplevel.source.value, dir, config);
-    const importPath = resolvedPath ?? fixedPath;
+    const resolvedPath = resolveImportPath(myPath, toplevel.source.value);
+    const importPath = resolvedPath ?? toplevel.source.value;
     const locals: Record<string, any> = {};
     toplevel.specifiers.forEach((spec) => {
         if (spec.type === "ImportDefaultSpecifier") {
@@ -528,7 +514,7 @@ export const processFiles = (
         }
         const result = processFile(next, source, config);
         files[next] = result;
-        listExternalReferences(result, config).forEach((path) => {
+        listExternalReferences(result).forEach((path) => {
             if (!files[path] && !toProcess.includes(path)) {
                 toProcess.push(path);
             }
