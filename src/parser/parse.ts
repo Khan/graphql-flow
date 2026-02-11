@@ -79,6 +79,7 @@ export type FileResult = {
     exports: {
         [key: string]: Document | Import;
     };
+    exportAlls: Array<Import>;
     locals: {
         [key: string]: Document | Import;
     };
@@ -141,6 +142,7 @@ const listExternalReferences = (
             ),
         ),
     );
+    file.exportAlls.forEach((expr) => add(expr, true));
     return Object.keys(paths);
 };
 
@@ -159,6 +161,7 @@ export const processFile = (
         path: filePath,
         operations: [],
         exports: {},
+        exportAlls: [],
         locals: {},
         errors: [],
     };
@@ -228,6 +231,23 @@ export const processFile = (
                     }
                 });
             }
+        }
+        if (toplevel.type === "ExportAllDeclaration" && toplevel.source) {
+            const source = toplevel.source;
+            const importPath = source.value.startsWith(".")
+                ? path.resolve(path.join(dir, source.value))
+                : source.value;
+            result.exportAlls.push({
+                type: "import",
+                name: "*",
+                path: importPath,
+                loc: {
+                    start: toplevel.start ?? -1,
+                    end: toplevel.end ?? -1,
+                    line: toplevel.loc?.start.line ?? -1,
+                    path: filePath,
+                },
+            });
         }
 
         const processDeclarator = (
