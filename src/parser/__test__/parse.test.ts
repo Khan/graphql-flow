@@ -57,6 +57,31 @@ const fixtureFiles: {
         \`;
         export {secondFragment};`,
 
+    "/starExportSource.js": `
+        import gql from 'graphql-tag';
+        export const starFragment = gql\`
+        fragment StarFragment on Star {
+            id
+        }
+        \`;
+    `,
+    "/starExportReexport.js": `
+        export * from './starExportSource.js';
+    `,
+    "/starExportConsumer.js": `
+        import gql from 'graphql-tag';
+        import {starFragment} from './starExportReexport.js';
+
+        export const starQuery = gql\`
+        query StarQuery {
+            stars {
+                ...StarFragment
+            }
+        }
+        \${starFragment}
+        \`;
+    `,
+
     "/thirdFile.js": `
         import {fromFirstFile, alsoFirst, secondFragment} from './secondFile.js';
         import gql from 'graphql-tag';
@@ -337,5 +362,64 @@ describe("processing fragments in various ways", () => {
             (k: any) => (printed[k] = print(resolved[k].document).trim()),
         );
         expect(printed).toMatchInlineSnapshot(`Object {}`);
+    });
+
+    it("should resolve fragments re-exported via export all", () => {
+        // Arrange
+        const config: Config = {
+            crawl: {
+                root: "/here/we/crawl",
+            },
+            generate: {
+                match: [/\.fixture\.js$/],
+                exclude: [
+                    "_test\\.js$",
+                    "\\bcourse-editor-package\\b",
+                    "\\.fixture\\.js$",
+                    "\\b__flowtests__\\b",
+                    "\\bcourse-editor\\b",
+                ],
+                readOnlyArray: false,
+                regenerateCommand: "make gqlflow",
+                scalars: {
+                    JSONString: "string",
+                    KALocale: "string",
+                    NaiveDateTime: "string",
+                },
+                splitTypes: true,
+                generatedDirectory: "__graphql-types__",
+                exportAllObjectTypes: true,
+                schemaFilePath: "./composed_schema.graphql",
+            },
+        };
+        // Act
+        const files = processFiles(
+            ["/starExportConsumer.js"],
+            config,
+            getFileSource,
+        );
+        const {resolved} = resolveDocuments(files, config);
+        const printed: Record<string, any> = {};
+        Object.keys(resolved).map(
+            (k: any) => (printed[k] = print(resolved[k].document).trim()),
+        );
+
+        // Assert
+        expect(printed).toMatchInlineSnapshot(`
+            Object {
+              "/starExportConsumer.js:5": "query StarQuery {
+              stars {
+                ...StarFragment
+              }
+            }
+
+            fragment StarFragment on Star {
+              id
+            }",
+              "/starExportSource.js:3": "fragment StarFragment on Star {
+              id
+            }",
+            }
+        `);
     });
 });
