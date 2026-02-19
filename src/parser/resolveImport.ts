@@ -19,6 +19,7 @@ function getEsmResolver() {
     return new ResolverFactory({
         conditionNames: CONDITION_NAMES,
         mainFields: ["module", "main"],
+        extensions: [".mjs", ".js", ".jsx", ".ts", ".tsx"],
     });
 }
 
