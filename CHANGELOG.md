@@ -1,5 +1,15 @@
 # @khanacademy/graphql-flow
 
+## 4.0.0
+
+### Major Changes
+
+-   9d96c11: Overhaul import resolution, relying on tsconfig for import aliases, and rspack-resolver for package imports. This removes the `alias` config option, instead requiring that aliases be defined in a `tsconfig.json`.
+
+### Minor Changes
+
+-   a27caca: Support "export \* from" for fragments
+
 ## 3.4.2
 
 ### Patch Changes
