@@ -51,7 +51,7 @@ const resolveImport = (
     },
     config: Config,
 ): Document | null | undefined => {
-    const absPath = getPathWithExtension(expr.path, config);
+    const absPath = getPathWithExtension(expr.path);
     if (!absPath) {
         return null;
     }
@@ -71,6 +71,23 @@ const resolveImport = (
         return null;
     }
     if (!res.exports[expr.name]) {
+        if (expr.name !== "*" && res.exportAlls.length) {
+            for (const exportAll of res.exportAlls) {
+                const value = resolveImport(
+                    {
+                        ...exportAll,
+                        name: expr.name,
+                    },
+                    files,
+                    errors,
+                    {...seen},
+                    config,
+                );
+                if (value) {
+                    return value;
+                }
+            }
+        }
         errors.push({
             loc: expr.loc,
             message: `${absPath} has no valid gql export ${expr.name}`,

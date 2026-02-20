@@ -1,6 +1,6 @@
 {
     "name": "@khanacademy/graphql-flow",
-    "version": "3.4.2",
+    "version": "4.0.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/Khan/graphql-flow.git"
@@ -34,8 +34,12 @@
         "@babel/preset-env": "^7.24.5",
         "@babel/preset-typescript": "^7.24.1",
         "@changesets/cli": "^2.21.1",
+        "@jest/globals": "^30.2.0",
         "@khanacademy/eslint-config": "^4.0.0",
+        "@types/babel__generator": "^7.27.0",
+        "@types/babel__traverse": "^7.28.0",
         "@types/jest": "^29.5.3",
+        "@types/minimist": "^1.2.5",
         "@types/prop-types": "^15.7.12",
         "@types/react": "^18.3.3",
         "@typescript-eslint/eslint-plugin": "^7.17.0",
@@ -61,7 +65,9 @@
         "apollo-utilities": "^1.3.4",
         "graphql": "^16.9.0",
         "jsonschema": "^1.4.1",
-        "minimist": "^1.2.8"
+        "minimist": "^1.2.8",
+        "rspack-resolver": "^1.3.0",
+        "tsconfig-paths": "^4.2.0"
     },
     "packageManager": "pnpm@10.22.0+sha512.bf049efe995b28f527fd2b41ae0474ce29186f7edcb3bf545087bd61fbbebb2bf75362d1307fda09c2d288e1e499787ac12d4fcb617a974718a6051f2eee741c"
 }
