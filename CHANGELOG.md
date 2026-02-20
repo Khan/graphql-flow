@@ -1,5 +1,11 @@
 # @khanacademy/graphql-flow
 
+## 4.0.1
+
+### Patch Changes
+
+-   7fd8814: Improve unresolved import errors
+
 ## 4.0.0
 
 ### Major Changes
