@@ -258,13 +258,10 @@ const mergeFieldsByResponseName = (
 
     for (const sel of selections) {
         if (sel.kind === "Field") {
-            const responseName = sel.alias
-                ? sel.alias.value
-                : sel.name.value;
+            const responseName = sel.alias ? sel.alias.value : sel.name.value;
             const existing = fieldByResponseName.get(responseName);
             if (existing) {
-                const existingSels =
-                    existing.selectionSet?.selections ?? [];
+                const existingSels = existing.selectionSet?.selections ?? [];
                 const newSels = sel.selectionSet?.selections ?? [];
                 const mergedSelectionSet: SelectionSetNode | undefined =
                     existing.selectionSet || sel.selectionSet
@@ -334,113 +331,114 @@ export const objectPropertiesToFlow = (
     typeName: string,
     selections: Selections,
 ): Array<babelTypes.TSPropertySignature> => {
-    return flattenAndMergeSelectionsForType(
-        ctx,
-        typeName,
-        selections,
-    ).flatMap((selection) => {
-        switch (selection.kind) {
-            case "InlineFragment": {
-                const newTypeName =
-                    selection.typeCondition?.name.value ?? typeName;
-                if (newTypeName !== typeName) {
-                    return [];
-                }
-                return objectPropertiesToFlow(
-                    ctx,
-                    ctx.schema.typesByName[newTypeName],
-                    newTypeName,
-                    selection.selectionSet.selections,
-                );
-            }
-            case "FragmentSpread":
-                if (!ctx.fragments[selection.name.value]) {
-                    ctx.errors.push(
-                        `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
+    return flattenAndMergeSelectionsForType(ctx, typeName, selections).flatMap(
+        (selection) => {
+            switch (selection.kind) {
+                case "InlineFragment": {
+                    const newTypeName =
+                        selection.typeCondition?.name.value ?? typeName;
+                    if (newTypeName !== typeName) {
+                        return [];
+                    }
+                    return objectPropertiesToFlow(
+                        ctx,
+                        ctx.schema.typesByName[newTypeName],
+                        newTypeName,
+                        selection.selectionSet.selections,
                     );
-                    return [
-                        babelTypes.tsPropertySignature(
-                            babelTypes.identifier(selection.name.value),
-                            babelTypes.tsTypeAnnotation(
-                                babelTypes.tsTypeReference(
-                                    babelTypes.identifier(`UNKNOWN_FRAGMENT`),
-                                ),
-                            ),
-                        ),
-                    ];
                 }
-
-                return objectPropertiesToFlow(
-                    ctx,
-                    type,
-                    typeName,
-                    ctx.fragments[selection.name.value].selectionSet.selections,
-                );
-
-            case "Field":
-                const name = selection.name.value;
-                const alias: string = selection.alias
-                    ? selection.alias.value
-                    : name;
-                if (name === "__typename") {
-                    return [
-                        babelTypes.tsPropertySignature(
-                            babelTypes.identifier(alias),
-                            babelTypes.tsTypeAnnotation(
-                                babelTypes.tsLiteralType(
-                                    babelTypes.stringLiteral(typeName),
-                                ),
-                            ),
-                        ),
-                    ];
-                }
-                if (!type.fieldsByName[name]) {
-                    ctx.errors.push(
-                        `Unknown field '${name}' for type '${typeName}'`,
-                    );
-                    return [
-                        babelTypes.tsPropertySignature(
-                            babelTypes.identifier(alias),
-                            babelTypes.tsTypeAnnotation(
-                                babelTypes.tsTypeReference(
-                                    babelTypes.identifier(
-                                        `UNKNOWN_FIELD["${name}"]`,
+                case "FragmentSpread":
+                    if (!ctx.fragments[selection.name.value]) {
+                        ctx.errors.push(
+                            `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
+                        );
+                        return [
+                            babelTypes.tsPropertySignature(
+                                babelTypes.identifier(selection.name.value),
+                                babelTypes.tsTypeAnnotation(
+                                    babelTypes.tsTypeReference(
+                                        babelTypes.identifier(
+                                            `UNKNOWN_FRAGMENT`,
+                                        ),
                                     ),
                                 ),
                             ),
-                        ),
-                    ];
-                }
-                const typeField = type.fieldsByName[name];
+                        ];
+                    }
 
-                return [
-                    maybeAddDescriptionComment(
-                        typeField.description,
-                        liftLeadingPropertyComments(
+                    return objectPropertiesToFlow(
+                        ctx,
+                        type,
+                        typeName,
+                        ctx.fragments[selection.name.value].selectionSet
+                            .selections,
+                    );
+
+                case "Field":
+                    const name = selection.name.value;
+                    const alias: string = selection.alias
+                        ? selection.alias.value
+                        : name;
+                    if (name === "__typename") {
+                        return [
                             babelTypes.tsPropertySignature(
                                 babelTypes.identifier(alias),
                                 babelTypes.tsTypeAnnotation(
-                                    typeToFlow(
-                                        {
-                                            ...ctx,
-                                            path: ctx.path.concat([alias]),
-                                        },
-                                        typeField.type,
-                                        selection,
+                                    babelTypes.tsLiteralType(
+                                        babelTypes.stringLiteral(typeName),
+                                    ),
+                                ),
+                            ),
+                        ];
+                    }
+                    if (!type.fieldsByName[name]) {
+                        ctx.errors.push(
+                            `Unknown field '${name}' for type '${typeName}'`,
+                        );
+                        return [
+                            babelTypes.tsPropertySignature(
+                                babelTypes.identifier(alias),
+                                babelTypes.tsTypeAnnotation(
+                                    babelTypes.tsTypeReference(
+                                        babelTypes.identifier(
+                                            `UNKNOWN_FIELD["${name}"]`,
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ];
+                    }
+                    const typeField = type.fieldsByName[name];
+
+                    return [
+                        maybeAddDescriptionComment(
+                            typeField.description,
+                            liftLeadingPropertyComments(
+                                babelTypes.tsPropertySignature(
+                                    babelTypes.identifier(alias),
+                                    babelTypes.tsTypeAnnotation(
+                                        typeToFlow(
+                                            {
+                                                ...ctx,
+                                                path: ctx.path.concat([alias]),
+                                            },
+                                            typeField.type,
+                                            selection,
+                                        ),
                                     ),
                                 ),
                             ),
                         ),
-                    ),
-                ];
+                    ];
 
-            default:
-                ctx.errors.push(
-                    `Unsupported selection kind '${selection.kind}'`,
-                );
-                return [];
-        }
-    });
+                default:
+                    ctx.errors.push(
+                        `Unsupported selection kind '${selection.kind}'`,
+                    );
+                    return [];
+            }
+        },
+    );
 };
 
 // For an interface variant, collect every selection that applies to a given
