@@ -233,7 +233,7 @@ describe("graphql-flow generation", () => {
                   } | null | undefined> | null | undefined;
                   hands: number | null | undefined;
                   id: string;
-                  name: string | null | undefined;
+                  /** The person's name*/name: string | null | undefined;
                 } | null | undefined> | null | undefined;
                 hands: number | null | undefined;
                 homePlanet: string | null | undefined;
@@ -402,7 +402,7 @@ describe("graphql-flow generation", () => {
                 } | {
                   __typename: "Human";
                   homePlanet: string | null | undefined;
-                  name: string | null | undefined;
+                  /** The person's name*/name: string | null | undefined;
                 };
             `);
         });
@@ -549,6 +549,163 @@ describe("graphql-flow generation", () => {
                   human: /** A human character*/{
                     id: string;
                     /** The person's name*/name: string | null | undefined;
+                  } | null | undefined;
+                }
+                };
+            `);
+        });
+
+        it("should merge sub-selections when the same field appears at the base level and in a matching inline fragment", () => {
+            const result = rawQueryToFlowTypes(
+                `
+                query SomeQuery {
+                    human(id: "x") {
+                        friends { id }
+                        ... on Human {
+                            friends { name }
+                        }
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+            expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
+                export type SomeQueryType = {
+                    variables: {},
+                    response: {
+                  human: /** A human character*/{
+                    friends: Array<{
+                      id: string;
+                      name: string | null | undefined;
+                    } | null | undefined> | null | undefined;
+                  } | null | undefined;
+                }
+                };
+            `);
+        });
+
+        it("should merge sub-selections when the same field is contributed by a fragment spread and the base level", () => {
+            const result = rawQueryToFlowTypes(
+                `
+                fragment HumanFriendsIds on Human {
+                    friends { id }
+                }
+                query SomeQuery {
+                    human(id: "x") {
+                        ...HumanFriendsIds
+                        friends { name }
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+            expect(result).toMatchInlineSnapshot(`
+                // HumanFriendsIds.js
+                export type HumanFriendsIds = {
+                  friends: Array<{
+                    id: string;
+                  } | null | undefined> | null | undefined;
+                };
+
+                // SomeQueryType.js
+                export type SomeQueryType = {
+                    variables: {},
+                    response: {
+                  human: /** A human character*/{
+                    friends: Array<{
+                      id: string;
+                      name: string | null | undefined;
+                    } | null | undefined> | null | undefined;
+                  } | null | undefined;
+                }
+                };
+            `);
+        });
+
+        it("should merge sub-selections on an interface when the same field appears at the base level and inside an inline fragment on a concrete impl", () => {
+            const result = rawQueryToFlowTypes(
+                `
+                query SomeQuery {
+                    hero(episode: JEDI) {
+                        id
+                        friends { id }
+                        ... on Human {
+                            friends { name }
+                            homePlanet
+                        }
+                        ... on Droid {
+                            primaryFunction
+                        }
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+            expect(result).toMatchInlineSnapshot(`
+                // SomeQueryType.js
+                export type SomeQueryType = {
+                    variables: {},
+                    response: {
+                  hero: {
+                    friends: Array<{
+                      id: string;
+                    } | null | undefined> | null | undefined;
+                    id: string;
+                    /** The robot's primary function*/primaryFunction: string;
+                  } | {
+                    friends: Array<{
+                      id: string;
+                      name: string | null | undefined;
+                    } | null | undefined> | null | undefined;
+                    homePlanet: string | null | undefined;
+                    id: string;
+                  } | null | undefined;
+                }
+                };
+            `);
+        });
+
+        it("should leave unions on the existing per-selection flow (no accidental field merging across variants)", () => {
+            // Unions don't allow base-level Field selections (other than
+            // __typename), so the response-name merge in objectPropertiesToFlow
+            // shouldn't activate here. Each inline fragment's selections must
+            // stay scoped to its own variant.
+            const result = rawQueryToFlowTypes(
+                `
+                fragment HumanName on Human {
+                    name
+                }
+                query SomeQuery {
+                    friend(id: "x") {
+                        __typename
+                        ...HumanName
+                        ... on Human {
+                            hands
+                        }
+                        ... on Droid {
+                            primaryFunction
+                        }
+                    }
+                }`,
+                {readOnlyArray: false},
+            );
+            expect(result).toMatchInlineSnapshot(`
+                // HumanName.js
+                export type HumanName = {
+                  /** The person's name*/name: string | null | undefined;
+                };
+
+                // SomeQueryType.js
+                export type SomeQueryType = {
+                    variables: {},
+                    response: {
+                  friend: {
+                    __typename: "Animal";
+                  } | {
+                    __typename: "Droid";
+                    /** The robot's primary function*/primaryFunction: string;
+                  } | {
+                    __typename: "Human";
+                    hands: number | null | undefined;
+                    name: string | null | undefined;
                   } | null | undefined;
                 }
                 };
