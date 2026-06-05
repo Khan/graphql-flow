@@ -626,6 +626,7 @@ describe("graphql-flow generation", () => {
                 `
                 query SomeQuery {
                     hero(episode: JEDI) {
+                        __typename
                         id
                         friends { id }
                         ... on Human {
@@ -645,12 +646,14 @@ describe("graphql-flow generation", () => {
                     variables: {},
                     response: {
                   hero: {
+                    __typename: "Droid";
                     friends: Array<{
                       id: string;
                     } | null | undefined> | null | undefined;
                     id: string;
                     /** The robot's primary function*/primaryFunction: string;
                   } | {
+                    __typename: "Human";
                     friends: Array<{
                       id: string;
                       name: string | null | undefined;
