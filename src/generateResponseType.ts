@@ -8,7 +8,9 @@ import type {
     OperationDefinitionNode,
     FragmentDefinitionNode,
     SelectionNode,
+    SelectionSetNode,
 } from "graphql";
+import {Kind} from "graphql";
 import type {Context, Schema, Selections} from "./types";
 import {
     liftLeadingPropertyComments,
@@ -242,6 +244,83 @@ const querySelectionToObjectType = (
     );
 };
 
+// Mirrors the spec's CollectFields algorithm: when the same response name
+// appears more than once in a selection set, the GraphQL execution merges
+// their sub-selections rather than picking one. Without this, a base-level
+// `foo { a }` plus an inline-fragment `foo { b }` would produce two property
+// signatures and the second silently clobbers the first in the output type.
+const mergeFieldsByResponseName = (
+    selections: ReadonlyArray<SelectionNode>,
+): Array<SelectionNode> => {
+    const fieldByResponseName = new Map<string, FieldNode>();
+    const orderedNames: Array<string> = [];
+    const passthrough: Array<SelectionNode> = [];
+
+    for (const sel of selections) {
+        if (sel.kind === "Field") {
+            const responseName = sel.alias ? sel.alias.value : sel.name.value;
+            const existing = fieldByResponseName.get(responseName);
+            if (existing) {
+                const existingSels = existing.selectionSet?.selections ?? [];
+                const newSels = sel.selectionSet?.selections ?? [];
+                const mergedSelectionSet: SelectionSetNode | undefined =
+                    existing.selectionSet || sel.selectionSet
+                        ? {
+                              kind: Kind.SELECTION_SET,
+                              selections: [...existingSels, ...newSels],
+                          }
+                        : undefined;
+                fieldByResponseName.set(responseName, {
+                    ...existing,
+                    selectionSet: mergedSelectionSet,
+                });
+            } else {
+                fieldByResponseName.set(responseName, sel);
+                orderedNames.push(responseName);
+            }
+        } else {
+            passthrough.push(sel);
+        }
+    }
+
+    return [
+        ...orderedNames.map((name) => fieldByResponseName.get(name)!),
+        ...passthrough,
+    ];
+};
+
+// Inline matching InlineFragments and FragmentSpreads into the parent
+// selection list so that Fields appearing on multiple "branches" can be
+// merged by response name in a single pass. Non-matching fragments are
+// preserved so the caller can still emit them or drop them as before.
+const flattenAndMergeSelectionsForType = (
+    ctx: Context,
+    typeName: string,
+    selections: Selections,
+): Array<SelectionNode> => {
+    const flat: Array<SelectionNode> = [];
+    for (const sel of selections) {
+        if (sel.kind === "InlineFragment") {
+            const condName = sel.typeCondition?.name.value ?? typeName;
+            if (condName === typeName) {
+                flat.push(...sel.selectionSet.selections);
+            } else {
+                flat.push(sel);
+            }
+        } else if (sel.kind === "FragmentSpread") {
+            const fragment = ctx.fragments[sel.name.value];
+            if (fragment) {
+                flat.push(...fragment.selectionSet.selections);
+            } else {
+                flat.push(sel);
+            }
+        } else {
+            flat.push(sel);
+        }
+    }
+    return mergeFieldsByResponseName(flat);
+};
+
 export const objectPropertiesToFlow = (
     ctx: Context,
     type: IntrospectionObjectType & {
@@ -252,109 +331,162 @@ export const objectPropertiesToFlow = (
     typeName: string,
     selections: Selections,
 ): Array<babelTypes.TSPropertySignature> => {
-    return selections.flatMap((selection) => {
-        switch (selection.kind) {
-            case "InlineFragment": {
-                const newTypeName =
-                    selection.typeCondition?.name.value ?? typeName;
-                if (newTypeName !== typeName) {
-                    return [];
-                }
-                return objectPropertiesToFlow(
-                    ctx,
-                    ctx.schema.typesByName[newTypeName],
-                    newTypeName,
-                    selection.selectionSet.selections,
-                );
-            }
-            case "FragmentSpread":
-                if (!ctx.fragments[selection.name.value]) {
-                    ctx.errors.push(
-                        `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
+    return flattenAndMergeSelectionsForType(ctx, typeName, selections).flatMap(
+        (selection) => {
+            switch (selection.kind) {
+                case "InlineFragment": {
+                    const newTypeName =
+                        selection.typeCondition?.name.value ?? typeName;
+                    if (newTypeName !== typeName) {
+                        return [];
+                    }
+                    return objectPropertiesToFlow(
+                        ctx,
+                        ctx.schema.typesByName[newTypeName],
+                        newTypeName,
+                        selection.selectionSet.selections,
                     );
-                    return [
-                        babelTypes.tsPropertySignature(
-                            babelTypes.identifier(selection.name.value),
-                            babelTypes.tsTypeAnnotation(
-                                babelTypes.tsTypeReference(
-                                    babelTypes.identifier(`UNKNOWN_FRAGMENT`),
-                                ),
-                            ),
-                        ),
-                    ];
                 }
-
-                return objectPropertiesToFlow(
-                    ctx,
-                    type,
-                    typeName,
-                    ctx.fragments[selection.name.value].selectionSet.selections,
-                );
-
-            case "Field":
-                const name = selection.name.value;
-                const alias: string = selection.alias
-                    ? selection.alias.value
-                    : name;
-                if (name === "__typename") {
-                    return [
-                        babelTypes.tsPropertySignature(
-                            babelTypes.identifier(alias),
-                            babelTypes.tsTypeAnnotation(
-                                babelTypes.tsLiteralType(
-                                    babelTypes.stringLiteral(typeName),
-                                ),
-                            ),
-                        ),
-                    ];
-                }
-                if (!type.fieldsByName[name]) {
-                    ctx.errors.push(
-                        `Unknown field '${name}' for type '${typeName}'`,
-                    );
-                    return [
-                        babelTypes.tsPropertySignature(
-                            babelTypes.identifier(alias),
-                            babelTypes.tsTypeAnnotation(
-                                babelTypes.tsTypeReference(
-                                    babelTypes.identifier(
-                                        `UNKNOWN_FIELD["${name}"]`,
+                case "FragmentSpread":
+                    if (!ctx.fragments[selection.name.value]) {
+                        ctx.errors.push(
+                            `No fragment named '${selection.name.value}'. Did you forget to include it in the template literal?`,
+                        );
+                        return [
+                            babelTypes.tsPropertySignature(
+                                babelTypes.identifier(selection.name.value),
+                                babelTypes.tsTypeAnnotation(
+                                    babelTypes.tsTypeReference(
+                                        babelTypes.identifier(
+                                            `UNKNOWN_FRAGMENT`,
+                                        ),
                                     ),
                                 ),
                             ),
-                        ),
-                    ];
-                }
-                const typeField = type.fieldsByName[name];
+                        ];
+                    }
 
-                return [
-                    maybeAddDescriptionComment(
-                        typeField.description,
-                        liftLeadingPropertyComments(
+                    return objectPropertiesToFlow(
+                        ctx,
+                        type,
+                        typeName,
+                        ctx.fragments[selection.name.value].selectionSet
+                            .selections,
+                    );
+
+                case "Field":
+                    const name = selection.name.value;
+                    const alias: string = selection.alias
+                        ? selection.alias.value
+                        : name;
+                    if (name === "__typename") {
+                        return [
                             babelTypes.tsPropertySignature(
                                 babelTypes.identifier(alias),
                                 babelTypes.tsTypeAnnotation(
-                                    typeToFlow(
-                                        {
-                                            ...ctx,
-                                            path: ctx.path.concat([alias]),
-                                        },
-                                        typeField.type,
-                                        selection,
+                                    babelTypes.tsLiteralType(
+                                        babelTypes.stringLiteral(typeName),
+                                    ),
+                                ),
+                            ),
+                        ];
+                    }
+                    if (!type.fieldsByName[name]) {
+                        ctx.errors.push(
+                            `Unknown field '${name}' for type '${typeName}'`,
+                        );
+                        return [
+                            babelTypes.tsPropertySignature(
+                                babelTypes.identifier(alias),
+                                babelTypes.tsTypeAnnotation(
+                                    babelTypes.tsTypeReference(
+                                        babelTypes.identifier(
+                                            `UNKNOWN_FIELD["${name}"]`,
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ];
+                    }
+                    const typeField = type.fieldsByName[name];
+
+                    return [
+                        maybeAddDescriptionComment(
+                            typeField.description,
+                            liftLeadingPropertyComments(
+                                babelTypes.tsPropertySignature(
+                                    babelTypes.identifier(alias),
+                                    babelTypes.tsTypeAnnotation(
+                                        typeToFlow(
+                                            {
+                                                ...ctx,
+                                                path: ctx.path.concat([alias]),
+                                            },
+                                            typeField.type,
+                                            selection,
+                                        ),
                                     ),
                                 ),
                             ),
                         ),
-                    ),
-                ];
+                    ];
 
-            default:
-                ctx.errors.push(
-                    `Unsupported selection kind '${selection.kind}'`,
-                );
-                return [];
+                default:
+                    ctx.errors.push(
+                        `Unsupported selection kind '${selection.kind}'`,
+                    );
+                    return [];
+            }
+        },
+    );
+};
+
+// For an interface variant, collect every selection that applies to a given
+// concrete impl: base-level selections, plus the contents of any inline
+// fragment or fragment spread whose type condition matches the impl. The
+// flat list is then handed to objectPropertiesToFlow, whose response-name
+// merge collapses any duplicate Field nodes contributed by different
+// branches (e.g. a base-level `foo { a }` plus an inline-fragment
+// `foo { b }`). Non-matching inline fragments and fragment spreads are
+// dropped.
+const collectInterfaceSelectionsForPossible = (
+    ctx: Context,
+    possibleName: string,
+    selections: Selections,
+): Array<SelectionNode> => {
+    const result: Array<SelectionNode> = [];
+    for (const sel of selections) {
+        if (sel.kind === "InlineFragment") {
+            const condName = sel.typeCondition?.name.value;
+            const matches =
+                !condName ||
+                condName === possibleName ||
+                !!ctx.schema.interfacesByName[condName ?? ""]
+                    ?.possibleTypesByName[possibleName];
+            if (matches) {
+                result.push(...sel.selectionSet.selections);
+            }
+        } else if (sel.kind === "FragmentSpread") {
+            const fragment = ctx.fragments[sel.name.value];
+            if (!fragment) {
+                // Preserve the unknown-fragment error path inside objectPropertiesToFlow.
+                result.push(sel);
+                continue;
+            }
+            const condName = fragment.typeCondition.name.value;
+            const matches =
+                condName === possibleName ||
+                !!ctx.schema.interfacesByName[condName]?.possibleTypesByName[
+                    possibleName
+                ];
+            if (matches) {
+                result.push(...fragment.selectionSet.selections);
+            }
+        } else {
+            result.push(sel);
         }
-    });
+    }
+    return result;
 };
 
 export const unionOrInterfaceToFlow = (
@@ -371,6 +503,7 @@ export const unionOrInterfaceToFlow = (
     const allFields = selections.every(
         (selection) => selection.kind === "Field",
     );
+    const isUnion = type.kind === "UNION";
     const selectedAttributes: Array<{
         attributes: Array<babelTypes.TSPropertySignature>;
         typeName: string;
@@ -384,20 +517,38 @@ export const unionOrInterfaceToFlow = (
                 ...ctx,
                 path: allFields ? ctx.path : ctx.path.concat([possible.name]),
             };
+            // For interfaces with fragment refinements, flatten matching
+            // fragments into the concrete impl's selection list and let
+            // objectPropertiesToFlow merge duplicates by response name. The
+            // existing per-selection path stays in place for unions (where
+            // base-level Fields are an error and unionOrInterfaceSelection
+            // surfaces it) and for the fragment-free case (where there's
+            // nothing to flatten).
+            const useFlattenedFlow = !isUnion && !allFields;
+            const attributes = useFlattenedFlow
+                ? objectPropertiesToFlow(
+                      configWithUpdatedPath,
+                      ctx.schema.typesByName[possible.name],
+                      possible.name,
+                      collectInterfaceSelectionsForPossible(
+                          ctx,
+                          possible.name,
+                          selections,
+                      ),
+                  )
+                : selections
+                      .map((selection) =>
+                          unionOrInterfaceSelection(
+                              configWithUpdatedPath,
+                              type,
+                              possible,
+                              selection,
+                          ),
+                      )
+                      .flat();
             return {
                 typeName: possible.name,
-                attributes: ensureOnlyOneTypenameProperty(
-                    selections
-                        .map((selection) =>
-                            unionOrInterfaceSelection(
-                                configWithUpdatedPath,
-                                type,
-                                possible,
-                                selection,
-                            ),
-                        )
-                        .flat(),
-                ),
+                attributes: ensureOnlyOneTypenameProperty(attributes),
             };
         });
     // If they're all fields, the only selection that could be different is __typename
