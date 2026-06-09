@@ -1,6 +1,6 @@
 {
     "name": "@khanacademy/graphql-flow",
-    "version": "4.0.1",
+    "version": "5.0.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/Khan/graphql-flow.git"
