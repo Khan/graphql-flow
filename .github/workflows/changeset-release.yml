@@ -43,14 +43,23 @@ jobs:
       - name: Check npm supports trusted publishing
         shell: bash
         run: |
-          # npm trusted publishing (OIDC) requires npm CLI v11.5.1+. Node.js 24
-          # bundles a new enough npm, so we check it rather than upgrading: an
-          # unpinned upgrade can pull in an npm that needs a newer Node.js.
-          npx --yes semver@7 --range '>=11.5.1' "$(npm --version)" > /dev/null || {
-            echo "::error::npm $(npm --version) is too old for trusted publishing; it needs 11.5.1 or later."
+          # npm trusted publishing (OIDC) needs npm CLI v11.5.1 or later. Every
+          # Node.js 24 release since 24.5.0 bundles a new enough npm, so this
+          # only guards against an older Node.js. It fails rather than
+          # upgrading npm: an unpinned upgrade can pull in an npm that needs a
+          # newer Node.js.
+          CURRENT_NPM_VERSION=$(npm --version)
+          REQUIRED_NPM_VERSION="11.5.1"
+
+          # Sort the two versions with `sort -V` and take the lower one.
+          LOWEST_NPM_VERSION=$(printf '%s\n' "$REQUIRED_NPM_VERSION" "$CURRENT_NPM_VERSION" | sort -V | head -n1)
+
+          if [ "$LOWEST_NPM_VERSION" = "$REQUIRED_NPM_VERSION" ]; then
+            echo "✅ npm $CURRENT_NPM_VERSION supports trusted publishing"
+          else
+            echo "::error::npm $CURRENT_NPM_VERSION is older than $REQUIRED_NPM_VERSION, which trusted publishing needs. Use a newer Node.js."
             exit 1
-          }
-          echo "✅ npm $(npm --version) supports trusted publishing"
+          fi
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
